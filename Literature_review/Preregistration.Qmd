@@ -1,0 +1,25 @@
+---
+title: "Preregistration protocol - Review of the use of link functions and generalized linear models when testing interactions in psychological research"
+author: "Enrico Toffalini, Margherita Calderan, Tommaso Feraco, Filippo Gambarota"
+date: 2025-03-05
+format: 
+    pdf
+---
+
+# 1. Objectives and rationale
+
+---
+
+# 2. Methods
+
+## 2.1 Sample
+
+### 2.1.1 Sources and search
+
+### 2.1.2 Eligibility criteria
+
+## 2.2 Coding procedure
+
+## 2.3 Data analysis
+
+---
