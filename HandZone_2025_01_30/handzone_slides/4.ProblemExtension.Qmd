@@ -1,0 +1,456 @@
+---
+title: "All Interactions Are Wrong (?)"
+subtitle: "part 3: extent of the problem"
+author: "toffa et al. x psicostat"
+include-in-header: figures/slidesheader.html
+format:
+  revealjs:
+    code-line-numbers: false
+    css: custom.css
+    theme: default
+    slide-number: c/t
+    self-contained: true
+    code-fold: false
+    code-summary: "Show code"
+    code-overflow: wrap
+    title-slide-attributes: 
+     data-background-image: "figures/psicostatLogo.png"
+     data-background-size: "contain"
+     data-background-opacity: "0.15"
+execute:
+  echo: true
+  output: true
+---
+## Power for false positives
+
+Fitting a model with two main (non-interacting) effects but an incorrect *link function* increases the risk of detecting a false interaction between them.
+
+Is it a relevant problem?
+
+The issue is fundamentally about **power**: the probability of detecting a false interaction is about equal to the power for that interaction if the *link function* were correctly specified.
+
+## Example 1: log vs identity
+
+Let's consider this scenario ($\Delta \approx 50 ms$)
+
+```{r, cache=T}
+#| code-fold: true
+set.seed(10)
+library(ggplot2)
+library(emmeans)
+library(glmmTMB)
+
+N = 5000
+k = 20
+id = rep(1:N,each=k*2)
+group = rep(0:1,each=(N/2)*k*2)
+cond = rep(0:1,each=k,times=N)
+
+tau = 0.5
+b0 = 1
+b1 = 0.2
+b2 = 0.35
+shape = 10
+scaleConstant = 200
+
+rInt = rep(rnorm(N,0,tau),each=k*2)
+
+X = b0 + b1*group + b2*cond + rInt
+rt = rgamma(N*k*2, shape = shape, scale = scaleConstant*exp(X)/shape)
+
+#(DELTA = scaleConstant*(exp(b0+b1+b2)-exp(b0+b2)) - scaleConstant*(exp(b0+b1)-exp(b0)) )
+
+df = data.frame(id,group,cond,rt)
+combin = paste(paste0("group",group),paste0("cond",cond))
+df$combin = factor(combin)
+df$group = as.factor(df$group)
+df$cond = as.factor(df$cond)
+
+fitGLog = glmmTMB(rt ~ group + cond + (1|id), family=Gamma(link="log"), data=df)
+
+eff = data.frame(emmeans(fitGLog, specs="group", by="cond", type="response"))
+
+ggplot(eff,aes(x=cond,y=response,group=group,color=group,shape=group,linetype=group))+
+  geom_point(size=8)+
+  geom_line(linewidth=1.5)+
+  #geom_errorbar(aes(ymin=asymp.LCL,ymax=asymp.UCL),width=0)+
+  theme(text=element_text(size=24))+
+  ylab("rt")
+
+```
+
+## Example 1: log vs identity
+
+Let's consider this scenario ($\Delta \approx 50 ms$)
+
+```{r}
+#| code-fold: true
+library(ggplot2)
+ggplot(df)+
+  geom_density(aes(x=rt,group=combin,color=combin),linewidth=2)+
+  theme(text=element_text(size=24))+
+  scale_color_manual(values=c("darkorange","coral3","darkturquoise","deepskyblue4"))+
+  coord_cartesian(xlim=c(min(df$rt),quantile(df$rt,.9925)))
+```
+
+## Example 1: log vs identity
+
+the fitted models are
+
+1) *(correct)* `glmmTMB(rt ~ group * cond + (1|id), family=Gamma(link="log"), data=df)`,
+2) *(wrong)* `glmmTMB(rt ~ group * cond + (1|id), family=Gamma(link="identity"), data=df)`
+
+the interaction is NOT in the data generating process which is only `group + cond + (1|id)`; the difference between differences of $\Delta \approx 50 ms$ is entirely due to the exponential transformation of $X$
+
+## Example 1: log vs identity
+
+```{r, cache=T}
+#| code-fold: true
+N = 150
+k = 20
+id = rep(1:N,each=k*2)
+group = rep(0:1,each=(N/2)*k*2)
+cond = rep(0:1,each=k,times=N)
+tau = 0.5
+b0 = 1
+b1 = 0.2
+b2 = 0.35
+shape = 10
+scaleConstant = 200
+
+niter = 1000
+```
+
+`N = 150` participants divided into 2 groups (between), all participants undergo 2 conditions (within) each with `k = 20` trials (total `k = 40` trials per participant), `ICC = 0.72`
+
+
+## Example 1: `Gamma(link="log")`
+
+```{r, cache=T}
+#| code-fold: true
+set.seed(10)
+library(glmmTMB)
+
+pvals = rep(NA,niter)
+
+for(i in 1:niter){
+  rInt = rep(rnorm(N,0,tau),each=k*2)
+
+  X = b0 + b1*group + b2*cond + rInt
+  rt = rgamma(N*k*2, shape = shape, scale = scaleConstant*exp(X)/shape)
+
+  df = data.frame(id,group,cond,rt)
+  df$group = as.factor(df$group)
+  df$cond = as.factor(df$cond)
+
+  fitGLog = glmmTMB(rt ~ group * cond + (1|id), family=Gamma(link="log"), data=df)
+  pvals[i] = summary(fitGLog)$coefficients$cond["group1:cond1","Pr(>|z|)"]
+}
+
+```
+
+`N = 150` participants divided into 2 groups (between), all participants undergo 2 conditions (within) each with `k = 20` trials (total `k = 40` trials per participant), `ICC = 0.72`
+
+::: columns
+::: {.column width="30%"}
+correct `link="log"` <br> → <span style="color:darkgreen;">false positive interactions are <b>`r round(mean(pvals<0.05),3)*100`%</b> (about ok)</span>
+:::
+::: {.column width="70%"}
+```{r, echo=F}
+ggplot()+
+  geom_histogram(aes(x=pvals),bins=20,fill="blue",alpha=.7)+
+  theme(text=element_text(size=24))+
+  scale_x_continuous(limits=c(-0.05,1.05),breaks=seq(0,1,.1))+
+  xlab("p-value")
+```
+:::
+:::
+
+## Example 1: `Gamma(link="identity")`
+
+```{r, cache=T}
+#| code-fold: true
+set.seed(10)
+library(glmmTMB)
+
+pvals = rep(NA,niter)
+
+for(i in 1:niter){
+  rInt = rep(rnorm(N,0,tau),each=k*2)
+
+  X = b0 + b1*group + b2*cond + rInt
+  rt = rgamma(N*k*2, shape = shape, scale = scaleConstant*exp(X)/shape)
+
+  df = data.frame(id,group,cond,rt)
+  df$group = as.factor(df$group)
+  df$cond = as.factor(df$cond)
+
+  fitGId = glmmTMB(rt ~ group * cond + (1|id), family=Gamma(link="identity"), data=df)
+  pvals[i] = summary(fitGId)$coefficients$cond["group1:cond1","Pr(>|z|)"]
+}
+
+```
+
+`N = 150` participants divided into 2 groups (between), all participants undergo 2 conditions (within) each with `k = 20` trials (total `k = 40` trials per participant), `ICC = 0.72`
+
+::: columns
+::: {.column width="30%"}
+incorrect `link="identity"` <br> → <span style="color:darkred;">false positive interactions are <b>`r round(mean(pvals<0.05),3)*100`%</b> (bad!)</span>
+:::
+::: {.column width="70%"}
+```{r, echo=F}
+ggplot()+
+  geom_histogram(aes(x=pvals),bins=20,fill="blue",alpha=.7)+
+  theme(text=element_text(size=24))+
+  scale_x_continuous(limits=c(-0.05,1.05),breaks=seq(0,1,.1))+
+  xlab("p-value")
+```
+:::
+:::
+
+
+## Example 2: Probit vs Logit
+
+```{r, echo=F}
+library(gridExtra)
+b0 = 1.5
+b1 = -0.7
+b2 = -0.8
+s1 = expand.grid(group=c(0,1),condition=c(0,1))
+s1$yLin = b0 + b1*s1$group + b2*s1$condition
+s1$prob = pnorm(s1$yLin)
+s1$group = as.factor(s1$group)
+s1$condition = as.factor(s1$condition)
+lines_at = seq(-5,5,.5)
+fs = 30
+gg = ggplot(s1,aes(x=condition,y=prob,group=group,shape=group,color=group,linetype=group)) +
+  geom_point(size=5) +
+  geom_line(linewidth=1.5)
+gg1 = gg + 
+  scale_y_continuous(limits=c(0,1))+
+  geom_hline(yintercept=pnorm(lines_at),color="darkgray") +
+  ggtitle("link='probit',\n no interaction") + 
+  theme(text=element_text(size=fs), title=element_text(size=fs*.7), axis.title=element_text(size=fs))
+gg2 = gg + 
+  scale_y_continuous(limits=c(0,1))+
+  geom_hline(yintercept=seq(0,1,length.out=10),color="darkgray") +
+  ggtitle("link='identity',\n negative interaction") + 
+  theme(text=element_text(size=fs), title=element_text(size=fs*.7), axis.title=element_text(size=fs))
+gg3 = gg + 
+  scale_y_continuous(limits=c(0,1))+
+  geom_hline(yintercept=plogis(lines_at),color="darkgray") +
+  ggtitle("link='logit',\n positive interaction") + 
+  theme(text=element_text(size=fs), title=element_text(size=fs*.7), axis.title=element_text(size=fs))
+
+grid.arrange(gg1,gg2,ncol=2)
+```
+
+## Example 2: Probit vs Logit
+
+```{r, echo=F}
+grid.arrange(gg1,gg3,ncol=2)
+```
+
+
+## Example 2: `binomial(link="probit")`
+
+```{r, cache=T}
+#| code-fold: true
+set.seed(10)
+trueLF = "probit"
+usedLF = "probit"
+
+N = 150
+k = 20
+
+b0 = 1.5
+b1 = -0.7
+b2 = -0.8
+
+pvals = rep(NA,niter)
+for(i in 1:niter){
+  id = rep(1:N,each=k*2)
+  rInt = rep(rnorm(N,0,1),each=k*2)
+  group = rep(0:1,each=k*N)
+  condition = rep(0:1,each=k,times=N)
+  
+  yLin = b0 + b1*group + b2*condition
+  if(trueLF=="logit") yProb = plogis(yLin)
+  if(trueLF=="probit") yProb = pnorm(yLin)
+  y = rbinom(length(yLin),1,yProb)
+  df = data.frame(y,id,group,condition)
+  
+  fit = glmmTMB(y ~ group*condition+(1|id), data=df, family=binomial(link=usedLF))
+  pvals[i] = summary(fit)$coefficients$cond["group:condition","Pr(>|z|)"]
+}
+```
+
+`N = 150` participants divided into 2 groups (between), all participants undergo 2 conditions (within) each with `k = 20` trials (total `k = 40` trials per participant), `ICC = 0.50`
+
+::: columns
+::: {.column width="30%"}
+correct `link="probit"` <br> → <span style="color:darkgreen;">false positive interactions are <b>`r round(mean(pvals<0.05),3)*100`%</b> (about ok)</span>
+:::
+::: {.column width="70%"}
+```{r, echo=F}
+ggplot()+
+  geom_histogram(aes(x=pvals),bins=20,fill="blue",alpha=.7)+
+  theme(text=element_text(size=24))+
+  scale_x_continuous(limits=c(-0.05,1.05),breaks=seq(0,1,.1))+
+  xlab("p-value")
+```
+:::
+:::
+
+
+## Example 2: `binomial(link="logit")`
+
+```{r, cache=T}
+#| code-fold: true
+set.seed(10)
+trueLF = "probit"
+usedLF = "logit"
+
+N = 150
+k = 20
+
+b0 = 1.5
+b1 = -0.7
+b2 = -0.8
+
+pvals = rep(NA,niter)
+for(i in 1:niter){
+  id = rep(1:N,each=k*2)
+  rInt = rep(rnorm(N,0,1),each=k*2)
+  group = rep(0:1,each=k*N)
+  condition = rep(0:1,each=k,times=N)
+  
+  yLin = b0 + b1*group + b2*condition
+  if(trueLF=="logit") yProb = plogis(yLin)
+  if(trueLF=="probit") yProb = pnorm(yLin)
+  y = rbinom(length(yLin),1,yProb)
+  df = data.frame(y,id,group,condition)
+  
+  fit = glmmTMB(y ~ group*condition+(1|id), data=df, family=binomial(link=usedLF))
+  pvals[i] = summary(fit)$coefficients$cond["group:condition","Pr(>|z|)"]
+}
+```
+
+`N = 150` participants divided into 2 groups (between), all participants undergo 2 conditions (within) each with `k = 20` trials (total `k = 40` trials per participant), `ICC = 0.50`
+
+::: columns
+::: {.column width="30%"}
+incorrect `link="logit"` <br> → <span style="color:darkred;">false positive interactions are <b>`r round(mean(pvals<0.05),3)*100`%</b> (bad!)</span>
+:::
+::: {.column width="70%"}
+```{r, echo=F}
+ggplot()+
+  geom_histogram(aes(x=pvals),bins=20,fill="blue",alpha=.7)+
+  theme(text=element_text(size=24))+
+  scale_x_continuous(limits=c(-0.05,1.05),breaks=seq(0,1,.1))+
+  xlab("p-value")
+```
+:::
+:::
+
+## Paradox - Probit vs Logit ?
+
+```{r, echo=F}
+library(gridExtra)
+library(psyphy)
+b0 = -1.7
+b1 = 1.2
+b2 = 1.2
+b12 = -0.2
+s1 = expand.grid(group=c(0,1),condition=c(0,1))
+s1$X = b0 + b1*s1$group + b2*s1$condition + b12*s1$group*s1$condition
+s1$prob = mafc.probit(2)$linkinv(s1$X)
+s1$group = as.factor(s1$group)
+s1$condition = as.factor(s1$condition)
+lines_at = seq(-5,5,.5)
+fs = 22
+gg = ggplot(s1,aes(x=condition,y=prob,group=group,shape=group,color=group,linetype=group)) +
+  geom_point(size=5) +
+  geom_line(linewidth=1.5)
+gg1 = gg + 
+  scale_y_continuous(limits=c(0,1))+
+  geom_hline(yintercept=pnorm(lines_at),color="darkgray") +
+  ggtitle("link='probit',\n positive interaction") + 
+  theme(text=element_text(size=fs), title=element_text(size=fs*.7),
+        legend.position="bottom",axis.title=element_text(size=fs))
+gg2 = gg + 
+  scale_y_continuous(limits=c(0,1))+
+  geom_hline(yintercept=plogis(lines_at),color="darkgray") +
+  ggtitle("link='logit',\n positive interaction") + 
+  theme(text=element_text(size=fs), title=element_text(size=fs*.7),
+        legend.position="bottom",axis.title=element_text(size=fs))
+gg3 = gg + 
+  scale_y_continuous(limits=c(0,1))+
+  geom_hline(yintercept=seq(0,1,length.out=10),color="darkgray") +
+  ggtitle("link='identity',\n positive interaction") + 
+  theme(text=element_text(size=fs), title=element_text(size=fs*.7),
+        legend.position="bottom",axis.title=element_text(size=fs))
+
+grid.arrange(gg1,gg2,gg3,ncol=3)
+```
+
+## Paradox - FORCED CHOICE !
+```{r, echo=F}
+fs=28
+gg4 = gg + 
+  scale_y_continuous(limits=c(0,1))+
+  geom_hline(yintercept=mafc.probit(2)$linkinv(lines_at),color="darkgray") +
+  ggtitle("link='mafc.probit(2)',\n NEGATIVE interaction") + 
+  theme(text=element_text(size=fs), title=element_text(size=fs*.7), axis.title=element_text(size=fs))
+grid.arrange(gg4,layout_matrix=matrix(c(NA,1,NA),ncol=4),widths = c(0.4, 1, 0.4))
+```
+
+<!-- --------------------------------------------------------------------- -->
+<!-- --------------------------------------------------------------------- -->
+
+##
+### When (inference) may NOT be a problem (with caution)
+
+::: {.grid .grid-cols-2 .gap-4 style="display: grid; grid-template-rows: auto auto; grid-template-columns: auto auto;"}
+::: {.cell style="border: 1px solid #ddd; padding: 10px;"}
+```{r,echo=F}
+x = data.frame(A=as.factor(c(0,0,1,1)),B=as.factor(c(0,1,0,1)),score=c(0,1,0,2.5))
+ggplot(x,aes(x=A,y=score,group=B,color=B,linetype=B,shape=B))+
+  geom_point(size=8)+
+  geom_line(linewidth=1.5)+
+  theme(text=element_text(size=35),axis.text.y=element_blank())+
+  geom_hline(yintercept=-1.5,linetype=2,color="blue",linewidth=2)
+```
+:::
+::: {.cell style="border: 1px solid #ddd; padding: 10px;"}
+```{r,echo=F}
+x = data.frame(A=as.factor(c(0,0,1,1)),B=as.factor(c(0,1,0,1)),score=c(0,.15,1,2.5))
+ggplot(x,aes(x=A,y=score,group=B,color=B,linetype=B,shape=B))+
+  geom_point(size=8)+
+  geom_line(linewidth=1.5)+
+  theme(text=element_text(size=35),axis.text.y=element_blank())+
+  geom_hline(yintercept=-1.5,linetype=2,color="blue",linewidth=2)
+```
+:::
+::: {.cell style="border: 1px solid #ddd; padding: 10px;"}
+```{r,echo=F}
+x = data.frame(A=as.factor(c(0,0,1,1)),B=as.factor(c(0,1,0,1)),score=c(1.8,1,0.8,2.5))
+ggplot(x,aes(x=A,y=score,group=B,color=B,linetype=B,shape=B))+
+  geom_point(size=8)+
+  geom_line(linewidth=1.5)+
+  theme(text=element_text(size=35),axis.text.y=element_blank())+
+  geom_hline(yintercept=-1.5,linetype=2,color="blue",linewidth=2)
+```
+:::
+::: {.cell style="border: 1px solid #ddd; padding: 10px;"}
+```{r,echo=F}
+x = data.frame(A=as.factor(c(0,0,1,1)),B=as.factor(c(0,1,0,1)),score=c(0.1,0.45,0.4,0.57))
+ggplot(x,aes(x=A,y=score,group=B,color=B,linetype=B,shape=B))+
+  geom_point(size=8)+
+  geom_line(linewidth=1.5)+
+  theme(text=element_text(size=35),axis.text.y=element_blank())+
+  geom_hline(yintercept=c(0,1),linetype=2,color="blue",linewidth=2)
+```
+:::
+:::
+

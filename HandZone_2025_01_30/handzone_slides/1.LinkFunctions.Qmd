@@ -1,0 +1,265 @@
+---
+title: "Examples of *link functions*"
+author: "toffa et al. x psicostat"
+include-in-header: figures/slidesheader.html
+format:
+  revealjs:
+    code-line-numbers: false
+    css: custom.css
+    theme: default
+    slide-number: c/t
+    self-contained: true
+    code-fold: false
+    code-summary: "Show code"
+    code-overflow: wrap
+    title-slide-attributes: 
+     data-background-image: "figures/psicostatLogo.png"
+     data-background-size: "contain"
+     data-background-opacity: "0.15"
+execute:
+  echo: true
+  output: true
+---
+## *Linear Predictor*
+
+Consider a linear equation:
+
+$Y =$<span style="color:#0000BB;"> $\beta_0 + \beta_1X_1 + \beta_2X_2$</span>$+$ $\epsilon$
+
+- the *linear predictor* (often called $\eta$, but in the following slides simply called $X$) is the "<span style="color:#0000BB;">$\beta_0 + \beta_1X_1 + \beta_2X_2$</span>" part. 
+
+- the job of the *link function* in GLMs is to transform (re-map) the *linear predictor* $X$, which may span in $(-\infty, + \infty)$, to the appropriate range of the response variable $Y$ (e.g., times in $(0, +\infty)$, probabilities in $(0, 1)$)
+
+## `link="identity"`
+
+```{r, echo=F,message=F,warning=F}
+library(ggplot2)
+
+# IDENTITY
+x_vals = seq(-10, 10, length.out = 300)
+y_vals = x_vals
+data = data.frame(x = x_vals, y = y_vals)
+
+# Define x positions for vertical lines (equal intervals in x)
+x_positions = seq(-4,4,1)
+y_positions = x_positions
+
+# plot
+ggplot(data, aes(x = x, y = y)) +
+  geom_line(color = "blue", linewidth = 2) +  # Use linewidth instead of size
+  geom_vline(xintercept = x_positions, linetype = "dashed", color = "red", linewidth=.8) +
+  geom_hline(yintercept = y_positions, linetype = 1, color = "#777777", linewidth=1) +
+  labs(subtitle = "equal intervals on X correspond to equal intervals on Y",
+       x = "X values (linear predictor)",
+       y = "Y values (response)") +
+  theme_minimal() +
+  scale_x_continuous(breaks=-10:10) +
+  coord_cartesian(ylim=c(-4,4), xlim=c(-5,4.3)) +
+  theme(text=element_text(size=18)) + 
+  geom_text(data = data.frame(x = x_positions, y = -3.5, 
+                              label = paste0("x = ", x_positions)), 
+            aes(x = x, y = y, label = label), 
+            color = "black", vjust = 3, size=4, fontface="bold") +
+  geom_text(data = data.frame(x = -5, y = y_positions, 
+                              label = paste0("y = ", round(y_positions, 2))), 
+            aes(x = x, y = y, label = label), 
+            color = "black", hjust = 0, vjust=-.2, size=4, fontface="bold")
+```
+
+## `link="log"`
+
+```{r, echo=F,message=F,warning=F}
+
+# LOG
+x_vals = seq(-4, 3, length.out = 300)
+y_vals = exp(x_vals)
+data = data.frame(x = x_vals, y = y_vals)
+
+# Define x positions for vertical lines (equal intervals in x)
+x_positions = seq(-1.5,1.5,.5)
+y_positions = exp(x_positions)
+
+# plot
+ggplot(data, aes(x = x, y = y)) +
+  geom_line(color = "blue", linewidth = 2) +  # Use linewidth instead of size
+  geom_vline(xintercept = x_positions, linetype = "dashed", color = "red", linewidth=.8) +
+  geom_hline(yintercept = y_positions, linetype = 1, color = "#777777", linewidth=1) +
+  labs(subtitle = "equal intervals on X correspond to equal ratios (NOT equal intervals) on Y",
+       x = "X values (linear predictor)",
+       y = "Y values (response)") +
+  theme_minimal() +
+  scale_x_continuous(breaks=seq(-10,10,.5))+
+  coord_cartesian(xlim=c(-2.1,1.6), ylim=c(0,5)) + 
+  theme(text=element_text(size=18)) + 
+  geom_text(data = data.frame(x = x_positions, y = 0.5, 
+                              label = paste0("x = ", x_positions)), 
+            aes(x = x, y = y, label = label), 
+            color = "black", vjust = 3, size=4, fontface="bold") +
+  geom_text(data = data.frame(x = -2.1, y = y_positions, 
+                              label = paste0("y = ", round(y_positions, 2))), 
+            aes(x = x, y = y, label = label), 
+            color = "black", hjust = 0, vjust=-.2, size=4, fontface="bold")
+```
+
+## `link="inverse"`
+
+```{r, echo=F,message=F,warning=F}
+
+# INVERSE
+x_vals = seq(-4, 4, length.out = 300)
+y_vals = 1/x_vals
+data = data.frame(x = x_vals, y = y_vals)
+
+# Define x positions for vertical lines (equal intervals in x)
+x_positions = seq(-2,2,0.5)
+y_positions = 1/x_positions
+
+# plot
+ggplot(data, aes(x = x, y = y)) +
+  geom_line(color = "blue", linewidth = 2) +  # Use linewidth instead of size
+  geom_vline(xintercept = x_positions, linetype = "dashed", color = "red", linewidth=.8) +
+  geom_hline(yintercept = y_positions, linetype = 1, color = "#777777", linewidth=1) +
+  labs(subtitle = "equal intervals on X do NOT correspond to equal intervals on Y",
+       x = "X values (linear predictor)",
+       y = "Y values (response)") +
+  theme_minimal() +
+  scale_x_continuous(breaks=seq(-10,10,.5))+
+  coord_cartesian(ylim=c(-4,4), xlim=c(-2.5,2))+
+  theme(text=element_text(size=18)) + 
+  geom_text(data = data.frame(x = x_positions, y = -5.5, 
+                              label = paste0("x = ", x_positions)), 
+            aes(x = x, y = y, label = label), 
+            color = "black", vjust = 3, size=4, fontface="bold") +
+  geom_text(data = data.frame(x = -2.5, y = y_positions, 
+                              label = paste0("y = ", round(y_positions, 2))), 
+            aes(x = x, y = y, label = label), 
+            color = "black", hjust = 0, vjust=-.2, size=4, fontface="bold")
+```
+
+## `link="logit"`
+
+```{r, echo=F,message=F,warning=F}
+# LOGIT
+
+# Generate data for plotting
+x_vals = seq(-10, 10, length.out = 300)
+Y_Logit = plogis(x_vals)
+data = data.frame(x = x_vals, Y_Logit = Y_Logit)
+
+# Define x positions for vertical lines (equal intervals in x)
+x_positions = seq(-4,4,1)
+
+# Compute corresponding y values
+y_logis = plogis(x_positions)
+
+# PLOT
+ggplot(data, aes(x = x, y = Y_Logit)) +
+  geom_line(color = "blue", linewidth = 2) +  # Use linewidth instead of size
+  geom_vline(xintercept = x_positions, linetype = "dashed", color = "red", linewidth=.8) +
+  geom_hline(yintercept = y_logis, linetype = 1, color = "#777777", linewidth=1) +
+  labs(subtitle = "equal intervals on X do NOT correspond to equal intervals on Y",
+       x = "X values (linear predictor)",
+       y = "Probability / Accuracy") +
+  theme_minimal() +
+  scale_x_continuous(breaks=-4:4)+
+  coord_cartesian(xlim=c(-5,4),ylim=c(0,1))+
+  scale_y_continuous(breaks=seq(0,1,.1))+
+  theme(text=element_text(size=18)) + 
+  geom_text(data = data.frame(x = x_positions, y = 0.05, 
+                              label = paste0("x = ", x_positions)), 
+            aes(x = x, y = y, label = label), 
+            color = "black", vjust = 3, size=4, fontface="bold") +
+  geom_text(data = data.frame(x = -5, y = y_logis, 
+                              label = paste0("y = ", round(y_logis, 2))), 
+            aes(x = x, y = y, label = label), 
+            color = "black", hjust = 0, vjust=-.2, size=4, fontface="bold")
+```
+
+## `link="probit"`
+
+```{r, echo=F,message=F,warning=F}
+# PROBIT
+
+# Generate data for plotting
+x_vals = seq(-10, 10, length.out = 300)
+Y_Probit = pnorm(x_vals)
+data = data.frame(x = x_vals, Y_Probit = Y_Probit)
+
+# Define x positions for vertical lines (equal intervals in x)
+x_positions = seq(-4,4,1)
+
+# Compute corresponding y values
+y_probit = pnorm(x_positions)
+
+# PLOT
+ggplot(data, aes(x = x, y = Y_Probit)) +
+  geom_line(color = "blue", linewidth = 2) +  # Use linewidth instead of size
+  geom_vline(xintercept = x_positions, linetype = "dashed", color = "red", linewidth=.8) +
+  geom_hline(yintercept = y_probit, linetype = 1, color = "#777777", linewidth=1) +
+  labs(subtitle = "equal intervals on X do NOT correspond to equal intervals on Y",
+       x = "X values (linear predictor)",
+       y = "Probability / Accuracy") +
+  theme_minimal() +
+  scale_x_continuous(breaks=-4:4)+
+  coord_cartesian(xlim=c(-5,4),ylim=c(0,1))+
+  scale_y_continuous(breaks=seq(0,1,.1))+
+  theme(text=element_text(size=18)) + 
+  geom_text(data = data.frame(x = x_positions, y = 0.05, 
+                              label = paste0("x = ", x_positions)), 
+            aes(x = x, y = y, label = label), 
+            color = "black", vjust = 3, size=4, fontface="bold") +
+  geom_text(data = data.frame(x = -5, y = y_probit, 
+                              label = paste0("y = ", round(y_probit, 2))), 
+            aes(x = x, y = y, label = label), 
+            color = "black", hjust = 0, vjust=-.2, size=4, fontface="bold")
+```
+
+## `link=mafc.probit(3)`
+
+```{r, echo=F,message=F,warning=F}
+# mafc.probit(3)
+library(psyphy)
+
+# Generate data for plotting
+x_vals = seq(-10, 10, length.out = 300)
+Y_Probit3 = mafc.probit(3)$linkinv(x_vals)
+data = data.frame(x = x_vals, Y_Probit = Y_Probit3)
+
+# Define x positions for vertical lines (equal intervals in x)
+x_positions = seq(-4,4,1)
+
+# Compute corresponding y values
+y_probit = mafc.probit(3)$linkinv(x_positions)
+
+# PLOT
+ggplot(data, aes(x = x, y = Y_Probit3)) +
+  geom_line(color = "blue", linewidth = 2) +  # Use linewidth instead of size
+  geom_vline(xintercept = x_positions, linetype = "dashed", color = "red", linewidth=.8) +
+  geom_hline(yintercept = y_probit, linetype = 1, color = "#777777", linewidth=1) +
+  labs(subtitle = "equal intervals on X do NOT correspond to equal intervals on Y",
+       x = "X values (linear predictor)",
+       y = "Probability / Accuracy") +
+  theme_minimal() +
+  scale_x_continuous(breaks=-4:4)+
+  coord_cartesian(xlim=c(-5,4),ylim=c(0,1))+
+  scale_y_continuous(breaks=seq(0,1,.1))+
+  theme(text=element_text(size=18)) + 
+  geom_text(data = data.frame(x = x_positions, y = 0.05, 
+                              label = paste0("x = ", x_positions)), 
+            aes(x = x, y = y, label = label), 
+            color = "black", vjust = 3, size=4, fontface="bold") +
+  geom_text(data = data.frame(x = -5, y = y_probit, 
+                              label = paste0("y = ", round(y_probit, 2))), 
+            aes(x = x, y = y, label = label), 
+            color = "black", hjust = 0, vjust=-.2, size=4, fontface="bold")
+```
+
+## Probit or Logit?
+
+<div class="small">
+
+- ***Logit***: "*thinking in terms of odds ratios makes sense*"; a linear increase in predictors multiplies the *odds* of an event happening; e.g., chance of diagnosis (true categorical); ???
+
+- ***Probit***: "*thinking about an underlying Gaussian distribution makes sense*"; when a linear increase in predictor reflects a linear increase in an underlying normally-distributed trait; e.g., chance of: signal detection (normally-distributed noise in sensory processes), diagnosis (underlying dimensional), correctly answering a question / a math problem / passing an exam
+
+</div>

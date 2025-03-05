@@ -1,0 +1,280 @@
+---
+title: "All Interactions Are Wrong (?)"
+subtitle: "part 2: family vs link function"
+author: "toffa et al. x psicostat"
+include-in-header: figures/slidesheader.html
+format:
+  revealjs:
+    code-line-numbers: false
+    css: custom.css
+    theme: default
+    slide-number: c/t
+    self-contained: true
+    code-fold: false
+    code-summary: "Show code"
+    code-overflow: wrap
+    title-slide-attributes: 
+     data-background-image: "figures/psicostatLogo.png"
+     data-background-size: "contain"
+     data-background-opacity: "0.15"
+execute:
+  echo: true
+  output: true
+---
+## Problems with interactions? 
+
+- GLM ***family*** ensures the data distribution is well approximated, and the error term is correctly specified (so you avoid inflating coefficients precision)
+
+- ...but it's the ***link function*** that ensures that the *linear predictor* $X$ is appropriately mapped on the response scale $Y$, and **determines how differences in $X$ translate to differences in $Y$, which is critical for interactions!**
+
+- Each GLM ***family*** typical has an optimal choice, aka the ***canonical link function***
+
+## a "time" (rt) scenario
+
+```{r}
+#| code-fold: true
+set.seed(10)
+library(ggplot2)
+library(effects)
+
+N = 5e4
+A = rbinom(N,1,.5)
+B = rbinom(N,1,.5)
+
+b0 = 1
+b1 = 1
+b2 = 0.5
+```
+
+<div class="large-code">
+```{r}
+X = b0 + b1*A + b2*B
+
+rt = rgamma(N, shape = 5, scale = 20*exp(X))
+```
+</div>
+
+- `A` e `B` sono fattori a 2 livelli
+
+- `shape = 5` determina una *skewness* = `2/sqrt(shape)` = `0.89` in ciascuna condizione
+
+- `rgamma` stabilisce che la distribuzione degli `rt` sarà una *Gamma*
+
+- `exp(X)` determina che la *link function* è `"log"`
+
+## observed distributions
+
+```{r}
+#| code-fold: true
+df = data.frame(rt,A,B)
+condition = paste(paste0("A",A),paste0("B",B))
+df$condition = factor(condition)
+df$A = as.factor(df$A)
+df$B = as.factor(df$B)
+ggplot(df)+
+  geom_density(aes(x=rt,group=condition,color=condition),linewidth=2)+
+  theme(text=element_text(size=24))+
+  scale_color_manual(values=c("darkorange","darkturquoise","coral3","deepskyblue4"))+
+  coord_cartesian(xlim=c(min(df$rt),quantile(df$rt,.9975)))
+```
+
+## the model, `Gamma(link="log")`
+
+<div class="large-code">
+```{r}
+fitGLog = glm(rt ~ A * B, family=Gamma(link="log"), data=df)
+summary(fitGLog)
+```
+</div>
+
+## predicted effects, `Gamma(link="log")`
+
+```{r}
+#| code-fold: true
+eff = data.frame(allEffects(fitGLog)$"A:B")
+ggplot(eff,aes(x=A,y=fit,group=B,color=B,shape=B,linetype=B))+
+  geom_point(size=6)+
+  geom_line(linewidth=1.5)+
+  geom_errorbar(aes(ymin=lower,ymax=upper),width=0)+
+  theme(text=element_text(size=24))+
+  ylab("rt")
+```
+
+## reproduced data, `Gamma(link="log")`
+
+```{r}
+#| code-fold: true
+df$sim = simulate(fitGLog)$sim_1
+ggplot(df)+
+  geom_density(aes(x=rt,group=condition,color=condition),linewidth=1)+
+  geom_density(aes(x=sim,group=condition,fill=condition),color=NA,alpha=.4)+
+  scale_color_manual(values=c("darkorange","darkturquoise","coral3","deepskyblue4"))+
+  scale_fill_manual(values=c("darkorange","darkturquoise","coral3","deepskyblue4"))+
+  theme(text=element_text(size=24))+
+  coord_cartesian(xlim=c(min(df$rt),quantile(df$rt,.9975)))
+```
+
+
+## the model, `Gamma(link="identity")`
+
+<div class="large-code">
+```{r}
+fitGId = glm(rt ~ A * B, family=Gamma(link="identity"), data=df)
+summary(fitGId)
+```
+</div>
+
+## predicted effects, `Gamma(link="identity")`
+
+```{r}
+#| code-fold: true
+eff = data.frame(allEffects(fitGId)$"A:B")
+ggplot(eff,aes(x=A,y=fit,group=B,color=B,shape=B,linetype=B))+
+  geom_point(size=6)+
+  geom_line(linewidth=1.5)+
+  geom_errorbar(aes(ymin=lower,ymax=upper),width=0)+
+  theme(text=element_text(size=24))+
+  ylab("rt")
+```
+
+## reproduced data, `Gamma(link="identity")`
+
+```{r}
+#| code-fold: true
+df$sim = simulate(fitGId)$sim_1
+ggplot(df)+
+  geom_density(aes(x=rt,group=condition,color=condition),linewidth=1)+
+  geom_density(aes(x=sim,group=condition,fill=condition),color=NA,alpha=.4)+
+  scale_color_manual(values=c("darkorange","darkturquoise","coral3","deepskyblue4"))+
+  scale_fill_manual(values=c("darkorange","darkturquoise","coral3","deepskyblue4"))+
+  theme(text=element_text(size=24))+
+  coord_cartesian(xlim=c(min(df$rt),quantile(df$rt,.9975)))
+```
+
+## `BIC` doesn't tell you
+
+Model with `Gamma(link="log")`
+
+<div class="large-code">
+```{r}
+BIC(fitGLog) # ok, but could be further improved removing interaction
+```
+
+Model with `Gamma(link="identity")`
+
+```{r}
+BIC(fitGId) # ok, but you must keep a non-existent interaction term
+```
+</div>
+
+## comments, `Gamma(link="identity")`
+
+- ... so, **setting the wrong link function leads to discovering a false interaction** (because different differences on the response are taken as reflecting different differences on the linear predictor $X$, needing an interaction term to accomodate them)
+
+- however, using the **correct distribution** (`Gamma`) leads to **perfectly fitting the data** anyways! 
+
+- problem is: yes, you fit the data, but **you need an interaction term that was NOT in the data-generating process**
+
+## comments, `Gamma(link="identity")`
+
+IMPORTANT!
+
+As shown <a href="5.Diagnostics.html" target=_blank>here</a>, wrong link function can still be detected because it causes poor fit with the data and a larger BIC if:
+
+1) <b>random effects</b> are there (and they are fitted)
+
+2) some predictors are <b>continuous</b> instead of categorical
+
+<em>but even in these cases... how many observations do we need to confidently tell the link function? Worst scenario is if N that leads to discovering false interaction is lower than N needed to tell the correct link function. Not tested this yet.</em>
+
+## the model, `gaussian(link="log")`
+
+<div class="large-code">
+```{r}
+fitNLog = glm(rt ~ A * B, family=gaussian(link="log"), data=df)
+summary(fitNLog)
+```
+</div>
+
+## predicted effects, `gaussian(link="log")`
+
+```{r}
+#| code-fold: true
+eff = data.frame(allEffects(fitNLog)$"A:B")
+ggplot(eff,aes(x=A,y=fit,group=B,color=B,shape=B,linetype=B))+
+  geom_point(size=6)+
+  geom_line(linewidth=1.5)+
+  geom_errorbar(aes(ymin=lower,ymax=upper),width=0)+
+  theme(text=element_text(size=24))+
+  ylab("rt")
+```
+
+## reproduced data, `gaussian(link="log")`
+
+```{r}
+#| code-fold: true
+df$sim = simulate(fitNLog)$sim_1
+ggplot(df)+
+  geom_density(aes(x=rt,group=condition,color=condition),linewidth=1)+
+  geom_density(aes(x=sim,group=condition,fill=condition),color=NA,alpha=.4)+
+  scale_color_manual(values=c("darkorange","darkturquoise","coral3","deepskyblue4"))+
+  scale_fill_manual(values=c("darkorange","darkturquoise","coral3","deepskyblue4"))+
+  theme(text=element_text(size=24))+
+  coord_cartesian(xlim=c(min(df$rt),quantile(df$rt,.9975)))
+```
+
+## comments, `gaussian(link="log")`
+
+- ... so, **setting the correct link function avoids discovering false interactions** *even if the distribution is wrong*
+
+- however, using the **wrong distribution** (`gaussian`) leads to poorly fitting the observed data! 
+
+- problems are 1) **poor fit with the data**; 2) residuals will be **skewed and heteroscedastic**
+
+- `BIC` cannot be compared across families
+
+## Paradox - Interaction or not?
+
+```{r, cache=T}
+#| code-fold: true
+set.seed(11)
+N = 2e4
+b0 = 0
+b1 = 1.00
+b2 = 0.70
+b1b2 = -0.347
+A = rbinom(N,1,.5)
+B = rbinom(N,1,.5)
+X = b0 + b1*A + b2*B + b1b2*A*B
+rt = rgamma(N,shape=5,scale=100*exp(X))
+df = data.frame(rt,A,B)
+df$A = as.factor(df$A)
+df$B = as.factor(df$B)
+
+fitGLog = glm(rt ~ A * B, family=Gamma(link="log"), data=df)
+eff = data.frame(allEffects(fitGLog)$"A:B")
+
+ggplot(eff,aes(x=A,y=fit,group=B,color=B,shape=B,linetype=B))+
+  geom_point(size=6)+
+  geom_line(linewidth=1.5)+
+  geom_errorbar(aes(ymin=lower,ymax=upper),width=0)+
+  theme(text=element_text(size=24))+
+  ylab("rt")
+```
+
+##
+### `Gamma(link="identity")` → *positive* interaction
+
+```{r}
+fitGId = glm(rt ~ A * B, family=Gamma(link="identity"), data=df)
+summary(fitGId)
+```
+
+##
+### `Gamma(link="log")` → *negative* interaction
+
+```{r}
+fitGLog = glm(rt ~ A * B, family=Gamma(link="log"), data=df)
+summary(fitGLog)
+```
+

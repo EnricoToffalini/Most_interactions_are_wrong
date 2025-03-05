@@ -1,0 +1,134 @@
+---
+title: "All Interactions Are Wrong: Logit vs Probit"
+author: "toffa @ psicostat"
+date: "2025-01-14"
+format: 
+  pdf:
+    toc: true
+    number-sections: true
+    math: true
+    #self-contained: true
+---
+
+# Introduction
+
+Under common conditions in which there are two main effects and no interaction, fitting a model with the wrong link function leads to detecting pseudointeractions; that is, to inflating the false positive rates for the interaction. This happen even if one fits a binomial GLM, but uses the "logit" link function when the data were generate using the "probit", or vice versa. 
+
+# Scenario A: Data generating process showing a logit link function
+
+In scenario A, the true data generating model is specified as follows: 
+
+$$
+\text{logit}(prob) = \beta_0 + \beta_1 X_1 + \beta_2 X_2
+$$
+Where:
+
+- $p$ is the probability of a positive response 
+- $\beta_0$ is the fixed intercept.
+- $\beta_1$ and $\beta_2$ are the fixed effect coefficients for predictors $X_1$ and $X_2$, respectively.
+
+Thus, the model incorporates fixed effects of $X_1$ and $X_2$, but not their interaction. For simplicity and computational speed we choose not to enter random effects, although they are frequently present in this scenario. 
+
+## Data simulation
+
+```{r}
+rm(list=ls())
+library(ggplot2)
+library(glmmTMB)
+```
+
+```{r}
+N = 1e3
+X1 = rep(c(0,1),each=N/2)
+X2 = rep(c(0,1),each=N/4,times=2)
+df = data.frame(X1, X2, y=NA)
+b0 = 0
+b1 = 1
+b2 = 1
+lin_pred = b0 + b1*X1 + b2*X2
+```
+
+## Correctly using a logit link function in GLM
+
+```{r, cache=T}
+niter = 1000
+pvalues_A_logit = rep(NA,niter)
+
+for(i in 1:niter){
+  prob = plogis(lin_pred)
+  y = rbinom(N,1,prob)
+  df$y = y
+  fit = glmmTMB(y ~ X1 * X2, data=df, family=binomial(link="logit"))
+  pvalues_A_logit[i] = summary(fit)$coefficients$cond["X1:X2","Pr(>|z|)"]
+}
+```
+
+```{r}
+hist(pvalues_A_logit,breaks=20)
+```
+
+## Incorrectly using a probit link function in GLM
+
+```{r, cache=T}
+niter = 1000
+pvalues_A_probit = rep(NA,niter)
+
+for(i in 1:niter){
+  prob = plogis(lin_pred)
+  y = rbinom(N,1,prob)
+  df$y = y
+  fit = glmmTMB(y ~ X1 * X2, data=df, family=binomial(link="probit"))
+  pvalues_A_probit[i] = summary(fit)$coefficients$cond["X1:X2","Pr(>|z|)"]
+}
+```
+
+```{r}
+hist(pvalues_A_probit,breaks=20)
+```
+
+
+# Scenario B: Data generating process showing a probit link function
+
+Scenario B is exactly identical to scenario A, except that the data generating process features a "probit" (instead of "logit") link function.
+
+$$
+\text{logit}(prob) = \beta_0 + \beta_1 X_1 + \beta_2 X_2
+$$
+
+## Incorrectly using a logit link function in GLM
+
+```{r, cache=T}
+niter = 1000
+pvalues_B_logit = rep(NA,niter)
+
+for(i in 1:niter){
+  prob = pnorm(lin_pred)
+  y = rbinom(N,1,prob)
+  df$y = y
+  fit = glmmTMB(y ~ X1 * X2, data=df, family=binomial(link="logit"))
+  pvalues_B_logit[i] = summary(fit)$coefficients$cond["X1:X2","Pr(>|z|)"]
+}
+```
+
+```{r}
+hist(pvalues_B_logit,breaks=20)
+```
+
+## Correctly using a probit link function in GLM
+
+```{r, cache=T}
+niter = 1000
+pvalues_B_probit = rep(NA,niter)
+
+for(i in 1:niter){
+  prob = pnorm(lin_pred)
+  y = rbinom(N,1,prob)
+  df$y = y
+  fit = glmmTMB(y ~ X1 * X2, data=df, family=binomial(link="probit"))
+  pvalues_B_probit[i] = summary(fit)$coefficients$cond["X1:X2","Pr(>|z|)"]
+}
+```
+
+```{r}
+hist(pvalues_B_probit,breaks=20)
+```

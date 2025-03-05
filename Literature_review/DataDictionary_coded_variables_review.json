@@ -1,0 +1,66 @@
+{
+    "@context": "http://schema.org/",
+    "@type": "Dataset",
+    "name": "Systematic Review Variables",
+    "description": "Preregistration of coded variables for the systematic review",
+    "variableMeasured": [
+        {
+            "@type": "PropertyValue",
+            "name": "Authors",
+            "description": "Full list of authors' names.",
+            "valueType": "Text"
+        },
+        {
+            "@type": "PropertyValue",
+            "name": "Title",
+            "description": "Title of the article.",
+            "valueType": "Text"
+        },
+        {
+            "@type": "PropertyValue",
+            "name": "Year",
+            "description": "Year of publication.",
+            "unitText": "Year",
+            "valueType": "Integer"
+        },
+        {
+            "@type": "PropertyValue",
+            "name": "Journal",
+            "description": "Name of the journal in which the article was published.",
+            "valueType": "Text"
+        },
+        {
+            "@type": "PropertyValue",
+            "name": "Tests_interactions",
+            "description": "Whether the article tests at least one interaction term in a statistical model or using an anova.",
+            "valueType": "Boolean"
+        },
+        {
+            "@type": "PropertyValue",
+            "name": "Uses_non_identity_link_function",
+            "description": "Whether at least one of the tested interaction is analyzed with a non-identity link function.",
+            "valueType": "Boolean"
+        },
+        {
+            "@type": "PropertyValue",
+            "name": "Incorrect_identity_link_function",
+            "description": "Wwhether at least one tested interaction is analyzed using an identity link function when another link function would be more appropriate.",
+            "valueType": "Boolean"
+        },
+        {
+            "@type": "PropertyValue",
+            "name": "Finds_significant_interactions",
+            "description": "Whether at least one interaction (where the link function was incorrectly specified as identity) yields a statistically significant result.",
+            "valueType": "Boolean"
+        },
+        {
+            "@type": "PropertyValue",
+            "name": "Response_variable_types",
+            "description": "A list of of the types of response variables on which interactions are tested. Possible values include {Sum score, Accuracy, Error count, Response times, Ordinal/Likert, ...}. This list may be expanded.",
+            "valueType": "Category",
+            "categoryValues": ["Sum score", "Accuracy", "Error count", "Response times", "Ordinal/Likert", "..."]
+        }
+    ]
+}
+
+

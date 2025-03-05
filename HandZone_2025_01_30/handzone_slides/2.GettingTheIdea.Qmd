@@ -1,0 +1,201 @@
+---
+title: "All Interactions Are Wrong (?)"
+subtitle: "part 1: getting the idea"
+author: "toffa et al. x psicostat"
+include-in-header: figures/slidesheader.html
+format:
+  revealjs:
+    code-line-numbers: false
+    css: custom.css
+    theme: default
+    slide-number: c/t
+    self-contained: true
+    code-fold: false
+    code-summary: "Show code"
+    code-overflow: wrap
+    title-slide-attributes: 
+     data-background-image: "figures/psicostatLogo.png"
+     data-background-size: "contain"
+     data-background-opacity: "0.15"
+execute:
+  echo: true
+  output: true
+---
+## How often do we deal with interactions?
+
+- No idea, we will do a review on top journals
+
+- Probably quite often in psychology, as we frequently build on already known main effects, looking for moderators
+
+- Especially when working on individual differences here's a typical case: Group (reference vs special) x Condition (generally one more facilitating/challenging than the baseline); both factors have a main effect on the response
+
+## Example: *Poisson*
+
+This is how error counts frequently look like:
+
+```{r}
+#| code-fold: true
+set.seed(2)
+library(ggplot2)
+N = 500; age = rpois(N,1.4)
+ts = 26; tc = "#555555"
+ggplot()+
+  geom_histogram(aes(y=after_stat(density),x=age),fill="darkblue",alpha=.7,binwidth=0.5)+
+  scale_x_continuous(breaks=seq(0,100,1))+
+  theme(text=element_text(size=ts,color="black"))+xlab("Errors")
+```
+
+## Example: *Poisson*
+
+And this is how a linear predict may affect error count: 
+
+```{r}
+#| code-fold: true
+set.seed(1)
+N = 250; age = round(runif(N,6,10),1); y = rpois(N,exp(6.5-age*.8))
+d = data.frame(y,age)
+ggplot(d,aes(x=age,y=y))+
+  coord_cartesian(ylim=c(-0.4,max(y))) +
+  geom_point(size=4,alpha=.5,color="darkblue")+
+  theme(text=element_text(size=ts,color="black"))+
+  scale_y_continuous(breaks=seq(0,20,2))+scale_x_continuous(breaks=seq(0,20,.5))+
+  ylab("Errors")+xlab("Age (years)")
+```
+
+## Example: *Poisson*
+
+A <span style="color:darkred;">classical linear model</span> would be problematic
+
+```{r}
+#| code-fold: true
+fitL = glm(y~age, data=d)
+
+library(effects)
+effL = data.frame(allEffects(fitL,xlevels=list(age=seq(min(age),max(age),.05)))$"age")
+ggplot(d,aes(x=age,y=y))+
+  coord_cartesian(ylim=c(-0.4,max(y))) +
+  geom_point(size=4,alpha=.5,color="darkblue")+
+  geom_line(data=effL,aes(y=fit),size=2,color="darkred")+
+  geom_ribbon(data=effL,aes(y=fit,ymin=lower,ymax=upper),alpha=.3,fill="darkred")+
+  theme(text=element_text(size=ts,color="black"))+
+  scale_y_continuous(breaks=seq(0,20,2))+scale_x_continuous(breaks=seq(0,20,.5))+
+  ylab("Errors")+xlab("Age (years)")
+```
+
+## Example: *Poisson*
+
+<span style="color:blue;">Proper model</span> is much better
+
+```{r}
+#| code-fold: true
+fitP = glm(y~age, family=poisson(link="log"), data=d)
+
+effP = data.frame(allEffects(fitP,xlevels=list(age=seq(min(age),max(age),.05)))$"age")
+ggplot(d,aes(x=age,y=y))+
+  coord_cartesian(ylim=c(-0.4,max(y))) +
+  geom_point(size=4,alpha=.5,color="darkblue")+
+  geom_line(data=effP,aes(y=fit),size=2,color="blue")+
+  geom_ribbon(data=effP,aes(y=fit,ymin=lower,ymax=upper),alpha=.3,fill="blue")+
+  #geom_line(data=effL,aes(y=fit),size=2,color="darkred")+
+  #geom_ribbon(data=effL,aes(y=fit,ymin=lower,ymax=upper),alpha=.3,fill="darkred")+
+  theme(text=element_text(size=ts,color="black"))+
+  scale_y_continuous(breaks=seq(0,20,2))+scale_x_continuous(breaks=seq(0,20,.5))+
+  ylab("Errors")+xlab("Age (years)")
+```
+
+## Example: *Poisson*
+
+But now... let's add another main effect
+
+```{r}
+#| code-fold: true
+set.seed(3)
+N = 250; age = round(runif(N,6,10),1); group = rbinom(N,1,.5); y = rpois(N,exp(5.5-age*.5+group*.8))
+d = data.frame(id=1:length(y),y,age,group=as.factor(group))
+fitP = glm(y~age*group, family=poisson(link="log"), data=d)
+effP = data.frame(allEffects(fitP,xlevels=list(age=seq(min(age),max(age),.05)))$"age:group")
+effP$group = as.factor(effP$group)
+ggplot(d,aes(x=age,y=y,shape=group,color=group))+
+  geom_point(size=4,alpha=.6)+
+  scale_color_manual(values=c("darkorange2","darkgreen"))+
+  scale_fill_manual(values=c("darkorange1","darkgreen"))+
+  geom_line(data=effP,aes(x=age,y=fit,group=group,linetype=group),size=2)+
+  geom_ribbon(data=effP,aes(x=age,y=fit,ymin=lower,ymax=upper,group=group,fill=group),alpha=.3,color=NA)+
+  theme(text=element_text(size=ts,color="black"))+scale_x_continuous(breaks=seq(0,20,.5))+
+  ylab("Errors")+xlab("Age (years)")
+```
+
+## Example: *Poisson*
+
+<div class="large-code">
+```{r}
+library(glmmTMB)
+
+fitP_0 = glmmTMB(y ~ age + group + (1|id), family=poisson(link="log"), data=d)
+fitP_1 = glmmTMB(y ~ age * group + (1|id), family=poisson(link="log"), data=d)
+anova(fitP_0, fitP_1)
+```
+</div>
+
+## Example: *Poisson*
+
+But an interaction would emerge with a classical linear model
+
+<div class="large-code">
+```{r}
+fitL_0 = glmmTMB(y ~ age + group + (1|id), data=d)
+fitL_1 = glmmTMB(y ~ age * group + (1|id), data=d)
+anova(fitL_0, fitL_1)
+```
+</div>
+
+## Example: *Poisson*
+
+But an interaction would emerge with a classical linear model
+
+```{r}
+#| code-fold: true
+effL = data.frame(allEffects(fitL_1,xlevels=list(age=seq(min(age),max(age),.05)))$"age:group")
+ggplot(d,aes(x=age,y=y,shape=group,color=group))+
+  geom_point(size=4,alpha=.6)+
+  scale_color_manual(values=c("darkorange2","darkgreen"))+
+  scale_fill_manual(values=c("brown1","darkslategray"))+
+  geom_line(data=effL,aes(x=age,y=fit,group=group,linetype=group),size=2,color=rep(c("brown1","darkslategray"),each=nrow(effL)/2))+
+  geom_ribbon(data=effL,aes(x=age,y=fit,ymin=lower,ymax=upper,group=group,fill=group),alpha=.3,color=NA)+
+  theme(text=element_text(size=ts,color=tc))+scale_x_continuous(breaks=seq(0,20,.5))+
+  ylab("Errors")+xlab("Age (years)")
+```
+
+
+## Example: *Poisson*
+
+`family=gaussian(link="log")`
+
+actually... issue with interaction is *link function* rather than family
+
+<div class="large-code">
+```{r}
+fitL_log_0 = glmmTMB(y~age+group+(1|id), family=gaussian(link="log"), data=d, start = c(1, 0, 0))
+fitL_log_1 = glmmTMB(y~age*group+(1|id), family=gaussian(link="log"), data=d, start = c(1, 0, 0, 0))
+anova(fitL_log_0, fitL_log_1)
+```
+</div>
+
+## Example: *Poisson*
+
+`family=gaussian(link="log")`
+
+```{r}
+#| code-fold: true
+fitL_log_1 = glm(y~age*group, family=gaussian(link="log"), data=d, start = c(1, 0, 0, 0))
+effL = data.frame(allEffects(fitL_log_1,xlevels=list(age=seq(min(age),max(age),.05)))$"age:group")
+ggplot(d,aes(x=age,y=y,shape=group,color=group))+
+  geom_point(size=4,alpha=.6)+
+  scale_color_manual(values=c("darkorange2","darkgreen"))+
+  scale_fill_manual(values=c("brown1","darkslategray"))+
+  geom_line(data=effL,aes(x=age,y=fit,group=group,linetype=group),size=2,color=rep(c("brown1","darkslategray"),each=nrow(effL)/2))+
+  geom_ribbon(data=effL,aes(x=age,y=fit,ymin=lower,ymax=upper,group=group,fill=group),alpha=.3,color=NA)+
+  theme(text=element_text(size=ts,color=tc))+scale_x_continuous(breaks=seq(0,20,.5))+
+  ylab("Errors")+xlab("Age (years)")
+```
+

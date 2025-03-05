@@ -1,0 +1,436 @@
+---
+title: "Two words on diagnostics"
+author: "toffa et al. x psicostat"
+include-in-header: figures/slidesheader.html
+format:
+  revealjs:
+    code-line-numbers: false
+    css: custom.css
+    theme: default
+    slide-number: c/t
+    self-contained: true
+    code-fold: false
+    code-summary: "Show code"
+    code-overflow: wrap
+    title-slide-attributes: 
+     data-background-image: "figures/psicostatLogo.png"
+     data-background-size: "contain"
+     data-background-opacity: "0.15"
+execute:
+  echo: true
+  output: true
+---
+
+## 
+### NO random effects; true is `Gamma(link="log")`
+```{r, cache=T}
+#| code-fold: true
+set.seed(100)
+library(glmmTMB)
+
+N = 2000
+k = 15
+id = rep(1:N,each=k*2)
+group = rep(0:1,each=(N/2)*k*2)
+cond = rep(0:1,each=k,times=N)
+
+tau = 0
+b0 = 1
+b1 = 0.4
+b2 = 0.7
+shape = 10
+scaleConstant = 100
+
+X = b0 + b1*group + b2*cond
+rt = rgamma(N*k*2, shape = shape, scale = scaleConstant*exp(X)/shape)
+
+df = data.frame(id,group,cond,rt)
+combin = paste(paste0("group",group),paste0("cond",cond))
+df$combin = factor(combin)
+df$group = as.factor(df$group)
+df$cond = as.factor(df$cond)
+
+modLog_TrueLog = glmmTMB(rt ~ group * cond , family=Gamma(link="log"), data=df)
+modIdent_TrueLog = glmmTMB(rt ~ group * cond , family=Gamma(link="identity"), data=df)
+```
+
+fitted with `Gamma(link="log")`
+```{r}
+#| code-fold: true
+library(glmmTMB)
+library(ggplot2)
+library(effects)
+eff = data.frame(allEffects(modLog_TrueLog)$"group")
+ggplot(eff,aes(x=cond,y=fit,group=group,linetype=group,color=group,shape=group))+
+  geom_point(size=7)+
+  geom_line(size=1)+
+  theme(text=element_text(size=24))
+```
+
+## 
+### NO random effects; true is `Gamma(link="log")`
+
+::: columns
+::: {.column width="50%"}
+fitted with `Gamma(link="log")`
+```{r}
+#| code-fold: true
+eff = data.frame(allEffects(modLog_TrueLog)$"group")
+ggplot(eff,aes(x=cond,y=fit,group=group,linetype=group,color=group,shape=group))+
+  geom_point(size=7)+
+  geom_line(size=1)+
+  theme(text=element_text(size=24))
+```
+:::
+::: {.column width="50%"}
+fitted with `Gamma(link="identity")`
+```{r}
+#| code-fold: true
+eff = data.frame(allEffects(modIdent_TrueLog)$"group")
+ggplot(eff,aes(x=cond,y=fit,group=group,linetype=group,color=group,shape=group))+
+  geom_point(size=7)+
+  geom_line(size=1)+
+  theme(text=element_text(size=24))
+```
+:::
+:::
+
+## 
+### NO random effects; true is `Gamma(link="log")`
+
+::: columns
+::: {.column width="50%"}
+fitted with `Gamma(link="log")`
+```{r}
+#| code-fold: true
+library(glmmTMB)
+library(ggplot2)
+sim = simulate(modLog_TrueLog)$sim_1
+ggplot(df)+
+  geom_density(aes(x=rt,group=combin,color=combin),linewidth=1)+
+  geom_density(aes(x=sim,group=combin,fill=combin),color=NA,alpha=.4)+
+  scale_color_manual(values=c("darkorange","darkturquoise","coral3","deepskyblue4"))+
+  scale_fill_manual(values=c("darkorange","darkturquoise","coral3","deepskyblue4"))+
+  theme(text=element_text(size=24),legend.position="bottom",legend.title=element_blank())+
+  coord_cartesian(xlim=c(min(df$rt),quantile(df$rt,.995)))
+```
+:::
+::: {.column width="50%"}
+fitted with `Gamma(link="identity")`
+```{r}
+#| code-fold: true
+eff = data.frame(allEffects(modIdent_TrueLog)$"group")
+ggplot(df)+
+  geom_density(aes(x=rt,group=combin,color=combin),linewidth=1)+
+  geom_density(aes(x=sim,group=combin,fill=combin),color=NA,alpha=.4)+
+  scale_color_manual(values=c("darkorange","darkturquoise","coral3","deepskyblue4"))+
+  scale_fill_manual(values=c("darkorange","darkturquoise","coral3","deepskyblue4"))+
+  theme(text=element_text(size=24),legend.position="bottom",legend.title=element_blank())+
+  coord_cartesian(xlim=c(min(df$rt),quantile(df$rt,.995)))
+```
+:::
+:::
+
+## 
+### NO random effects; true is `Gamma(link="log")`
+
+::: columns
+::: {.column width="50%"}
+fitted with `Gamma(link="log")`
+```{r}
+BIC(modLog_TrueLog)
+```
+:::
+::: {.column width="50%"}
+fitted with `Gamma(link="identity")`
+```{r}
+BIC(modIdent_TrueLog)
+```
+:::
+:::
+
+## 
+### YES random effects; true is `Gamma(link="log")`
+
+```{r, cache=T}
+#| code-fold: true
+set.seed(100)
+
+N = 2000
+k = 15
+id = rep(1:N,each=k*2)
+group = rep(0:1,each=(N/2)*k*2)
+cond = rep(0:1,each=k,times=N)
+
+tau = 0.5
+b0 = 1
+b1 = 0.4
+b2 = 0.7
+shape = 10
+scaleConstant = 100
+
+rInt = rep(rnorm(N,0,tau),each=k*2)
+
+X = b0 + b1*group + b2*cond + rInt
+rt = rgamma(N*k*2, shape = shape, scale = scaleConstant*exp(X)/shape)
+
+df = data.frame(id,group,cond,rt)
+combin = paste(paste0("group",group),paste0("cond",cond))
+df$combin = factor(combin)
+df$group = as.factor(df$group)
+df$cond = as.factor(df$cond)
+
+modLog_TrueLog = glmmTMB(rt ~ group * cond + (1|id) , family=Gamma(link="log"), data=df)
+modIdent_TrueLog = glmmTMB(rt ~ group * cond + (1|id), family=Gamma(link="identity"), data=df)
+```
+
+::: columns
+::: {.column width="50%"}
+fitted with `Gamma(link="log")`
+```{r}
+#| code-fold: true
+eff = data.frame(allEffects(modLog_TrueLog)$"group")
+ggplot(eff,aes(x=cond,y=fit,group=group,linetype=group,color=group,shape=group))+
+  geom_point(size=7)+
+  geom_line(size=1)+
+  coord_cartesian(ylim=c(280,890))+
+  theme(text=element_text(size=24))
+```
+:::
+::: {.column width="50%"}
+fitted with `Gamma(link="identity")`
+```{r}
+#| code-fold: true
+eff = data.frame(allEffects(modIdent_TrueLog)$"group")
+ggplot(eff,aes(x=cond,y=fit,group=group,linetype=group,color=group,shape=group))+
+  geom_point(size=7)+
+  geom_line(size=1)+
+  coord_cartesian(ylim=c(280,890))+
+  theme(text=element_text(size=24))
+```
+:::
+:::
+
+## 
+### YES random effects; true is `Gamma(link="log")`
+
+::: columns
+::: {.column width="50%"}
+fitted with `Gamma(link="log")`
+```{r}
+#| code-fold: true
+library(glmmTMB)
+sim = simulate(modLog_TrueLog)$sim_1
+ggplot(df)+
+  geom_density(aes(x=rt,group=combin,color=combin),linewidth=1)+
+  geom_density(aes(x=sim,group=combin,fill=combin),color=NA,alpha=.4)+
+  scale_color_manual(values=c("darkorange","darkturquoise","coral3","deepskyblue4"))+
+  scale_fill_manual(values=c("darkorange","darkturquoise","coral3","deepskyblue4"))+
+  theme(text=element_text(size=24),legend.position="bottom",legend.title=element_blank())+
+  coord_cartesian(xlim=c(min(df$rt),quantile(df$rt,.99)))
+```
+:::
+::: {.column width="50%"}
+fitted with `Gamma(link="identity")`
+```{r}
+#| code-fold: true
+sim = simulate(modIdent_TrueLog)$sim_1
+ggplot(df)+
+  geom_density(aes(x=rt,group=combin,color=combin),linewidth=1)+
+  geom_density(aes(x=sim,group=combin,fill=combin),color=NA,alpha=.4)+
+  scale_color_manual(values=c("darkorange","darkturquoise","coral3","deepskyblue4"))+
+  scale_fill_manual(values=c("darkorange","darkturquoise","coral3","deepskyblue4"))+
+  theme(text=element_text(size=24),legend.position="bottom",legend.title=element_blank())+
+  coord_cartesian(xlim=c(min(df$rt),quantile(df$rt,.99)))
+```
+:::
+:::
+
+## 
+### YES random effects; true is `Gamma(link="log")`
+<div class="large-code">
+::: columns
+::: {.column width="50%"}
+fitted with `Gamma(link="log")`
+```{r}
+BIC(modLog_TrueLog)
+```
+:::
+::: {.column width="50%"}
+fitted with `Gamma(link="identity")`
+```{r}
+BIC(modIdent_TrueLog)
+```
+:::
+:::
+</div>
+
+## 
+### NO random effects; true is `Gamma(link="log")`
+```{r, cache=T}
+#| code-fold: true
+set.seed(100)
+library(glmmTMB)
+
+N = 2000
+k = 15
+id = rep(1:N,each=k*2)
+group = rep(0:1,each=(N/2)*k*2)
+cond = runif(N*k*2,0,2)
+
+tau = 0
+b0 = 1
+b1 = 0.4
+b2 = 0.7
+shape = 10
+scaleConstant = 100
+
+X = b0 + b1*group + b2*cond
+rt = rgamma(N*k*2, shape = shape, scale = scaleConstant*exp(X)/shape)
+
+df = data.frame(id,group,cond,rt)
+df$combin = factor(combin)
+df$group = as.factor(df$group)
+
+modLog_TrueLog = glmmTMB(rt ~ group * cond , family=Gamma(link="log"), data=df)
+modIdent_TrueLog = glmmTMB(rt ~ group * cond , family=Gamma(link="identity"), data=df)
+```
+
+fitted with `Gamma(link="log")`
+```{r}
+#| code-fold: true
+library(glmmTMB)
+library(ggplot2)
+library(effects)
+eff = data.frame(allEffects(modLog_TrueLog,xlevels=list(cond=seq(min(df$cond),max(df$cond),.1)))$"group")
+ggplot(eff,aes(x=cond,y=fit,group=group,linetype=group,color=group,shape=group))+
+  geom_line(size=2)+
+  theme(text=element_text(size=24))
+```
+
+## 
+### NO random effects; true is `Gamma(link="log")`
+
+::: columns
+::: {.column width="50%"}
+fitted with `Gamma(link="log")`
+```{r}
+#| code-fold: true
+eff = data.frame(allEffects(modLog_TrueLog,xlevels=list(cond=seq(min(df$cond),max(df$cond),.1)))$"group")
+ggplot(eff,aes(x=cond,y=fit,group=group,linetype=group,color=group,shape=group))+
+  geom_line(size=2)+
+  theme(text=element_text(size=24))
+```
+:::
+::: {.column width="50%"}
+fitted with `Gamma(link="identity")`
+```{r}
+#| code-fold: true
+eff = data.frame(allEffects(modIdent_TrueLog,xlevels=list(cond=seq(min(df$cond),max(df$cond),.1)))$"group")
+ggplot(eff,aes(x=cond,y=fit,group=group,linetype=group,color=group,shape=group))+
+  geom_line(size=2)+
+  theme(text=element_text(size=24))
+```
+:::
+:::
+
+## 
+### NO random effects; true is `Gamma(link="log")`
+<div class="large-code">
+::: columns
+::: {.column width="50%"}
+fitted with `Gamma(link="log")`
+```{r}
+BIC(modLog_TrueLog)
+```
+:::
+::: {.column width="50%"}
+fitted with `Gamma(link="identity")`
+```{r}
+BIC(modIdent_TrueLog)
+```
+:::
+:::
+</div>
+
+## 
+### NO random effects; true is `Gamma(link="log")`
+
+::: columns
+::: {.column width="50%"}
+fitted with `Gamma(link="log")`
+```{r}
+plot(predict(modLog_TrueLog), resid(modLog_TrueLog,type="working"))
+```
+:::
+::: {.column width="50%"}
+fitted with `Gamma(link="identity")`
+```{r}
+plot(predict(modIdent_TrueLog), resid(modIdent_TrueLog,type="working"))
+```
+:::
+:::
+
+## 
+### NO random effects; true is `Gamma(link="identity")`
+
+```{r, cache=T}
+#| code-fold: true
+set.seed(100)
+library(glmmTMB)
+
+N = 2000
+k = 15
+id = rep(1:N,each=k*2)
+group = rep(0:1,each=(N/2)*k*2)
+cond = runif(N*k*2,0,2)
+
+tau = 0
+b0 = 1
+b1 = 0.4
+b2 = 0.7
+shape = 10
+scaleConstant = 100
+
+X = b0 + b1*group + b2*cond
+rt = rgamma(N*k*2, shape = shape, scale = scaleConstant*X/shape)
+
+df = data.frame(id,group,cond,rt)
+df$group = as.factor(df$group)
+
+modLog_TrueIdent = glmmTMB(rt ~ group * cond , family=Gamma(link="log"), data=df)
+modIdent_TrueIdent = glmmTMB(rt ~ group * cond , family=Gamma(link="identity"), data=df)
+```
+::: columns
+::: {.column width="50%"}
+fitted with `Gamma(link="log")`
+```{r}
+plot(predict(modLog_TrueIdent), resid(modLog_TrueIdent,type="working"))
+```
+:::
+::: {.column width="50%"}
+fitted with `Gamma(link="identity")`
+```{r}
+plot(predict(modIdent_TrueIdent), resid(modIdent_TrueIdent,type="working"))
+```
+:::
+:::
+
+## 
+### NO random effects; true is `Gamma(link="identity")`
+<div class="large-code">
+::: columns
+::: {.column width="50%"}
+fitted with `Gamma(link="log")`
+```{r}
+BIC(modLog_TrueIdent)
+```
+:::
+::: {.column width="50%"}
+fitted with `Gamma(link="identity")`
+```{r}
+BIC(modIdent_TrueIdent)
+```
+:::
+:::
+</div>

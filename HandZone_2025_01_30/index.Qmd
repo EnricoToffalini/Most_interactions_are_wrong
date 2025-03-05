@@ -1,0 +1,27 @@
+---
+title: "The Link Function Problem"
+subtitle: "aka why All Interactions Are Wrong (no, we're joking... but probably a great deal of them are actually wrong)"
+author: "toffa feat pippo & the curly one x psicostat"
+include-in-header: figures/header.html
+format: 
+  html:
+    self-contained: true
+    toc: true   
+    toc-depth: 3 
+    toc-expand: 3 
+    code-fold: false 
+    message: false
+editor: visual
+---
+
+<a href="handzone_slides/0.SlideNonGaussian.html" target=_blank>(Non)Normal distributions</a>
+
+<a href="handzone_slides/1.LinkFunctions.html" target=_blank>Examples of <em>link functions</em></a>
+
+<a href="handzone_slides/2.GettingTheIdea.html" target=_blank>AIAW, part 1: Getting the idea of the problem</a>
+
+<a href="handzone_slides/3.FamilyVsLink.html" target=_blank>AIAW, part 2: Family vs Link function</a>
+
+<a href="handzone_slides/4.ProblemExtension.html" target=_blank>AIAW, part 3: Extent of the problem</a>
+
+<a href="handzone_slides/5.Diagnostics.html" target=_blank>Two words on diagnostics</a>
