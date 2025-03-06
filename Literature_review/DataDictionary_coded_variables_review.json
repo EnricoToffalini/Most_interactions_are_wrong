@@ -38,13 +38,19 @@
         {
             "@type": "PropertyValue",
             "name": "Uses_non_identity_link_function",
-            "description": "Whether at least one of the tested interaction is analyzed with a non-identity link function.",
+            "description": "Whether at least one of the tested interaction is presumably analyzed with a non-identity link function (e.g., because a generalized linear model was used).",
+            "valueType": "Boolean"
+        },
+        {
+            "@type": "PropertyValue",
+            "name": "Explicit_link_function",
+            "description": "Whether the link function is explicitly defined for at least one statistical model in the article (that is, in this case just indicating which generalized linear model or family was used is not enough; we code whether at least one link function is explicity declared).",
             "valueType": "Boolean"
         },
         {
             "@type": "PropertyValue",
             "name": "Incorrect_identity_link_function",
-            "description": "Wwhether at least one tested interaction is analyzed using an identity link function when another link function would be more appropriate.",
+            "description": "Whether at least one tested interaction is analyzed using an identity link function when another, non-identity link function would be more appropriate.",
             "valueType": "Boolean"
         },
         {
