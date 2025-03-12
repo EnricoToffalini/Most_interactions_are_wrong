@@ -77,7 +77,7 @@ Table 1 reports the variables that will be coded for each included study. Each s
 |  |  |  |
 | *Response_variable_types* | A list of of the types of response variables on which interactions are tested. Possible values include: Sum score, Accuracy, Error count, Response times, Ordinal/Likert, ... . This list may be expanded. | Category |
 
-: : Data Dictionary
+: Data Dictionary
 
 ## 2.3 Data analysis
 
