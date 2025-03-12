@@ -44,7 +44,7 @@
         {
             "@type": "PropertyValue",
             "name": "Explicit_link_function",
-            "description": "Whether the link function is explicitly defined for at least one statistical model in the article (that is, in this case just indicating which generalized linear model or family was used is not enough; we code whether at least one link function is explicity declared).",
+            "description": "Whether the link function is explicitly defined for at least one statistical model in the article (that is, in this case just indicating which generalized linear model or family was used is not enough; we code whether at least one link function is explicitly declared).",
             "valueType": "Boolean"
         },
         {
