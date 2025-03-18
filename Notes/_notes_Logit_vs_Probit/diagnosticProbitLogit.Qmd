@@ -1,0 +1,319 @@
+---
+title: "Logit vs Probit diagnostic exploration"
+date: "2025-03-15"
+format: 
+  html:
+    toc: true
+    number-sections: true
+    math: true
+    self-contained: true
+---
+
+```{r}
+rm(list=ls())
+library(ggplot2)
+library(glmmTMB)
+
+niter = 1000
+
+k = 100
+N = 200
+```
+
+## Random effects, 2 level categorical X (between subjects), intercept 0
+```{r}
+BICres = array(NA, dim = c(2, 2, niter),
+                     dimnames = list(trueLF = c("logit", "probit"),
+                                     usedLF = c("logit", "probit"),
+                                     iter = 1:niter))
+set.seed(0)
+for(i in 1:niter){
+  idSubj = rep(1:N,each=k)
+  rIntSubj = rep(rnorm(N,0,.8),each=k)
+  
+  x1 = rep(rbinom(N,1,.5),each=k)
+
+  yLin = 0 + 2*x1 + rIntSubj
+  probL = plogis(yLin)
+  respL = rbinom(N*k,1,prob=probL)
+  probP = pnorm(yLin)
+  respP = rbinom(N*k,1,prob=probP)
+  df = data.frame(idSubj,x1,respL,respP)
+
+  fitLL = glmmTMB(respL ~ x1 + (1|idSubj), data=df, family=binomial(link="logit"))
+  fitLP = glmmTMB(respL ~ x1 + (1|idSubj), data=df, family=binomial(link="probit"))
+  fitPL = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="logit"))
+  fitPP = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="probit"))
+  
+  BICres["logit","logit",i] = BIC(fitLL)
+  BICres["logit","probit",i] = BIC(fitLP)
+  BICres["probit","logit",i] = BIC(fitPL)
+  BICres["probit","probit",i] = BIC(fitPP)
+}
+save(BICres,file="Categ_Betw_LargeEff_Int0.RData")
+```
+```{r}
+hist(BICres["logit","logit",] - BICres["logit","probit",])
+hist(BICres["probit","probit",] - BICres["probit","logit",])
+```
+
+## Random effects, continuous X (between subjects), intercept 0
+```{r}
+BICres = array(NA, dim = c(2, 2, niter),
+                     dimnames = list(trueLF = c("logit", "probit"),
+                                     usedLF = c("logit", "probit"),
+                                     iter = 1:niter))
+set.seed(0)
+for(i in 1:niter){
+  idSubj = rep(1:N,each=k)
+  rIntSubj = rep(rnorm(N,0,.8),each=k)
+  
+  x1 = rep(rnorm(N,0,1),each=k)
+
+  yLin = 0 + 2*x1 + rIntSubj
+  probL = plogis(yLin)
+  respL = rbinom(N*k,1,prob=probL)
+  probP = pnorm(yLin)
+  respP = rbinom(N*k,1,prob=probP)
+  df = data.frame(idSubj,x1,respL,respP)
+
+  fitLL = glmmTMB(respL ~ x1 + (1|idSubj), data=df, family=binomial(link="logit"))
+  fitLP = glmmTMB(respL ~ x1 + (1|idSubj), data=df, family=binomial(link="probit"))
+  fitPL = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="logit"))
+  fitPP = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="probit"))
+  
+  BICres["logit","logit",i] = BIC(fitLL)
+  BICres["logit","probit",i] = BIC(fitLP)
+  BICres["probit","logit",i] = BIC(fitPL)
+  BICres["probit","probit",i] = BIC(fitPP)
+}
+save(BICres,file="Cont_Betw_LargeEff_Int0.RData")
+```
+```{r}
+hist(BICres["logit","logit",] - BICres["logit","probit",])
+hist(BICres["probit","probit",] - BICres["probit","logit",])
+```
+
+## Random effects, 2 level categorical X (within subjects), intercept 0
+```{r}
+BICres = array(NA, dim = c(2, 2, niter),
+                     dimnames = list(trueLF = c("logit", "probit"),
+                                     usedLF = c("logit", "probit"),
+                                     iter = 1:niter))
+set.seed(0)
+for(i in 1:niter){
+  idSubj = rep(1:N,each=k)
+  rIntSubj = rep(rnorm(N,0,.8),each=k)
+  
+  x1 = rbinom(N*k,1,.5)
+
+  yLin = 0 + 2*x1 + rIntSubj
+  probL = plogis(yLin)
+  respL = rbinom(N*k,1,prob=probL)
+  probP = pnorm(yLin)
+  respP = rbinom(N*k,1,prob=probP)
+  df = data.frame(idSubj,x1,respL,respP)
+
+  fitLL = glmmTMB(respL ~ x1 + (1|idSubj), data=df, family=binomial(link="logit"))
+  fitLP = glmmTMB(respL ~ x1 + (1|idSubj), data=df, family=binomial(link="probit"))
+  fitPL = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="logit"))
+  fitPP = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="probit"))
+  
+  BICres["logit","logit",i] = BIC(fitLL)
+  BICres["logit","probit",i] = BIC(fitLP)
+  BICres["probit","logit",i] = BIC(fitPL)
+  BICres["probit","probit",i] = BIC(fitPP)
+}
+save(BICres,file="Categ_With_LargeEff_Int0.RData")
+```
+```{r}
+hist(BICres["logit","logit",] - BICres["logit","probit",])
+hist(BICres["probit","probit",] - BICres["probit","logit",])
+```
+
+## Random effects, continuous X (within subjects), intercept 0
+```{r}
+BICres = array(NA, dim = c(2, 2, niter),
+                     dimnames = list(trueLF = c("logit", "probit"),
+                                     usedLF = c("logit", "probit"),
+                                     iter = 1:niter))
+set.seed(0)
+for(i in 1:niter){
+  idSubj = rep(1:N,each=k)
+  rIntSubj = rep(rnorm(N,0,.8),each=k)
+  
+  x1 = rnorm(N*k,0,1)
+
+  yLin = 0 + 2*x1 + rIntSubj
+  probL = plogis(yLin)
+  respL = rbinom(N*k,1,prob=probL)
+  probP = pnorm(yLin)
+  respP = rbinom(N*k,1,prob=probP)
+  df = data.frame(idSubj,x1,respL,respP)
+
+  fitLL = glmmTMB(respL ~ x1 + (1|idSubj), data=df, family=binomial(link="logit"))
+  fitLP = glmmTMB(respL ~ x1 + (1|idSubj), data=df, family=binomial(link="probit"))
+  fitPL = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="logit"))
+  fitPP = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="probit"))
+  
+  BICres["logit","logit",i] = BIC(fitLL)
+  BICres["logit","probit",i] = BIC(fitLP)
+  BICres["probit","logit",i] = BIC(fitPL)
+  BICres["probit","probit",i] = BIC(fitPP)
+}
+save(BICres,file="Cont_With_LargeEff_Int0.RData")
+```
+```{r}
+hist(BICres["logit","logit",] - BICres["logit","probit",])
+hist(BICres["probit","probit",] - BICres["probit","logit",])
+```
+
+
+## Random effects, 2 level categorical X (between subjects), intercept 1
+```{r}
+BICres = array(NA, dim = c(2, 2, niter),
+                     dimnames = list(trueLF = c("logit", "probit"),
+                                     usedLF = c("logit", "probit"),
+                                     iter = 1:niter))
+set.seed(0)
+for(i in 1:niter){
+  idSubj = rep(1:N,each=k)
+  rIntSubj = rep(rnorm(N,0,.8),each=k)
+  
+  x1 = rep(rbinom(N,1,.5),each=k)
+
+  yLin = 1 + 2*x1 + rIntSubj
+  probL = plogis(yLin)
+  respL = rbinom(N*k,1,prob=probL)
+  probP = pnorm(yLin)
+  respP = rbinom(N*k,1,prob=probP)
+  df = data.frame(idSubj,x1,respL,respP)
+
+  fitLL = glmmTMB(respL ~ x1 + (1|idSubj), data=df, family=binomial(link="logit"))
+  fitLP = glmmTMB(respL ~ x1 + (1|idSubj), data=df, family=binomial(link="probit"))
+  fitPL = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="logit"))
+  fitPP = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="probit"))
+  
+  BICres["logit","logit",i] = BIC(fitLL)
+  BICres["logit","probit",i] = BIC(fitLP)
+  BICres["probit","logit",i] = BIC(fitPL)
+  BICres["probit","probit",i] = BIC(fitPP)
+}
+save(BICres,file="Categ_Betw_LargeEff_Int1.RData")
+```
+```{r}
+hist(BICres["logit","logit",] - BICres["logit","probit",])
+hist(BICres["probit","probit",] - BICres["probit","logit",])
+```
+
+## Random effects, continuous X (between subjects), intercept 1
+```{r}
+BICres = array(NA, dim = c(2, 2, niter),
+                     dimnames = list(trueLF = c("logit", "probit"),
+                                     usedLF = c("logit", "probit"),
+                                     iter = 1:niter))
+set.seed(0)
+for(i in 1:niter){
+  idSubj = rep(1:N,each=k)
+  rIntSubj = rep(rnorm(N,0,.8),each=k)
+  
+  x1 = rep(rnorm(N,0,1),each=k)
+
+  yLin = 1 + 2*x1 + rIntSubj
+  probL = plogis(yLin)
+  respL = rbinom(N*k,1,prob=probL)
+  probP = pnorm(yLin)
+  respP = rbinom(N*k,1,prob=probP)
+  df = data.frame(idSubj,x1,respL,respP)
+
+  fitLL = glmmTMB(respL ~ x1 + (1|idSubj), data=df, family=binomial(link="logit"))
+  fitLP = glmmTMB(respL ~ x1 + (1|idSubj), data=df, family=binomial(link="probit"))
+  fitPL = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="logit"))
+  fitPP = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="probit"))
+  
+  BICres["logit","logit",i] = BIC(fitLL)
+  BICres["logit","probit",i] = BIC(fitLP)
+  BICres["probit","logit",i] = BIC(fitPL)
+  BICres["probit","probit",i] = BIC(fitPP)
+}
+save(BICres,file="Cont_Betw_LargeEff_Int1.RData")
+```
+```{r}
+hist(BICres["logit","logit",] - BICres["logit","probit",])
+hist(BICres["probit","probit",] - BICres["probit","logit",])
+```
+
+## Random effects, 2 level categorical X (within subjects), intercept 1
+```{r}
+BICres = array(NA, dim = c(2, 2, niter),
+                     dimnames = list(trueLF = c("logit", "probit"),
+                                     usedLF = c("logit", "probit"),
+                                     iter = 1:niter))
+set.seed(0)
+for(i in 1:niter){
+  idSubj = rep(1:N,each=k)
+  rIntSubj = rep(rnorm(N,0,.8),each=k)
+  
+  x1 = rbinom(N*k,1,.5)
+
+  yLin = 1 + 2*x1 + rIntSubj
+  probL = plogis(yLin)
+  respL = rbinom(N*k,1,prob=probL)
+  probP = pnorm(yLin)
+  respP = rbinom(N*k,1,prob=probP)
+  df = data.frame(idSubj,x1,respL,respP)
+
+  fitLL = glmmTMB(respL ~ x1 + (1|idSubj), data=df, family=binomial(link="logit"))
+  fitLP = glmmTMB(respL ~ x1 + (1|idSubj), data=df, family=binomial(link="probit"))
+  fitPL = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="logit"))
+  fitPP = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="probit"))
+  
+  BICres["logit","logit",i] = BIC(fitLL)
+  BICres["logit","probit",i] = BIC(fitLP)
+  BICres["probit","logit",i] = BIC(fitPL)
+  BICres["probit","probit",i] = BIC(fitPP)
+}
+save(BICres,file="Categ_With_LargeEff_Int1.RData")
+```
+```{r}
+hist(BICres["logit","logit",] - BICres["logit","probit",])
+hist(BICres["probit","probit",] - BICres["probit","logit",])
+```
+
+## Random effects, continuous X (within subjects), intercept 1
+```{r}
+BICres = array(NA, dim = c(2, 2, niter),
+                     dimnames = list(trueLF = c("logit", "probit"),
+                                     usedLF = c("logit", "probit"),
+                                     iter = 1:niter))
+set.seed(0)
+for(i in 1:niter){
+  idSubj = rep(1:N,each=k)
+  rIntSubj = rep(rnorm(N,0,.8),each=k)
+  
+  x1 = rnorm(N*k,0,1)
+
+  yLin = 1 + 2*x1 + rIntSubj
+  probL = plogis(yLin)
+  respL = rbinom(N*k,1,prob=probL)
+  probP = pnorm(yLin)
+  respP = rbinom(N*k,1,prob=probP)
+  df = data.frame(idSubj,x1,respL,respP)
+
+  fitLL = glmmTMB(respL ~ x1 + (1|idSubj), data=df, family=binomial(link="logit"))
+  fitLP = glmmTMB(respL ~ x1 + (1|idSubj), data=df, family=binomial(link="probit"))
+  fitPL = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="logit"))
+  fitPP = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="probit"))
+  
+  BICres["logit","logit",i] = BIC(fitLL)
+  BICres["logit","probit",i] = BIC(fitLP)
+  BICres["probit","logit",i] = BIC(fitPL)
+  BICres["probit","probit",i] = BIC(fitPP)
+}
+save(BICres,file="Cont_With_LargeEff_Int1.RData")
+```
+```{r}
+hist(BICres["logit","logit",] - BICres["logit","probit",])
+hist(BICres["probit","probit",] - BICres["probit","logit",])
+```
+

@@ -37,7 +37,7 @@ The selected journals are:
 -   *Developmental Science* (for developmental psychology);
 -   *Psychological Medicine* (for clinical psychology).
 
-Article records will be retrieved from Scopus database of Elsevier, selecting all articles published in these journals during 2024. For each journal, 40 articles will be randomly selected using R software (by applying the `sample()` function on the list of records, preceded by `set.seed(0)` to ensure reproducibility). Sampled articles that do not meet eligibility criteria during screening will be excluded and replaced by additional articles selected through subsequent rounds of random sampling, continuing until 40 eligible articles per journal are obtained. Should a journal have fewer than 40 eligible articles published in 2024, the sampling procedure will be extended to articles published by that journal in 2023.
+Article records will be retrieved from Elsevier’s Scopus database, including all articles published in each of these journals in 2024. For each journal, a separate list of articles will be created. Within each list, exactly 40 eligible articles will be randomly selected for inclusion in the meta-analysis. To ensure randomization, R will be used: the `sample()` function will be applied separately to each journal's full list, preceded by `set.seed(0)` for reproducibility. Articles will then be screened in order until 40 eligible articles per journal are included. If a journal has fewer than 40 eligible articles in 2024, the selection will be extended to 2023 using the same criteria.
 
 ### 2.1.2 Eligibility Criteria
 
@@ -56,7 +56,7 @@ Replication studies and validation studies are excluded because the former are t
 Table 1 reports the variables that will be coded for each included study. Each study will be independently coded by two researchers. Any discrepancies will be resolved through discussion or, if necessary, consultation with the other two researcher.
 
 | **Variable Name** | **Description** | **Value Type** |
-|:-----------------------------|:-------------------------|:----------------|
+|:--------------------------|:-------------------------|:-----------|
 | *Authors* | Full list of authors' names. | Text |
 |  |  |  |
 | *Title* | Title of the article. | Text |
@@ -73,13 +73,21 @@ Table 1 reports the variables that will be coded for each included study. Each s
 |  |  |  |
 | *Incorrect_identity_link_function* | Whether at least one tested interaction is analyzed using an identity link function when another, non-identity link function would be more appropriate. | Boolean |
 |  |  |  |
-| *Finds_significant_interactions* | Whether at least one interaction (where the link function was incorrectly specified as identity) yields a statistically significant result. | Boolean |
+| *Finds_significant_interactions* | Whether at least one interaction (where the link function was incorrectly specified as identity) yields a statistically significant result, or is considered and discussed in an analogous way if non-frequentist (e.g., Bayesian) analyses were carried out. | Boolean |
 |  |  |  |
 | *Response_variable_types* | A list of of the types of response variables on which interactions are tested. Possible values include: Sum score, Accuracy, Error count, Response times, Ordinal/Likert, ... . This list may be expanded. | Category |
 
 : Data Dictionary
 
 ## 2.3 Data analysis
+
+The analysis will primarily focus on descriptive statistics. No hypothesis testing will be conducted, but 95% confidence intervals (CIs) will be computed for the estimated proportions of the Boolean variables. For each coded variable listed in Table 1, excluding *Authors*, *Title*, *Year*, and *Journal* (as they are not relevant to the analysis—summary statistics) the following will be computed: 
+
+- Boolean variables: Proportions will be calculated along with 95% CIs, using the Wilson score interval to estimate uncertainty Proportions will also be reported separately for each journal, but without CIs. 
+- *Response_variable_types*: The proportion of studies testing interactions on each type of response variable will be computed. 
+
+All analyses will be conducted in R, and results will be presented in summary tables. Graphical representations may also be included to facilitate interpretation.
+
 
 ------------------------------------------------------------------------
 

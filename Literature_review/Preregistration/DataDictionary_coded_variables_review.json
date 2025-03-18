@@ -56,7 +56,7 @@
         {
             "@type": "PropertyValue",
             "name": "Finds_significant_interactions",
-            "description": "Whether at least one interaction (where the link function was incorrectly specified as identity) yields a statistically significant result.",
+            "description": "Whether at least one interaction (where the link function was incorrectly specified as identity) yields a statistically significant result, or is considered and discussed in an analogous way if non-frequentist (e.g., Bayesian) analyses were carried out.",
             "valueType": "Boolean"
         },
         {
