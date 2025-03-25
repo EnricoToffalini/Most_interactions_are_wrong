@@ -53,7 +53,7 @@ Replication studies and validation studies are excluded because the former are t
 
 ## 2.2 Coding procedure
 
-Table 1 reports the variables that will be coded for each included study. Each study will be independently coded by two researchers. Any discrepancies will be resolved through discussion or, if necessary, consultation with the other two researcher.
+Table 1 reports the variables that will be coded for each included study. Each study will be independently coded by two researchers. Any discrepancies will be resolved through discussion or, if necessary, consultation with the other two researcher. 
 
 | **Variable Name** | **Description** | **Value Type** |
 |:--------------------------|:-------------------------|:-----------|
@@ -78,6 +78,10 @@ Table 1 reports the variables that will be coded for each included study. Each s
 | *Response_variable_types* | A list of of the types of response variables on which interactions are tested. Possible values include: Sum score, Accuracy, Error count, Response times, Ordinal/Likert, ... . This list may be expanded. | Category |
 
 : Data Dictionary
+
+#### Use of AI tools
+
+Researchers may optionally use generative AI tools (e.g., OpenAI's GPT models) as assistants to help locate relevant information within articles. However, all relevant coding will be made by human researchers based on their own judgment. As a further exploration of AI potentiality, however, we will also have a parallel coding entirely conducted by AI tools using OpenAI's (or others) API. Prompts worded in different ways will be used to extract the same variables without human intervention. The results of this AI-only coding will not be used in the review, but will be reported separately to explore the accuracy of AI language models in extracting categorical methodological information from scholarly articles.
 
 ## 2.3 Data analysis
 
