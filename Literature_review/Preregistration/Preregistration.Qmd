@@ -1,19 +1,20 @@
 ---
 title: "Review protocol: Link Functions and Generalized Linear Models in Interaction Testing within Psychological Research"
 author: "Enrico Toffalini, Margherita Calderan, Tommaso Feraco, Filippo Gambarota"
-date: 2025-03-05
+date: 2025-03-26
 format: 
     pdf
 bibliography: Bibliography.bib
+csl: assets/apa.csl
 ---
 
 # 1. Objectives and rationale
 
 The planned review will analyze a sample of recently published psychological research articles targeting a selection of reputable journals across diverse subfields. The primary objective is to describe and quantify how frequently interaction effects are tested in empirical research articles, how often these articles explicitly set non-identity link functions (e.g., by appropriately specifying generalized linear models), and how frequently the use of an identity link function may be problematic, given the type of variables analyzed. Additionally, we aim to determine how often statistically significant interaction effects are detected, particularly when identity link functions are employed. Finally, we aim to document the most commonly analyzed response variables in studies testing interactions (e.g., accuracies, sum scores).
 
-The rationale for this review is that, in our experience, psychology researchers frequently test interaction effects to identify moderators of known main effects, but also because it is often just a standard routine to test interactions after testing main effects. Typically, classical linear models or equivalent methods (e.g., ANOVA) are employed. By default, these methods use identity link functions, despite many psychological response variables being inherently non-normally distributed due to natural bounds (e.g., accuracies, response times, sum or average scores, error counts, proportions). Moreover, psychometric variables have been systematically shown to deviate from normal distributions [@micceri1989unicorn]. Failing to employ appropriate link functions can lead to the detection of pseudo-interactions, as incorrect link functions distort interval scales, transforming equal intervals into unequal ones and *vice versa*. Consequently, using inappropriate link functions places researchers at risk of identifying statistically significant interactions that do not reflect the true data-generating processes.
+The rationale for this review is that psychology researchers frequently test interaction effects, typically to identify moderators of known main effects, but also because testing interactions often becomes a standard routine following the analysis of main effects. Classical linear models or equivalent methods (e.g., ANOVA) are typically employed, and by default, these methods use identity link functions. However, many psychological response variables are inherently non-normally distributed and present natural bounds (e.g., accuracies, response times, sum or average scores, error counts, proportions). Psychometric variables, more generally, have been systematically shown to deviate from normal distributions [@micceri1989unicorn]. Failing to account for the appropriate distribution can lead to false positives in interaction effects, biased estimates, or even reversed effects [@domingue2022ubiquitous; @liddell2018analyzing]. In particular, we argue that the core issue lies in the use of inappropriate link functions, as the link function transforms equal intervals into unequal ones, and *vice versa*. Consequently, using the wrong link function places researchers at risk of identifying statistically significant interactions that do not reflect the true data-generating processes. Importantly, this issue goes beyond just choosing a model that matches the distribution of the response variable. For example, binomial regression is appropriate for Bernoulli outcomes, but different choices of link function, such as *logit* versus *probit*, can still yield different results, underscoring the importance of specifying the link function explicitly and appropriately.
 
-We believe it is important to quantify how often this methodological oversight occurs within psychological research to raise awareness and caution in the field. The current review does not aim for an exhaustive systematic review covering the entire psychological literature. Rather, the goal is to provide a general overview and preliminary estimates regarding the prevalence and magnitude of this potentially widespread issue. As a subsequent step after the review, we plan to conduct simulation studies to illustrate how neglecting appropriate link functions when testing interactions can frequently lead to spurious findings in realistic research scenarios.
+We believe it is important to quantify how often this methodological oversight occurs within psychological research to raise awareness and caution in the field. The current review does not aim for an exhaustive systematic review covering the entire psychological literature. Rather, the goal is to provide a general overview and preliminary estimates regarding the prevalence and magnitude of this potentially widespread issue. As a subsequent step after the review, we plan to conduct simulation studies to illustrate how neglecting appropriate link functions when testing interactions can frequently lead to spurious findings in realistic research scenarios, and what diagnostics can be performed in typical cases.
 
 ------------------------------------------------------------------------
 
@@ -21,9 +22,9 @@ We believe it is important to quantify how often this methodological oversight o
 
 ## 2.1 Sample
 
-A sample of 200 recently published articles will be analyzed, drawn from five reputable journals representing diverse research areas within psychology. Specifically, we will select one journal from each of the following categories: general psychology, experimental psychology, social psychology, clinical psychology, and developmental psychology. From each journal, 40 articles will be randomly sampled, resulting in a total sample of 200 articles.
+A sample of recently published articles will be analyzed, drawn from five reputable journals representing diverse research areas within psychology. Specifically, we will select one journal from each of the following categories: general psychology, experimental psychology, social psychology, clinical psychology, and developmental psychology. From each journal, we will randomly select articles to include 40 that test interaction effects on empirical data, resulting in a total sample of 200 articles. A larger number of articles will be screened to exclude non-eligible ones (see criteria below), and those that analyze empirical data but do not test interactions (one of our goals is also to estimate the proportion of articles that include interaction tests among those that analyze quantitative data).
 
-The chosen sample size (N = 200) and the level of detail in data coding reflect considerations of feasibility and available resources. Given that our primary objective is to obtain a general estimate of how frequently link functions are incorrectly used in testing interactions, we intentionally selected articles only from high-impact journals, ensuring a sufficient representation to approximate the magnitude of the issue. Following a strategy similar to that adopted by @hardwicke2024prevalence, our sample size determination was guided by considerations of precision. For binomial responses (e.g., whether an article reports at least one statistically significant interaction), the estimated proportion is most variable at 50%. With a sample size of N = 200, the corresponding 95% uncertainty bound is approximately \$\pm\$6.9% (computed using standard methods such as the Wilson score interval, probit and logit transformations, or likelihood-ratio test-based intervals.)
+The chosen sample size (N = 200) and the level of detail in data coding reflect considerations of feasibility and available resources. Given that our primary objective is to obtain a general estimate of how frequently link functions are incorrectly used in testing interactions, we intentionally selected articles only from high-impact journals, ensuring a sufficient representation to approximate the magnitude of the issue. Following a strategy similar to that adopted by @hardwicke2024prevalence, our sample size determination was guided by considerations of precision. For binomial responses (e.g., whether an article reports at least one statistically significant interaction), the estimated proportion is most variable at 50%. With a sample size of N = 200, the corresponding 95% uncertainty bound is approximately $\pm$6.9% (computed using standard methods such as the Wilson score interval, probit and logit transformations, or likelihood-ratio test-based intervals.)
 
 ### 2.1.1 Sources and Search strategy
 
@@ -51,9 +52,13 @@ The review will include only empirical articles presenting original psychologica
 
 Replication studies and validation studies are excluded because the former are typically constrained to replicate existing methods from the original studies, while the latter are often focused on psychometric properties rather than hypothesis testing.
 
+Following this initial screening, articles will be further examined, and detailed coding (as specified below in Table 1) will be performed only for those that :
+
+-   Test at least one interaction effect, either through statistical modeling or ANOVA.
+
 ## 2.2 Coding procedure
 
-Table 1 reports the variables that will be coded for each included study. Each study will be independently coded by two researchers. Any discrepancies will be resolved through discussion or, if necessary, consultation with the other two researcher. 
+Table 1 reports the variables that will be coded for each included study, that is, each article identified as testing at least one interaction term in a statistical model or using ANOVA. Each study will be independently coded by two researchers. Any discrepancies will be resolved through discussion or, if needed, by consulting the other two researchers.
 
 | **Variable Name** | **Description** | **Value Type** |
 |:--------------------------|:-------------------------|:-----------|
@@ -64,8 +69,6 @@ Table 1 reports the variables that will be coded for each included study. Each s
 | *Year* | Year of publication. | Integer |
 |  |  |  |
 | *Journal* | Name of the journal in which the article was published. | Text |
-|  |  |  |
-| *Tests_interactions* | Whether the article tests at least one interaction term in a model or using an ANOVA. | Boolean |
 |  |  |  |
 | *Uses_non_identity_link_function* | Whether at least one of the tested interaction is presumably analyzed with a non-identity link function (e.g., because a generalized linear model was used). | Boolean |
 |  |  |  |
