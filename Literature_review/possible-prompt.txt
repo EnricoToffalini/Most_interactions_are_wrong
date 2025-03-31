@@ -1,0 +1,14 @@
+Does this paper test an interaction with a non-identity link function 
+(e.g., because a generalized linear model was used)? 
+Respond just writing 'Yes' or 'No', and your level of confidence in your response (a number from .5 to .9). Without commas.
+
+Does this paper explicitly declares one link function (def. the link function provides the relationship between the linear predictor and the mean of the distribution function) for at least one statistical model? Respond just writing 'Yes' or 'No', and your level of confidence in your response (from .5 to .9). If Yes name the link function. Without commas.
+
+When the data are non-normally distributed, using generalized linear model with a non-identity 
+link is preferred. Does this paper test at least one interaction using an identity link function (e.g., ANOVA or General Linear Model when a non-identity link function would be more appropriate (e.g., generalized linear model)?  Respond just writing 'Yes' or 'No', and your level of confidence in your response (from .5 to .9). Without commas.
+
+Does the paper report any statistically significant interaction where an identity link function was incorrectly used (e.g., applying ANOVA or a General Linear Model to non-normally distributed data)? 
+Respond just writing 'Yes' or 'No', and your level of confidence in your response (from .5 to .9). Without commas.
+
+List of the types of response variables on which interactions are tested. 
+Possible values include: Sum score, Accuracy, Error count, Response times, Ordinal/Likert, etc.. Respond just with a string of response variable/s.
