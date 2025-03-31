@@ -1,6 +1,6 @@
 ---
 title: "Review protocol: Link Functions and Generalized Linear Models in Interaction Testing within Psychological Research"
-author: "Enrico Toffalini, Margherita Calderan, Tommaso Feraco, Filippo Gambarota"
+#author: "Enrico Toffalini, Margherita Calderan, Tommaso Feraco, Filippo Gambarota"
 date: 2025-03-26
 format: 
     pdf

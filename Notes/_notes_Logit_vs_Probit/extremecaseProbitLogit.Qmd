@@ -1,0 +1,150 @@
+---
+title: "Logit vs Probit: an extreme case"
+date: "2025-03-22"
+format: 
+  html:
+    math: true
+    self-contained: true
+---
+
+```{r, warning=F, message=F}
+#| code-fold: true
+
+rm(list=ls())
+library(ggplot2)
+library(glmmTMB)
+library(effects)
+
+niter = 1000
+
+k = 200
+N = 1000
+
+```
+
+### True Link function: Logit
+
+```{r, cache=T}
+#| code-fold: true
+
+idSubj = rep(1:N,each=k)
+rIntSubj = rep(rnorm(N,0,.25),each=k)
+x1 = rep(rnorm(N,0,2),each=k)
+
+yLin = 0 + 2*x1 + rIntSubj
+
+probL = plogis(yLin)
+respL = rbinom(N*k,1,prob=probL)
+df = data.frame(idSubj,x1,respL)
+descriptives = aggregate(df,by=list(df$idSubj),FUN=mean)
+descriptives$proportion = descriptives$respL
+
+fitLL = glmmTMB(respL ~ x1 + (1|idSubj), data=df, family=binomial(link="logit"))
+fitLP = glmmTMB(respL ~ x1 + (1|idSubj), data=df, family=binomial(link="probit"))
+
+effL = data.frame(allEffects(fitLL,xlevels=list(x1=seq(-3,3,.1)))$"x1",usedLF="logit")
+effP = data.frame(allEffects(fitLP,xlevels=list(x1=seq(-3,3,.1)))$"x1",usedLF="probit")
+eff = rbind(effL,effP)
+
+```
+```{r}
+#| code-fold: true
+ggplot(descriptives,aes(x=x1,y=proportion))+
+  coord_cartesian(xlim=c(-2.2,2.2))+
+  geom_point(size=2, alpha=.3)+
+  geom_line(data=eff, aes(x=x1,y=fit,color=usedLF), linewidth=1.2)+
+  theme(text=element_text(size=20))+
+  ggtitle("True link function: Logit")+
+  ylab("Proportion / Fit")
+```
+```{r}
+#| code-fold: true
+x = data.frame(residual=c(residuals(fitLL),residuals(fitLP)),
+               usedLF=rep(c("logit","probit"),each=length(residuals(fitLL))))
+ggplot(x,aes(x=residual,fill=usedLF))+
+  geom_density(alpha=.5,color=NA)+
+  theme(text=element_text(size=20))+
+  ggtitle("True link function: Logit")
+```
+
+```{r}
+#| code-fold: true
+
+mu_hat = fitted(fitLL)
+z1 = log(mu_hat)
+z2 = mu_hat * log(mu_hat) - mu_hat
+extended_fitLL = glmmTMB(respL ~ x1 + z1 + z2 + (1|idSubj), data=df, family=binomial(link="logit"))
+anova(fitLL, extended_fitLL)
+
+mu_hat = fitted(fitLP)
+z1 = log(mu_hat)
+z2 = mu_hat * log(mu_hat) - mu_hat
+extended_fitLP = glmmTMB(respL ~ x1 + z1 + z2 + (1|idSubj), data=df, family=binomial(link="probit"))
+anova(fitLP, extended_fitLP)
+
+```
+
+
+### True Link function: Probit
+
+```{r, cache=T}
+#| code-fold: true
+idSubj = rep(1:N,each=k)
+rIntSubj = rep(rnorm(N,0,.2),each=k)
+x1 = rep(rnorm(N,0,1.2),each=k)
+
+yLin = 0 + 2.5*x1 + rIntSubj
+
+probP = pnorm(yLin)
+respP = rbinom(N*k,1,prob=probP)
+df = data.frame(idSubj,x1,respP)
+descriptives = aggregate(df,by=list(df$idSubj),FUN=mean)
+descriptives$proportion = descriptives$respP
+
+fitPL = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="logit"))
+fitPP = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="probit"))
+
+effL = data.frame(allEffects(fitPL,xlevels=list(x1=seq(-3,3,.1)))$"x1",usedLF="logit")
+effP = data.frame(allEffects(fitPP,xlevels=list(x1=seq(-3,3,.1)))$"x1",usedLF="probit")
+eff = rbind(effL,effP)
+```
+```{r}
+#| code-fold: true
+ggplot(descriptives,aes(x=x1,y=proportion))+
+  coord_cartesian(xlim=c(-1.1,1.1))+
+  geom_point(size=2, alpha=.3)+
+  geom_line(data=eff, aes(x=x1,y=fit,color=usedLF), linewidth=1.2)+
+  theme(text=element_text(size=20))+
+  ggtitle("True link function: Probit")+
+  ylab("Proportion / Fit")
+
+```
+```{r}
+#| code-fold: true
+x = data.frame(residual=c(residuals(fitPL),residuals(fitPP)),
+               usedLF=rep(c("logit","probit"),each=length(residuals(fitPL))))
+ggplot(x,aes(x=residual,fill=usedLF))+
+  geom_density(alpha=.5,color=NA)+
+  theme(text=element_text(size=20))+
+  ggtitle("True link function: Probit")
+```
+
+```{r}
+#| code-fold: true
+
+mu_hat = fitted(fitPL, type="response")
+z1 = qlogis(mu_hat) - qnorm(mu_hat)
+extended_fitPL = glmmTMB(respP ~ x1 + z1 + (1|idSubj), data=df, family=binomial(link="logit"))
+summary(extended_fitP)
+
+mu_hat = fitted(fitPP, type="response")
+z1 = qlogis(mu_hat) - qnorm(mu_hat)
+extended_fitPP = glmmTMB(respP ~ x1 + z1 + (1|idSubj), data=df, family=binomial(link="probit"))
+summary(extended_fitPP)
+
+```
+
+
+
+
+
