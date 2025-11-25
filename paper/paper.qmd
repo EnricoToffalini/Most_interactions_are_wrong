@@ -1,0 +1,137 @@
+---
+title: "Mostly Interactions are (probably) Wrong"
+shorttitle: "Short Title in Running Header"
+author:
+  - name: Enrico Toffalini
+    corresponding: true
+    orcid: 0000-0002-1404-5133
+    email: enrico.toffalini@unipd.it
+    affiliations:
+      - name: University of Padova
+        department: Department of General Psychology
+        address: Via Venezia 8
+        city: Padova
+        country: Italy
+        postal-code: 35131
+        id: dpg
+  - name: Filippo Gambarota
+    orcid: 0000-0002-6666-1747
+    email: filippo.gambarota@unipd.it
+    affiliations:
+      - name: University of Padova
+        department: Department of Developmental Psychology and Socialization
+        address: Via Venezia 8
+        city: Padova
+        country: Italy
+        postal-code: 35131
+        id: dpss
+  - name: Laura Sità
+    orcid: 0009-0000-6017-9979
+    email: laura.sita@unipd.it
+    affiliations:
+      - ref: dpg
+  - name: Tommaso Feraco
+    orcid: 0000-0002-8920-5330
+    email: tommaso.feraco@unipd.it
+    affiliations:
+      - ref: dpg
+  - name: Margherita Calderan
+    orcid: 0009-0005-5668-5162
+    email: margherita.calderan@unipd.it
+    affiliations:
+      - ref: dpg
+author-note:
+  status-changes: 
+    affiliation-change: ~
+    deceased: ~
+  disclosures:
+    study-registration: ~
+    data-sharing: ~
+    related-report: ~
+    conflict-of-interest: ~
+    financial-support: ~
+    gratitude: ~
+    authorship-agreements: ~
+abstract: "This document is a template."
+#impact-statement: "This template helps you get started."
+keywords: [Keyword 1, Keyword 2, Keyword 3]
+bibliography: references.bib
+format:
+  # apaquarto-docx: default
+  # apaquarto-html: default
+  # apaquarto-typst: default
+  apaquarto-pdf:
+    documentmode: man
+    keep-tex: true
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  comment = "#>",
+  dev = "pdf",
+  fig.align = "center"
+)
+```
+
+```{r}
+#| label: packages
+#| include: false
+
+library(ggplot2)
+```
+
+```{r}
+#| label: ggplot-setup
+
+mtheme <- function(size = 15){
+  ggplot2::theme_bw(size)
+}
+
+theme_set(mtheme())
+```
+
+
+<!-- The introduction should not have a level-1 heading such as Introduction. -->
+
+This is my first paragraph. Any section headings in the introduction should be in levels 2--5.
+
+# Introduction
+
+@Liddell2018-wu and @Wagenmakers2012-tk provide a very clear introduction about the problem of testing interactions with the wrong model.
+
+# Method
+
+# Results
+
+The @fig-example summarise the results of the paper.
+
+```{r}
+#| label: fig-example
+#| fig-cap: This is a really amazing figure.
+
+n <- 100
+x <- rnorm(n)
+y <- x*0.5 + rnorm(n)
+
+data.frame(x, y) |> 
+  ggplot(aes(x = x, y = y)) +
+  geom_point() +
+  geom_smooth()
+```
+
+# Discussion
+
+## Limitations and Future Directions
+
+## Conclusion
+
+# References
+
+::: {#refs}
+:::
