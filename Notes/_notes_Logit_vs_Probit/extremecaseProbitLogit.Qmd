@@ -46,6 +46,21 @@ effL = data.frame(allEffects(fitLL,xlevels=list(x1=seq(-3,3,.1)))$"x1",usedLF="l
 effP = data.frame(allEffects(fitLP,xlevels=list(x1=seq(-3,3,.1)))$"x1",usedLF="probit")
 eff = rbind(effL,effP)
 
+###################################
+
+library(DHARMa)
+simulation_probit = simulateResiduals(fittedModel = fitLP)
+simulation_logit = simulateResiduals(fittedModel = fitLL)
+testDispersion(simulation_probit)
+testDispersion(simulation_logit)
+# plot(simulation_probit)
+# plot(simulation_logit)
+
+# testUniformity(fitLP)
+# testUniformity(fitLL)
+
+###################################
+
 ```
 ```{r}
 #| code-fold: true
@@ -107,6 +122,19 @@ fitPP = glmmTMB(respP ~ x1 + (1|idSubj), data=df, family=binomial(link="probit")
 effL = data.frame(allEffects(fitPL,xlevels=list(x1=seq(-3,3,.1)))$"x1",usedLF="logit")
 effP = data.frame(allEffects(fitPP,xlevels=list(x1=seq(-3,3,.1)))$"x1",usedLF="probit")
 eff = rbind(effL,effP)
+
+###################################
+
+library(DHARMa)
+simulation_probit = simulateResiduals(fittedModel = fitPP)
+simulation_logit = simulateResiduals(fittedModel = fitPL)
+testDispersion(simulation_probit)
+testDispersion(simulation_logit)
+# plot(simulation_probit)
+# plot(simulation_logit)
+
+###################################
+
 ```
 ```{r}
 #| code-fold: true
@@ -135,7 +163,7 @@ ggplot(x,aes(x=residual,fill=usedLF))+
 mu_hat = fitted(fitPL, type="response")
 z1 = qlogis(mu_hat) - qnorm(mu_hat)
 extended_fitPL = glmmTMB(respP ~ x1 + z1 + (1|idSubj), data=df, family=binomial(link="logit"))
-summary(extended_fitP)
+summary(extended_fitPL)
 
 mu_hat = fitted(fitPP, type="response")
 z1 = qlogis(mu_hat) - qnorm(mu_hat)
