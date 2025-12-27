@@ -1,4 +1,0 @@
-project:
-  title: "most-interactions-are-wrong"
-  render: 
-    - paper/paper.qmd
