@@ -96,14 +96,15 @@ mtheme <- function(size = 15){
 theme_set(mtheme())
 ```
 
-
 <!-- The introduction should not have a level-1 heading such as Introduction. -->
 
 This is my first paragraph. Any section headings in the introduction should be in levels 2--5.
 
 # Introduction
 
-@Liddell2018-wu and @Wagenmakers2012-tk provide a very clear introduction about the problem of testing interactions with the wrong model.
+@liddellkruschke2018 and @wagenmakers2012 provide a very clear introduction about the problem of testing interactions with the wrong model.
+
+Other important papers are @cox1984, @loftus1978, @domingue2024, @lubinski1990, @mccabe2022, @mustillo2018, @pregibon1980, @rimpler2026, @rohrer2021, @smith2020, @yuhuang2019, @rohrer2026
 
 # Method
 
