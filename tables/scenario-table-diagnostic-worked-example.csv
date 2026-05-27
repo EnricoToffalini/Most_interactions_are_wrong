@@ -1,0 +1,13 @@
+"table_part","scenario","age","group","linear_predictor","expected_accuracy","expected_correct_out_of_k_trials","contrast","value_probability_points","value_correct_out_of_k_trials","link_scale_value"
+"implied_values","Diagnostic chance-floor scenario",6,"Group 0",-2,0.559601461011059,11.1920292202212,NA,NA,NA,NA
+"implied_values","Diagnostic chance-floor scenario",8,"Group 0",0,0.75,15,NA,NA,NA,NA
+"implied_values","Diagnostic chance-floor scenario",10,"Group 0",2,0.940398538988941,18.8079707797788,NA,NA,NA,NA
+"implied_values","Diagnostic chance-floor scenario",6,"Group 1",-3.4,0.516147732349225,10.3229546469845,NA,NA,NA,NA
+"implied_values","Diagnostic chance-floor scenario",8,"Group 1",-1.4,0.598908055720709,11.9781611144142,NA,NA,NA,NA
+"implied_values","Diagnostic chance-floor scenario",10,"Group 1",0.6,0.822828153112898,16.456563062258,NA,NA,NA,NA
+"derived_contrasts","Diagnostic chance-floor scenario",NA,NA,NA,NA,NA,"Group difference at youngest age: Group 1 minus Group 0",-0.0434537286618335,-0.86907457323667,NA
+"derived_contrasts","Diagnostic chance-floor scenario",NA,NA,NA,NA,NA,"Group difference at oldest age: Group 1 minus Group 0",-0.117570385876043,-2.35140771752087,NA
+"derived_contrasts","Diagnostic chance-floor scenario",NA,NA,NA,NA,NA,"Age-related change in Group 0: oldest minus youngest",0.380797077977882,7.61594155955765,NA
+"derived_contrasts","Diagnostic chance-floor scenario",NA,NA,NA,NA,NA,"Age-related change in Group 1: oldest minus youngest",0.306680420763672,6.13360841527345,NA
+"derived_contrasts","Diagnostic chance-floor scenario",NA,NA,NA,NA,NA,"Change in group difference from youngest to oldest age",-0.0741166572142099,-1.4823331442842,NA
+"derived_contrasts","Diagnostic chance-floor scenario",NA,NA,NA,NA,NA,"Generating link-scale age-by-group product term",NA,NA,0

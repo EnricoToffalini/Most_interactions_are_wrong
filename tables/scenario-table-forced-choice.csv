@@ -1,0 +1,37 @@
+"table_part","scenario","age","group","linear_predictor","expected_accuracy","expected_correct_out_of_k_trials","contrast","value_probability_points","value_correct_out_of_k_trials","link_scale_value"
+"implied_values","Near chance floor",6,"Group 0",-3.8,0.510940635468065,25.5470317734033,NA,NA,NA,NA
+"implied_values","Near chance floor",8,"Group 0",-1.5,0.591212761903178,29.5606380951589,NA,NA,NA,NA
+"implied_values","Near chance floor",10,"Group 0",0.8,0.844987240563806,42.2493620281903,NA,NA,NA,NA
+"implied_values","Near chance floor",6,"Group 1",-5.4,0.502248136580471,25.1124068290235,NA,NA,NA,NA
+"implied_values","Near chance floor",8,"Group 1",-3.1,0.521553627470543,26.0776813735271,NA,NA,NA,NA
+"implied_values","Near chance floor",10,"Group 1",-0.8,0.655012759436194,32.7506379718097,NA,NA,NA,NA
+"implied_values","Middle range",6,"Group 0",-2.3,0.545561480507428,27.2780740253714,NA,NA,NA,NA
+"implied_values","Middle range",8,"Group 0",0,0.75,37.5,NA,NA,NA,NA
+"implied_values","Middle range",10,"Group 0",2.3,0.954438519492572,47.7219259746286,NA,NA,NA,NA
+"implied_values","Middle range",6,"Group 1",-3.9,0.509920152867039,25.4960076433519,NA,NA,NA,NA
+"implied_values","Middle range",8,"Group 1",-1.6,0.583990807433038,29.1995403716519,NA,NA,NA,NA
+"implied_values","Middle range",10,"Group 1",0.7,0.834093886084083,41.7046943042041,NA,NA,NA,NA
+"implied_values","Near ceiling",6,"Group 0",-0.8,0.655012759436194,32.7506379718097,NA,NA,NA,NA
+"implied_values","Near ceiling",8,"Group 0",1.5,0.908787238096822,45.4393619048411,NA,NA,NA,NA
+"implied_values","Near ceiling",10,"Group 0",3.8,0.989059364531935,49.4529682265967,NA,NA,NA,NA
+"implied_values","Near ceiling",6,"Group 1",-2.4,0.541586348246961,27.0793174123481,NA,NA,NA,NA
+"implied_values","Near ceiling",8,"Group 1",-0.1,0.73751040626053,36.8755203130265,NA,NA,NA,NA
+"implied_values","Near ceiling",10,"Group 1",2.2,0.950124755440157,47.5062377720079,NA,NA,NA,NA
+"derived_contrasts","Near chance floor",NA,NA,NA,NA,NA,"Group difference at youngest age: Group 1 minus Group 0",-0.0086924988875946,-0.43462494437973,NA
+"derived_contrasts","Near chance floor",NA,NA,NA,NA,NA,"Group difference at oldest age: Group 1 minus Group 0",-0.189974481127613,-9.49872405638063,NA
+"derived_contrasts","Near chance floor",NA,NA,NA,NA,NA,"Age-related change in Group 0: oldest minus youngest",0.334046605095741,16.7023302547871,NA
+"derived_contrasts","Near chance floor",NA,NA,NA,NA,NA,"Age-related change in Group 1: oldest minus youngest",0.152764622855723,7.63823114278616,NA
+"derived_contrasts","Near chance floor",NA,NA,NA,NA,NA,"Change in group difference from youngest to oldest age",-0.181281982240018,-9.06409911200089,NA
+"derived_contrasts","Near chance floor",NA,NA,NA,NA,NA,"Generating link-scale age-by-group product term",NA,NA,0
+"derived_contrasts","Middle range",NA,NA,NA,NA,NA,"Group difference at youngest age: Group 1 minus Group 0",-0.0356413276403893,-1.78206638201946,NA
+"derived_contrasts","Middle range",NA,NA,NA,NA,NA,"Group difference at oldest age: Group 1 minus Group 0",-0.120344633408489,-6.01723167042445,NA
+"derived_contrasts","Middle range",NA,NA,NA,NA,NA,"Age-related change in Group 0: oldest minus youngest",0.408877038985144,20.4438519492572,NA
+"derived_contrasts","Middle range",NA,NA,NA,NA,NA,"Age-related change in Group 1: oldest minus youngest",0.324173733217044,16.2086866608522,NA
+"derived_contrasts","Middle range",NA,NA,NA,NA,NA,"Change in group difference from youngest to oldest age",-0.0847033057680997,-4.23516528840499,NA
+"derived_contrasts","Middle range",NA,NA,NA,NA,NA,"Generating link-scale age-by-group product term",NA,NA,0
+"derived_contrasts","Near ceiling",NA,NA,NA,NA,NA,"Group difference at youngest age: Group 1 minus Group 0",-0.113426411189233,-5.67132055946163,NA
+"derived_contrasts","Near ceiling",NA,NA,NA,NA,NA,"Group difference at oldest age: Group 1 minus Group 0",-0.0389346090917774,-1.94673045458887,NA
+"derived_contrasts","Near ceiling",NA,NA,NA,NA,NA,"Age-related change in Group 0: oldest minus youngest",0.334046605095741,16.7023302547871,NA
+"derived_contrasts","Near ceiling",NA,NA,NA,NA,NA,"Age-related change in Group 1: oldest minus youngest",0.408538407193196,20.4269203596598,NA
+"derived_contrasts","Near ceiling",NA,NA,NA,NA,NA,"Change in group difference from youngest to oldest age",0.0744918020974552,3.72459010487276,NA
+"derived_contrasts","Near ceiling",NA,NA,NA,NA,NA,"Generating link-scale age-by-group product term",NA,NA,0

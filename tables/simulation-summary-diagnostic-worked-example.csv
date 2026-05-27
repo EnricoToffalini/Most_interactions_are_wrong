@@ -1,0 +1,8 @@
+"quantity","n_successful_fits","n_significant","rate","ci_low","ci_high"
+"Wrong-link interaction",300,255,0.85,0.805182388854671,0.885967531288147
+"DHARMa residual checks, Holm omnibus",300,68,0.226666666666667,0.182919503803286,0.277325320466133
+"DHARMa uniformity",300,0,0,0,0.012642971224546
+"DHARMa dispersion",300,0,0,0,0.012642971224546
+"DHARMa residual pattern over fitted values",300,44,0.146666666666667,0.111105187440337,0.191162512225009
+"DHARMa residual pattern over age",300,90,0.3,0.250939663784877,0.354117524704942
+"Pregibon-style added-term link check, secondary",300,179,0.596666666666667,0.540271195643406,0.650617829919849

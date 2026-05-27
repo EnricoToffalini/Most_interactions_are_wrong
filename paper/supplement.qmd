@@ -1,0 +1,130 @@
+---
+title: "Supplementary Materials for The Link Function Problem in Psychological Interaction Testing"
+bibliography: references.bib
+format:
+  html: default
+  pdf: default
+---
+
+# Review Methods
+
+This supplement reports details of the preregistered descriptive review, mathematical background, simulation data-generating processes, and reproducibility information. The main text reports only compact summaries.
+
+## Protocol and Scope
+
+Describe the preregistered protocol, selected journals, search source, inclusion and exclusion criteria, and screening workflow. Include the OSF or repository link once available.
+
+## Coding Variables
+
+Summarize the variables from the review data dictionary: interaction testing, non-identity link use, explicit link reporting, potentially problematic identity-link analyses, significant interactions, and response-variable categories.
+
+## Additional Review Tables
+
+```{r review-supplement-tables}
+#| echo: false
+#| results: asis
+
+journal_table_path <- "../tables/tableS1-review-by-journal.csv"
+if (file.exists(journal_table_path)) {
+  journal_table <- read.csv(journal_table_path)
+  knitr::kable(journal_table, caption = "Review descriptives by journal.", digits = 1)
+} else {
+  cat("Run scripts/01-review-descriptives.R to generate the journal-level review table.")
+}
+```
+
+# Mathematical Details
+
+## GLM Notation
+
+A GLM links the expected outcome $\mu_i = E(Y_i)$ to a linear predictor $\eta_i$ through
+
+$$
+g(\mu_i) = \eta_i.
+$$
+
+With two predictors and a product term,
+
+$$
+\eta_i = \beta_0 + \beta_1 X_i + \beta_2 Z_i + \beta_3 X_iZ_i.
+$$
+
+The coefficient $\beta_3$ is an interaction on the link scale. Response-scale interactions require applying the inverse link and computing the relevant contrast.
+
+## Response-Scale Difference-in-Differences
+
+For binary or categorical predictors, one response-scale interaction estimand is
+
+$$
+\{E(Y \mid X = 1, Z = 1) - E(Y \mid X = 0, Z = 1)\}
+-
+\{E(Y \mid X = 1, Z = 0) - E(Y \mid X = 0, Z = 0)\}.
+$$
+
+In nonlinear GLMs this quantity can differ from the product-term coefficient in sign, size, or statistical conclusion.
+
+# Chance-Corrected Link Details
+
+The simple fixed-chance link used in the paper is
+
+$$
+p_i = c + (1 - c)F(\eta_i),
+$$
+
+where $c$ is the chance level and $F$ is a cumulative distribution function such as the logistic or normal CDF. For 2-AFC tasks, $c = .50$.
+
+A more general version with a lapse parameter is
+
+$$
+p_i = c + (1 - c - \lambda)F(\eta_i),
+$$
+
+where $\lambda$ controls the upper asymptote. The main paper uses the simpler fixed-chance version for transparency.
+
+# Simulation Data-Generating Processes
+
+## Simulation 1: Forced-Choice Accuracy
+
+Report the settings used in `scripts/03-simulation-forced-choice.R`: number of replications, sample sizes, trials per subject, predictor distributions, generating coefficients, fitted models, and false-positive criterion.
+
+## Simulation 2: Sum Scores
+
+Report the latent-variable model, item thresholds, number of items, response categories, fitted models, and false-positive criterion used in `scripts/04-simulation-sum-scores.R`.
+
+## Simulation 3: Within-Family Links
+
+Report the binary outcome DGP, generating links, fitted links, and scenario definitions used in `scripts/05-simulation-within-family-links.R`.
+
+## Diagnostic Worked Example
+
+Report the single selected scenario, the Pregibon-style added-term check, the false-positive interaction criterion, and the diagnostic detection criterion used in `scripts/06-diagnostic-worked-example.R`.
+
+# Extended Simulation Results
+
+```{r extended-simulation-results}
+#| echo: false
+#| results: asis
+
+files <- c(
+  "../tables/table3-forced-choice-simulation.csv",
+  "../tables/table4-sum-score-simulation.csv",
+  "../tables/table5-within-family-links.csv",
+  "../tables/table6-diagnostic-worked-example.csv"
+)
+
+for (f in files) {
+  if (file.exists(f)) {
+    cat("\n\n")
+    knitr::kable(read.csv(f), caption = basename(f), digits = 3)
+  }
+}
+```
+
+# Reproducibility
+
+All simulations set seeds in the corresponding scripts. Heavy computation is kept outside the manuscript file. The main paper reads saved tables and figures.
+
+```{r session-info}
+#| echo: false
+sessionInfo()
+```
