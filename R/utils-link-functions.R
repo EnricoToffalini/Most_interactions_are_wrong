@@ -1,30 +1,57 @@
 # R/utils-link-functions.R
-# Link functions, contrasts, and model extraction helpers.
+# Link functions, chance-corrected binomial models, and interaction helpers.
+
+check_supported_link <- function(link) {
+  supported <- c("logit", "probit", "cloglog", "log", "inverse", "identity")
+  if (!link %in% supported) {
+    stop(
+      "Unsupported link: ", link,
+      ". Supported links are: ", paste(supported, collapse = ", "),
+      call. = FALSE
+    )
+  }
+  invisible(link)
+}
+
+clip_probability <- function(p, eps = 1e-8) {
+  pmin(pmax(p, eps), 1 - eps)
+}
 
 inv_link <- function(eta, link = "logit") {
+  check_supported_link(link)
+
   switch(
     link,
     logit = stats::plogis(eta),
     probit = stats::pnorm(eta),
     cloglog = 1 - exp(-exp(eta)),
-    stop("Unsupported link: ", link, call. = FALSE)
+    log = exp(eta),
+    inverse = 1 / eta,
+    identity = eta
   )
 }
 
 link_fun <- function(mu, link = "logit") {
-  eps <- 1e-8
-  mu <- pmin(pmax(mu, eps), 1 - eps)
+  check_supported_link(link)
+
   switch(
     link,
-    logit = stats::qlogis(mu),
-    probit = stats::qnorm(mu),
-    cloglog = log(-log1p(-mu)),
-    stop("Unsupported link: ", link, call. = FALSE)
+    logit = stats::qlogis(clip_probability(mu)),
+    probit = stats::qnorm(clip_probability(mu)),
+    cloglog = log(-log1p(-clip_probability(mu))),
+    log = log(pmax(mu, 1e-8)),
+    inverse = 1 / pmax(mu, 1e-8),
+    identity = mu
   )
 }
 
 chance_linkinv <- function(eta, chance = 0.5, link = "logit") {
-  chance + (1 - chance) * inv_link(eta, link = link)
+  if (!is.finite(chance) || chance < 0 || chance >= 1) {
+    stop("chance must be a finite number in [0, 1).", call. = FALSE)
+  }
+
+  q <- inv_link(eta, link = link)
+  chance + (1 - chance) * q
 }
 
 # Backward-compatible alias used in older drafts.
@@ -33,10 +60,12 @@ inv_chance_link <- function(eta, c = 0.5, link = "logit") {
 }
 
 chance_link <- function(p, chance = 0.5, link = "logit") {
-  eps <- 1e-8
+  if (!is.finite(chance) || chance < 0 || chance >= 1) {
+    stop("chance must be a finite number in [0, 1).", call. = FALSE)
+  }
+
   q <- (p - chance) / (1 - chance)
-  q <- pmin(pmax(q, eps), 1 - eps)
-  link_fun(q, link = link)
+  link_fun(clip_probability(q), link = link)
 }
 
 group_difference <- function(group0, group1) {
@@ -44,7 +73,8 @@ group_difference <- function(group0, group1) {
 }
 
 change_in_group_difference <- function(low_group0, low_group1, high_group0, high_group1) {
-  group_difference(high_group0, high_group1) - group_difference(low_group0, low_group1)
+  group_difference(high_group0, high_group1) -
+    group_difference(low_group0, low_group1)
 }
 
 interaction_row_name <- function(fit) {
@@ -63,9 +93,11 @@ interaction_coef_from_lm <- function(fit) {
 interaction_p_from_lm <- function(fit) {
   rn <- interaction_row_name(fit)
   if (is.na(rn)) return(NA_real_)
+
   sm <- summary(fit)$coefficients
   pcol <- grep("Pr\\(", colnames(sm), value = TRUE)[1]
   if (is.na(pcol) || !rn %in% rownames(sm)) return(NA_real_)
+
   unname(sm[rn, pcol])
 }
 
@@ -78,64 +110,104 @@ interaction_coef_from_glm <- function(fit) {
 interaction_p_from_glm <- function(fit) {
   rn <- interaction_row_name(fit)
   if (is.na(rn)) return(NA_real_)
+
   sm <- summary(fit)$coefficients
   pcol <- grep("Pr\\(", colnames(sm), value = TRUE)[1]
   if (is.na(pcol) || !rn %in% rownames(sm)) return(NA_real_)
+
   unname(sm[rn, pcol])
 }
 
-# Robust chance-corrected binomial model.
-# This uses the binomial likelihood directly:
-#   p_i = chance + (1 - chance) * F_link(X_i b)
-# It does not transform observed proportions, so observations below chance
-# due to binomial sampling remain valid.
-fit_chance_binom <- function(formula, data, y_col = "y", k_col = "k", chance = 0.5, link = "logit") {
+fit_chance_binom <- function(formula, data, y_col = "y", k_col = "k",
+                             chance = 0.5, link = "logit") {
+  if (!is.data.frame(data)) {
+    stop("data must be a data frame.", call. = FALSE)
+  }
+  if (!all(c(y_col, k_col) %in% names(data))) {
+    stop("Could not find y_col and/or k_col in data.", call. = FALSE)
+  }
+  if (!is.finite(chance) || chance < 0 || chance >= 1) {
+    stop("chance must be a finite number in [0, 1).", call. = FALSE)
+  }
+
+  check_supported_link(link)
+
   mf <- stats::model.frame(formula, data = data)
   X <- stats::model.matrix(formula, data = mf)
   y <- data[[y_col]]
   k <- data[[k_col]]
-  if (any(is.na(y)) || any(is.na(k))) stop("Missing y or k values in chance-corrected fit.", call. = FALSE)
-  if (any(y < 0 | k <= 0 | y > k)) stop("Invalid binomial counts in chance-corrected fit.", call. = FALSE)
 
-  # Start from a standard binomial GLM when possible, then shift the intercept
-  # toward the chance-corrected scale. This is only a starting value.
+  if (any(is.na(y)) || any(is.na(k))) {
+    stop("Missing y or k values in chance-corrected fit.", call. = FALSE)
+  }
+  if (any(y < 0 | k <= 0 | y > k)) {
+    stop("Invalid binomial counts in chance-corrected fit.", call. = FALSE)
+  }
+
   start <- rep(0, ncol(X))
+  names(start) <- colnames(X)
+
   start_fit <- try(
-    stats::glm(stats::cbind(y, k - y) ~ X[, -1, drop = FALSE], family = stats::binomial(link), data = data),
+    stats::glm.fit(
+      x = X,
+      y = stats::cbind(y, k - y),
+      family = stats::binomial(link = link)
+    ),
     silent = TRUE
   )
-  if (!inherits(start_fit, "try-error")) {
+
+  if (!inherits(start_fit, "try-error") && length(stats::coef(start_fit)) == length(start)) {
     cf <- stats::coef(start_fit)
-    cf <- cf[!is.na(cf)]
-    if (length(cf) == length(start)) start <- cf
+    if (all(is.finite(cf))) start <- cf
   }
 
   nll <- function(beta) {
     eta <- drop(X %*% beta)
     p <- chance_linkinv(eta, chance = chance, link = link)
-    p <- pmin(pmax(p, 1e-10), 1 - 1e-10)
+    p <- clip_probability(p, eps = 1e-10)
     -sum(stats::dbinom(y, size = k, prob = p, log = TRUE))
   }
 
-  opt <- try(stats::optim(start, nll, method = "BFGS", hessian = TRUE, control = list(maxit = 1000)), silent = TRUE)
+  opt <- try(
+    stats::optim(
+      start,
+      nll,
+      method = "BFGS",
+      hessian = TRUE,
+      control = list(maxit = 1000)
+    ),
+    silent = TRUE
+  )
+
   if (inherits(opt, "try-error") || !is.finite(opt$value)) {
-    return(list(coefficients = rep(NA_real_, ncol(X)), vcov = matrix(NA_real_, ncol(X), ncol(X)),
-                p_value = rep(NA_real_, ncol(X)), formula = formula, terms = stats::terms(formula),
-                xlevels = stats::.getXlevels(stats::terms(formula), mf), chance = chance, link = link,
-                converged = FALSE, model_matrix_names = colnames(X), nll = NA_real_))
+    return(list(
+      coefficients = stats::setNames(rep(NA_real_, ncol(X)), colnames(X)),
+      vcov = matrix(NA_real_, ncol(X), ncol(X), dimnames = list(colnames(X), colnames(X))),
+      p_value = stats::setNames(rep(NA_real_, ncol(X)), colnames(X)),
+      formula = formula,
+      terms = stats::terms(formula),
+      xlevels = stats::.getXlevels(stats::terms(formula), mf),
+      chance = chance,
+      link = link,
+      converged = FALSE,
+      model_matrix_names = colnames(X),
+      nll = NA_real_
+    ))
   }
 
-  H <- opt$hessian
-  V <- try(solve(H), silent = TRUE)
+  V <- try(solve(opt$hessian), silent = TRUE)
   if (inherits(V, "try-error") || any(!is.finite(V))) {
     V <- matrix(NA_real_, ncol(X), ncol(X))
   }
+
   se <- sqrt(pmax(diag(V), 0))
   z <- opt$par / se
   pval <- 2 * stats::pnorm(abs(z), lower.tail = FALSE)
+
   names(opt$par) <- colnames(X)
   names(pval) <- colnames(X)
-  colnames(V) <- rownames(V) <- colnames(X)
+  dimnames(V) <- list(colnames(X), colnames(X))
+
   list(
     coefficients = opt$par,
     vcov = V,
@@ -153,10 +225,18 @@ fit_chance_binom <- function(formula, data, y_col = "y", k_col = "k", chance = 0
 
 predict_chance_binom <- function(object, newdata, type = c("response", "link")) {
   type <- match.arg(type)
-  X <- stats::model.matrix(delete.response(object$terms), data = newdata, xlev = object$xlevels)
+
+  X <- stats::model.matrix(
+    stats::delete.response(object$terms),
+    data = newdata,
+    xlev = object$xlevels
+  )
+
   eta <- drop(X %*% object$coefficients)
   if (type == "link") return(eta)
-  chance_linkinv(eta, chance = object$chance, link = object$link)
+
+  p <- chance_linkinv(eta, chance = object$chance, link = object$link)
+  pmin(pmax(p, 0), 1)
 }
 
 interaction_coef_from_chance <- function(fit) {

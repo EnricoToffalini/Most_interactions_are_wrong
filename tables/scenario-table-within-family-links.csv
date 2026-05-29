@@ -1,25 +1,9 @@
-"table_part","scenario","generating_link","x","group","linear_predictor","expected_probability","contrast","value_probability_points","link_scale_value"
-"implied_values","Middle probabilities","logit",-1,"Group 0",-0.9,0.289050497374996,NA,NA,NA
-"implied_values","Middle probabilities","logit",0,"Group 0",0,0.5,NA,NA,NA
-"implied_values","Middle probabilities","logit",1,"Group 0",0.9,0.710949502625004,NA,NA,NA
-"implied_values","Middle probabilities","logit",-1,"Group 1",-1.7,0.154465265083535,NA,NA,NA
-"implied_values","Middle probabilities","logit",0,"Group 1",-0.8,0.310025518872388,NA,NA,NA
-"implied_values","Middle probabilities","logit",1,"Group 1",0.1,0.52497918747894,NA,NA,NA
-"implied_values","Near upper bound","cloglog",-1,"Group 0",1.1,0.950419914304433,NA,NA,NA
-"implied_values","Near upper bound","cloglog",0,"Group 0",2.3,0.999953412693881,NA,NA,NA
-"implied_values","Near upper bound","cloglog",1,"Group 0",3.5,0.999999999999996,NA,NA,NA
-"implied_values","Near upper bound","cloglog",-1,"Group 1",-0.3,0.523276309285406,NA,NA,NA
-"implied_values","Near upper bound","cloglog",0,"Group 1",0.9,0.914531134124054,NA,NA,NA
-"implied_values","Near upper bound","cloglog",1,"Group 1",2.1,0.999715895921279,NA,NA,NA
-"derived_contrasts","Middle probabilities","logit",NA,NA,NA,NA,"Group difference at low x: Group 1 minus Group 0",-0.134585232291461,NA
-"derived_contrasts","Middle probabilities","logit",NA,NA,NA,NA,"Group difference at high x: Group 1 minus Group 0",-0.185970315146064,NA
-"derived_contrasts","Middle probabilities","logit",NA,NA,NA,NA,"x-related change in Group 0: high x minus low x",0.421899005250008,NA
-"derived_contrasts","Middle probabilities","logit",NA,NA,NA,NA,"x-related change in Group 1: high x minus low x",0.370513922395405,NA
-"derived_contrasts","Middle probabilities","logit",NA,NA,NA,NA,"Change in group difference from low x to high x",-0.0513850828546027,NA
-"derived_contrasts","Middle probabilities","logit",NA,NA,NA,NA,"Generating link-scale x-by-group product term",NA,0
-"derived_contrasts","Near upper bound","cloglog",NA,NA,NA,NA,"Group difference at low x: Group 1 minus Group 0",-0.427143605019027,NA
-"derived_contrasts","Near upper bound","cloglog",NA,NA,NA,NA,"Group difference at high x: Group 1 minus Group 0",-0.000284104078717151,NA
-"derived_contrasts","Near upper bound","cloglog",NA,NA,NA,NA,"x-related change in Group 0: high x minus low x",0.0495800856955629,NA
-"derived_contrasts","Near upper bound","cloglog",NA,NA,NA,NA,"x-related change in Group 1: high x minus low x",0.476439586635873,NA
-"derived_contrasts","Near upper bound","cloglog",NA,NA,NA,NA,"Change in group difference from low x to high x",0.42685950094031,NA
-"derived_contrasts","Near upper bound","cloglog",NA,NA,NA,NA,"Generating link-scale x-by-group product term",NA,0
+"generating_link","random_intercept_sd","group","condition","linear_predictor_random_intercept_0","expected_probability_random_intercept_0"
+"logit",1.18741041172373,"Group 0","Condition 0",1.5,0.817574476193644
+"logit",1.18741041172373,"Group 1","Condition 0",0.5,0.622459331201855
+"logit",1.18741041172373,"Group 0","Condition 1",0.5,0.622459331201855
+"logit",1.18741041172373,"Group 1","Condition 1",-0.5,0.377540668798145
+"probit",0.654653670707977,"Group 0","Condition 0",1.5,0.933192798731142
+"probit",0.654653670707977,"Group 1","Condition 0",0.5,0.691462461274013
+"probit",0.654653670707977,"Group 0","Condition 1",0.5,0.691462461274013
+"probit",0.654653670707977,"Group 1","Condition 1",-0.5,0.308537538725987

@@ -2,6 +2,6 @@
 "Eligible empirical articles reviewed",331,331,100,98.9,100,"Eligible articles","Articles passing eligibility screening."
 "Articles testing at least one interaction",200,331,60.4,55.1,65.5,"Eligible articles","Interaction tested via statistical model or ANOVA."
 "Interaction-testing articles using a non-identity link",58,200,29,23.2,35.6,"Articles testing interactions","At least one tested interaction was analyzed with a non-identity link."
-"Interaction-testing articles explicitly reporting the link function",46,200,23,17.7,29.3,"Articles testing interactions","The link itself was explicitly declared or identifiable from the report."
+"Interaction-testing articles explicitly reporting the link function",46,200,23,17.7,29.3,"Articles testing interactions","The link function was explicitly declared or identifiable from the report."
 "Interaction-testing articles with a potentially problematic identity-link analysis",144,200,72,65.4,77.8,"Articles testing interactions","Coded when at least one interaction used an identity-link analysis for an outcome where a non-identity link appeared more appropriate."
 "Potentially problematic identity-link cases reporting at least one significant interaction",124,144,86.1,79.5,90.8,"Potentially problematic identity-link cases","At least one such interaction was reported as statistically significant or interpreted analogously."

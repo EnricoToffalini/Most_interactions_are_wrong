@@ -1,8 +1,9 @@
 # R/utils-plots.R
-# Plot helpers. Uses only ggplot2 and base grid.
+# Plot helpers. Uses ggplot2 and base grid only.
 
-if (!requireNamespace("ggplot2", quietly = TRUE)) stop("Please install ggplot2.", call. = FALSE)
-library(ggplot2)
+if (!requireNamespace("ggplot2", quietly = TRUE)) {
+  stop("Please install ggplot2.", call. = FALSE)
+}
 
 link_theme <- function(base_size = 10) {
   ggplot2::theme_bw(base_size = base_size) +
@@ -18,7 +19,12 @@ link_theme <- function(base_size = 10) {
 
 bin_midpoints <- function(x) {
   lev <- levels(x)
-  mids <- vapply(strsplit(gsub("\\[|\\]|\\(|\\)", "", lev), ","), function(z) mean(as.numeric(z)), numeric(1))
+  clean <- gsub("\\[|\\]|\\(|\\)", "", lev)
+  mids <- vapply(
+    strsplit(clean, ","),
+    function(z) mean(as.numeric(z)),
+    numeric(1)
+  )
   mids[as.integer(x)]
 }
 
@@ -48,29 +54,66 @@ axis_title_change_group_gap_probability <- function(low, high) {
 
 save_single_plot <- function(plot, filename_base, width = 7.2, height = 5, dpi = 300) {
   dir.create(dirname(filename_base), recursive = TRUE, showWarnings = FALSE)
-  ggplot2::ggsave(paste0(filename_base, ".pdf"), plot = plot, width = width, height = height)
-  ggplot2::ggsave(paste0(filename_base, ".png"), plot = plot, width = width, height = height, dpi = dpi)
+
+  ggplot2::ggsave(
+    paste0(filename_base, ".pdf"),
+    plot = plot,
+    width = width,
+    height = height
+  )
+
+  ggplot2::ggsave(
+    paste0(filename_base, ".png"),
+    plot = plot,
+    width = width,
+    height = height,
+    dpi = dpi
+  )
+
+  invisible(filename_base)
 }
 
 save_plot_grid <- function(plots, filename_base, width = 7.2, height = 7, ncol = 1, dpi = 300) {
+  if (!requireNamespace("grid", quietly = TRUE)) {
+    stop("The grid package is required.", call. = FALSE)
+  }
+
   dir.create(dirname(filename_base), recursive = TRUE, showWarnings = FALSE)
+
   n <- length(plots)
+  if (n == 0) stop("plots must contain at least one plot.", call. = FALSE)
+
   nrow <- ceiling(n / ncol)
+
   draw <- function() {
     grid::grid.newpage()
     vp <- grid::viewport(layout = grid::grid.layout(nrow, ncol))
     grid::pushViewport(vp)
+    on.exit(grid::popViewport(), add = TRUE)
+
     for (i in seq_along(plots)) {
       r <- ceiling(i / ncol)
       c <- i - (r - 1) * ncol
-      print(plots[[i]], vp = grid::viewport(layout.pos.row = r, layout.pos.col = c))
+      print(
+        plots[[i]],
+        vp = grid::viewport(layout.pos.row = r, layout.pos.col = c)
+      )
     }
-    grid::popViewport()
   }
+
   grDevices::pdf(paste0(filename_base, ".pdf"), width = width, height = height)
   draw()
   grDevices::dev.off()
-  grDevices::png(paste0(filename_base, ".png"), width = width, height = height, units = "in", res = dpi)
+
+  grDevices::png(
+    paste0(filename_base, ".png"),
+    width = width,
+    height = height,
+    units = "in",
+    res = dpi
+  )
   draw()
   grDevices::dev.off()
+
+  invisible(filename_base)
 }
