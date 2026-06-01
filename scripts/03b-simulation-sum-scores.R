@@ -43,12 +43,12 @@ settings <- list(
 settings$max_score <- settings$J * settings$item_max
 
 scenarios <- data.frame(
-  scenario = c("Middle scores", "Low scores", "High scores"),
+  scenario = c("Middle of scale", "Near floor", "Near ceiling"),
   threshold_shift = c(0.00, 1.60, -1.60),
   interpretation = c(
-    "Item thresholds are centered; expected scores occupy the middle of the scale.",
-    "Thresholds are high; expected scores are closer to the lower bound.",
-    "Thresholds are low; expected scores are closer to the upper bound."
+    "Item thresholds are centered; expected sum scores occupy the middle of the observed scale.",
+    "Item thresholds are high; expected sum scores are compressed near the lower bound.",
+    "Item thresholds are low; expected sum scores are compressed near the upper bound."
   ),
   stringsAsFactors = FALSE
 )
@@ -316,6 +316,14 @@ simulate_one <- function(threshold_shift) {
   items <- simulate_items(theta, make_thresholds(threshold_shift))
   sum_score <- rowSums(items)
   
+  # The Gaussian-logit model below requires responses strictly inside (0, 1).
+  # We therefore use a continuity-corrected score proportion for that model:
+  # (sum_score + 0.5) / (max_score + 1).
+  # The raw sum score and raw score proportion are left unchanged for all
+  # descriptive summaries, plots, and the identity-link model.
+  score_prop <- sum_score / settings$max_score
+  score_prop_logit <- (sum_score + 0.5) / (settings$max_score + 1)
+  
   data.frame(
     x = x,
     group_num = group_num,
@@ -323,7 +331,8 @@ simulate_one <- function(threshold_shift) {
     latent_mean = mu,
     theta = theta,
     sum_score = sum_score,
-    score_prop = sum_score / settings$max_score,
+    score_prop = score_prop,
+    score_prop_logit = score_prop_logit,
     max_score = settings$max_score,
     stringsAsFactors = FALSE
   )
@@ -347,39 +356,58 @@ print_compact(stats::aggregate(sum_score ~ scenario + group, example_data, mean)
 # ---------------------------------------------------------------------
 # 5. Model fitting helpers
 # ---------------------------------------------------------------------
-model_names <- c("Sum-score identity", "Bounded-score logit", "Latent oracle")
+# The intermediate bounded-score model is deliberately not a binomial model.
+# It is a Gaussian GLM with a logit link, fitted to the continuity-corrected
+# score proportion defined in simulate_one(). Thus it constrains fitted means
+# to the 0-1 interval before rescaling predictions to the sum-score metric,
+# but it does not assume binomial variance or independent item-level successes.
+model_names <- c(
+  "Observed sum-score identity",
+  "Gaussian-logit bounded score",
+  "Latent generating scale"
+)
 
 fit_models <- function(d) {
   list(
-    "Sum-score identity" = try(stats::lm(sum_score ~ x * group, data = d), silent = TRUE),
-    "Bounded-score logit" = try(
+    "Observed sum-score identity" = try(
+      stats::lm(sum_score ~ x * group, data = d),
+      silent = TRUE
+    ),
+    "Gaussian-logit bounded score" = try(
       stats::glm(
-        cbind(sum_score, max_score - sum_score) ~ x * group,
-        family = stats::binomial(link = "logit"),
+        score_prop_logit ~ x * group,
+        family = stats::gaussian(link = "logit"),
         data = d
       ),
       silent = TRUE
     ),
-    "Latent oracle" = try(stats::lm(theta ~ x * group, data = d), silent = TRUE)
+    "Latent generating scale" = try(
+      stats::lm(theta ~ x * group, data = d),
+      silent = TRUE
+    )
   )
 }
 
 model_p <- function(fit, model_name) {
   if (inherits(fit, "try-error")) return(NA_real_)
-  if (model_name %in% c("Sum-score identity", "Latent oracle")) return(interaction_p_from_lm(fit))
+  if (model_name %in% c("Observed sum-score identity", "Latent generating scale")) {
+    return(interaction_p_from_lm(fit))
+  }
   interaction_p_from_glm(fit)
 }
 
 model_coef <- function(fit, model_name) {
   if (inherits(fit, "try-error")) return(NA_real_)
-  if (model_name %in% c("Sum-score identity", "Latent oracle")) return(interaction_coef_from_lm(fit))
+  if (model_name %in% c("Observed sum-score identity", "Latent generating scale")) {
+    return(interaction_coef_from_lm(fit))
+  }
   interaction_coef_from_glm(fit)
 }
 
 model_predict_response <- function(fit, model_name, newdata) {
   if (inherits(fit, "try-error")) return(rep(NA_real_, nrow(newdata)))
-  if (model_name == "Sum-score identity") return(stats::predict(fit, newdata = newdata))
-  if (model_name == "Latent oracle") return(stats::predict(fit, newdata = newdata))
+  if (model_name == "Observed sum-score identity") return(stats::predict(fit, newdata = newdata))
+  if (model_name == "Latent generating scale") return(stats::predict(fit, newdata = newdata))
   stats::predict(fit, newdata = newdata, type = "response") * settings$max_score
 }
 
@@ -442,7 +470,7 @@ simulation_summary <- do.call(rbind, lapply(
 
 simulation_summary <- simulation_summary[order(simulation_summary$scenario, simulation_summary$model), ]
 simulation_summary$change_in_group_difference_units <- ifelse(
-  simulation_summary$model == "Latent oracle",
+  simulation_summary$model == "Latent generating scale",
   "latent theta units",
   paste0("sum-score units on the 0-", settings$max_score, " scale")
 )
@@ -458,7 +486,7 @@ cat(
   ", expressed in sum-score units on the 0-", settings$max_score, " scale.\n",
   sep = ""
 )
-cat("For the oracle model, the same quantity is expressed in latent theta units.\n")
+cat("For the latent-generating-scale comparison, the same quantity is expressed in latent theta units.\n")
 
 # ---------------------------------------------------------------------
 # 7. Figure panels
@@ -509,7 +537,7 @@ p_effect <- ggplot2::ggplot(
   ggplot2::facet_wrap(~ scenario) +
   ggplot2::labs(
     title = "Inspection: median model-implied change in the group difference",
-    subtitle = "Observed-score models are in sum-score units; the oracle is in latent theta units",
+    subtitle = "Observed-score models are in sum-score units; the latent-generating-scale comparison is in latent theta units",
     x = NULL,
     y = axis_title_change_group_gap_sum_score(x_low, x_high, settings$max_score)
   ) +

@@ -1,9 +1,17 @@
-"generating_link","random_intercept_sd","group","condition","linear_predictor_random_intercept_0","expected_probability_random_intercept_0"
-"logit",1.18741041172373,"Group 0","Condition 0",1.5,0.817574476193644
-"logit",1.18741041172373,"Group 1","Condition 0",0.5,0.622459331201855
-"logit",1.18741041172373,"Group 0","Condition 1",0.5,0.622459331201855
-"logit",1.18741041172373,"Group 1","Condition 1",-0.5,0.377540668798145
-"probit",0.654653670707977,"Group 0","Condition 0",1.5,0.933192798731142
-"probit",0.654653670707977,"Group 1","Condition 0",0.5,0.691462461274013
-"probit",0.654653670707977,"Group 0","Condition 1",0.5,0.691462461274013
-"probit",0.654653670707977,"Group 1","Condition 1",-0.5,0.308537538725987
+"generating_link","fitted_link","link_match","random_intercept_sd","group","condition","linear_predictor_random_intercept_0","expected_probability_random_intercept_0","deterministic_product_on_fitted_link_scale","deterministic_response_scale_difference_in_differences"
+"logit","logit","Matched link",1.18741041172373,"Group 0","Condition 0",2.475,0.922370537443511,-1.33226762955019e-15,-0.163519470599184
+"logit","probit","Wrong link",1.18741041172373,"Group 0","Condition 0",2.475,0.922370537443511,-0.111562810312494,-0.163519470599184
+"logit","logit","Matched link",1.18741041172373,"Group 1","Condition 0",0.825,0.695296669347565,-1.33226762955019e-15,-0.163519470599184
+"logit","probit","Wrong link",1.18741041172373,"Group 1","Condition 0",0.825,0.695296669347565,-0.111562810312494,-0.163519470599184
+"logit","logit","Matched link",1.18741041172373,"Group 0","Condition 1",0.825,0.695296669347565,-1.33226762955019e-15,-0.163519470599184
+"logit","probit","Wrong link",1.18741041172373,"Group 0","Condition 1",0.825,0.695296669347565,-0.111562810312494,-0.163519470599184
+"logit","logit","Matched link",1.18741041172373,"Group 1","Condition 1",-0.825,0.304703330652435,-1.33226762955019e-15,-0.163519470599184
+"logit","probit","Wrong link",1.18741041172373,"Group 1","Condition 1",-0.825,0.304703330652435,-0.111562810312494,-0.163519470599184
+"probit","logit","Wrong link",0.654653670707977,"Group 0","Condition 0",1.5,0.933192798731142,0.21590490629677,-0.141194585090897
+"probit","probit","Matched link",0.654653670707977,"Group 0","Condition 0",1.5,0.933192798731142,2.22044604925031e-16,-0.141194585090897
+"probit","logit","Wrong link",0.654653670707977,"Group 1","Condition 0",0.5,0.691462461274013,0.21590490629677,-0.141194585090897
+"probit","probit","Matched link",0.654653670707977,"Group 1","Condition 0",0.5,0.691462461274013,2.22044604925031e-16,-0.141194585090897
+"probit","logit","Wrong link",0.654653670707977,"Group 0","Condition 1",0.5,0.691462461274013,0.21590490629677,-0.141194585090897
+"probit","probit","Matched link",0.654653670707977,"Group 0","Condition 1",0.5,0.691462461274013,2.22044604925031e-16,-0.141194585090897
+"probit","logit","Wrong link",0.654653670707977,"Group 1","Condition 1",-0.5,0.308537538725987,0.21590490629677,-0.141194585090897
+"probit","probit","Matched link",0.654653670707977,"Group 1","Condition 1",-0.5,0.308537538725987,2.22044604925031e-16,-0.141194585090897

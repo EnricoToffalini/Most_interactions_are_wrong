@@ -1,7 +1,7 @@
 # scripts/03-simulation-forced-choice.R
 # Simulation 1: forced-choice accuracy with a non-zero chance floor.
 #
-# This script first shows the implied scenarios, then simulates data,
+# This script first shows the deterministic scenario, then simulates data,
 # then quantifies how candidate models can convert link curvature into
 # apparent interactions. Scenario-specific parameters stay here, not in R/.
 
@@ -33,13 +33,13 @@ report_header("Simulation 1: forced-choice accuracy with chance floor")
 # 1. User-tunable scenario block
 # ---------------------------------------------------------------------
 settings <- list(
-  N = 600,
-  k_trials = 50,
+  N = 250,
+  k_trials = 20,
   chance = 0.50,
   age_range = c(6, 10),
   age_center = 8,
-  beta_age = 1.15,
-  beta_group = -1.60,
+  beta_age = 0.60,
+  beta_group = -0.90,
   beta_age_group = 0.00,
   generating_link = "logit",
   B = default_B,
@@ -62,21 +62,21 @@ settings$age_plot_values <- seq(settings$age_range[1], settings$age_range[2], le
 settings$age_bin_breaks <- seq(settings$age_range[1], settings$age_range[2], length.out = 9)
 
 scenarios <- data.frame(
-  scenario = c("Near chance floor", "Middle range", "Near ceiling"),
-  beta_intercept = c(-1.50, 0.00, 1.50),
+  scenario = c("Lower performance", "Middle performance", "Higher performance"),
+  beta_intercept = c(-0.80, 0.00, 0.80),
   interpretation = c(
-    "Predicted accuracies begin close to the .50 chance floor; observed gaps are constrained at young ages.",
-    "Predicted accuracies mostly stay away from the floor and ceiling.",
-    "Group 0 approaches the upper bound at older ages; observed gaps are constrained near the top."
+    "Predicted accuracies are closer to the .50 chance floor, so observed-scale compression is more visible.",
+    "Predicted accuracies mostly remain in the middle of the admissible above-chance range.",
+    "Predicted accuracies are higher, so the chance-floor problem is less dominant but the link still matters."
   ),
   stringsAsFactors = FALSE
 )
 
 model_names <- c(
-  "Identity",
-  "Standard logit",
-  "Standard probit",
-  "Chance-corrected logit"
+  "Gaussian identity",
+  "Standard binomial logit",
+  "Standard binomial probit",
+  "Chance-corrected binomial logit"
 )
 
 validate_settings <- function(settings, scenarios) {
@@ -117,7 +117,7 @@ validate_settings <- function(settings, scenarios) {
   if (!is.finite(settings$alpha) || settings$alpha <= 0 || settings$alpha >= 1) {
     stop("settings$alpha must be in (0, 1).", call. = FALSE)
   }
-  if (!all(is.finite(unlist(settings[c("beta_age", "beta_group", "beta_age_group")] )))) {
+  if (!all(is.finite(unlist(settings[c("beta_age", "beta_group", "beta_age_group")])))) {
     stop("Regression coefficients in settings must be finite.", call. = FALSE)
   }
   check_supported_link(settings$generating_link)
@@ -143,8 +143,9 @@ cat("- Decrease beta_intercept to move a scenario toward the chance floor.\n")
 cat("- Increase beta_intercept to move it toward the ceiling.\n")
 cat("- Increase beta_age to make development steeper.\n")
 cat("- Make beta_group more negative to increase the group gap.\n")
-cat("- Set chance = .25 for a 4-AFC task, .50 for a 2-AFC task.\n")
+cat("- Set chance = .25 for a 4-AFC task, .50 for a 2-AFC or true/false task.\n")
 cat("- beta_age_group = 0, so the true generating link-scale interaction is absent.\n")
+cat("- The present values are intentionally moderate, to avoid saturated false-positive rates.\n")
 
 # ---------------------------------------------------------------------
 # 2. Data-generating functions
@@ -295,8 +296,11 @@ plot_grid <- do.call(rbind, lapply(seq_len(nrow(scenarios)), function(i) {
   g$expected_accuracy <- chance_linkinv(g$eta, chance = settings$chance, link = settings$generating_link)
   g
 }))
+plot_grid$scenario <- factor(plot_grid$scenario, levels = scenarios$scenario)
 
 # Predicted group difference over age, using Group 1 minus Group 0.
+# This is retained for tables/RDS and for the inspection plot, but no longer
+# shown as a main manuscript panel because it largely repeats Panel A.
 gap_data <- do.call(rbind, lapply(split(plot_grid, plot_grid$scenario), function(dat) {
   wide0 <- dat[dat$group_num == 0, c("scenario", "age", "expected_accuracy")]
   wide1 <- dat[dat$group_num == 1, c("scenario", "age", "expected_accuracy")]
@@ -310,6 +314,7 @@ gap_data <- do.call(rbind, lapply(split(plot_grid, plot_grid$scenario), function
     stringsAsFactors = FALSE
   )
 }))
+gap_data$scenario <- factor(gap_data$scenario, levels = scenarios$scenario)
 
 # ---------------------------------------------------------------------
 # 5. One illustrative dataset per scenario
@@ -319,6 +324,7 @@ example_data <- do.call(rbind, lapply(seq_len(nrow(scenarios)), function(i) {
   d$scenario <- scenarios$scenario[i]
   d
 }))
+example_data$scenario <- factor(example_data$scenario, levels = scenarios$scenario)
 
 example_data$age_bin <- cut(
   example_data$age,
@@ -337,11 +343,11 @@ print_compact(stats::aggregate(accuracy ~ scenario + group, example_data, mean))
 # ---------------------------------------------------------------------
 fit_models <- function(d) {
   list(
-    "Identity" = try(
+    "Gaussian identity" = try(
       stats::lm(accuracy ~ age_c * group, data = d),
       silent = TRUE
     ),
-    "Standard logit" = try(
+    "Standard binomial logit" = try(
       stats::glm(
         cbind(y, k - y) ~ age_c * group,
         family = stats::binomial("logit"),
@@ -349,7 +355,7 @@ fit_models <- function(d) {
       ),
       silent = TRUE
     ),
-    "Standard probit" = try(
+    "Standard binomial probit" = try(
       stats::glm(
         cbind(y, k - y) ~ age_c * group,
         family = stats::binomial("probit"),
@@ -357,7 +363,7 @@ fit_models <- function(d) {
       ),
       silent = TRUE
     ),
-    "Chance-corrected logit" = try(
+    "Chance-corrected binomial logit" = try(
       fit_chance_binom(
         ~ age_c * group,
         data = d,
@@ -373,22 +379,22 @@ fit_models <- function(d) {
 
 model_p <- function(fit, model_name) {
   if (inherits(fit, "try-error")) return(NA_real_)
-  if (model_name == "Identity") return(interaction_p_from_lm(fit))
-  if (model_name == "Chance-corrected logit") return(interaction_p_from_chance(fit))
+  if (model_name == "Gaussian identity") return(interaction_p_from_lm(fit))
+  if (model_name == "Chance-corrected binomial logit") return(interaction_p_from_chance(fit))
   interaction_p_from_glm(fit)
 }
 
 model_coef <- function(fit, model_name) {
   if (inherits(fit, "try-error")) return(NA_real_)
-  if (model_name == "Identity") return(interaction_coef_from_lm(fit))
-  if (model_name == "Chance-corrected logit") return(interaction_coef_from_chance(fit))
+  if (model_name == "Gaussian identity") return(interaction_coef_from_lm(fit))
+  if (model_name == "Chance-corrected binomial logit") return(interaction_coef_from_chance(fit))
   interaction_coef_from_glm(fit)
 }
 
 model_predict <- function(fit, model_name, newdata) {
   if (inherits(fit, "try-error")) return(rep(NA_real_, nrow(newdata)))
-  if (model_name == "Identity") return(stats::predict(fit, newdata = newdata))
-  if (model_name == "Chance-corrected logit") {
+  if (model_name == "Gaussian identity") return(stats::predict(fit, newdata = newdata))
+  if (model_name == "Chance-corrected binomial logit") {
     return(predict_chance_binom(fit, newdata = newdata, type = "response"))
   }
   stats::predict(fit, newdata = newdata, type = "response")
@@ -462,6 +468,8 @@ simulation_summary <- do.call(rbind, lapply(
     )
   }
 ))
+simulation_summary$scenario <- factor(simulation_summary$scenario, levels = scenarios$scenario)
+simulation_summary$model <- factor(simulation_summary$model, levels = model_names)
 simulation_summary <- simulation_summary[order(simulation_summary$scenario, simulation_summary$model), ]
 
 utils::write.csv(simulation_summary, settings$output_summary_table, row.names = FALSE)
@@ -479,49 +487,81 @@ cat("expressed as correct-response units out of ", settings$k_trials, " trials.\
 # ---------------------------------------------------------------------
 # 8. Figure panels
 # ---------------------------------------------------------------------
-pA <- ggplot2::ggplot(plot_grid, ggplot2::aes(age, expected_accuracy, linetype = group)) +
-  ggplot2::geom_hline(yintercept = settings$chance, linetype = "dashed") +
+floor_band <- data.frame(
+  scenario = factor(scenarios$scenario, levels = scenarios$scenario),
+  xmin = settings$age_range[1],
+  xmax = settings$age_range[2],
+  ymin = 0,
+  ymax = settings$chance
+)
+
+chance_annotation <- data.frame(
+  scenario = factor(scenarios$scenario, levels = scenarios$scenario),
+  age = settings$age_range[2] - 0.05,
+  expected_accuracy = settings$chance + 0.025,
+  label = paste0("chance floor = ", sprintf("%.2f", settings$chance))
+)
+
+pA <- ggplot2::ggplot(plot_grid, ggplot2::aes(age, expected_accuracy, linetype = group, color = group)) +
+  ggplot2::geom_rect(
+    data = floor_band,
+    ggplot2::aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    inherit.aes = FALSE,
+    fill = "grey92",
+    color = NA
+  ) +
+  ggplot2::geom_hline(yintercept = settings$chance, linetype = "dashed", color = "grey35") +
   ggplot2::geom_line(linewidth = 0.95) +
+  ggplot2::geom_text(
+    data = chance_annotation,
+    ggplot2::aes(age, expected_accuracy, label = label),
+    inherit.aes = FALSE,
+    hjust = 1,
+    size = 3,
+    color = "grey25"
+  ) +
   ggplot2::facet_wrap(~ scenario) +
-  ggplot2::scale_y_continuous(limits = c(settings$chance - 0.02, 1.02)) +
+  ggplot2::coord_cartesian(ylim = c(settings$chance - 0.05, 1.00)) +
+  ggplot2::scale_y_continuous(labels = percent_labels(1), breaks = seq(settings$chance, 1, by = 0.10)) +
+  ggplot2::scale_color_manual(values = c("Group 0" = "grey10", "Group 1" = "grey45")) +
+  ggplot2::scale_linetype_manual(values = c("Group 0" = "solid", "Group 1" = "longdash")) +
   ggplot2::labs(
-    title = "A. Implied scenario curves",
-    subtitle = "True product term on the chance-corrected link scale is zero",
+    title = "A. Scenario curves generated above a chance floor",
+    subtitle = "No age-by-group product term is present on the chance-corrected logit scale",
     x = "Age",
-    y = "Expected accuracy"
+    y = "Expected accuracy",
+    color = NULL,
+    linetype = NULL
   ) +
   link_theme()
 
-pB <- ggplot2::ggplot(gap_data, ggplot2::aes(age, group_difference_correct_out_of_k_trials)) +
-  ggplot2::geom_hline(yintercept = 0, linetype = "dashed") +
-  ggplot2::geom_line(linewidth = 0.95) +
-  ggplot2::facet_wrap(~ scenario) +
-  ggplot2::labs(
-    title = "B. Implied predicted group difference at each age",
-    subtitle = "This is Group 1 minus Group 0 on the observed accuracy scale",
-    x = "Age",
-    y = axis_title_group_gap_correct(settings$k_trials)
-  ) +
-  link_theme()
-
-pC <- ggplot2::ggplot(simulation_summary, ggplot2::aes(x = model, y = false_positive_rate)) +
-  ggplot2::geom_hline(yintercept = settings$alpha, linetype = "dashed") +
-  ggplot2::geom_pointrange(ggplot2::aes(ymin = ci_low, ymax = ci_high)) +
+pB <- ggplot2::ggplot(simulation_summary, ggplot2::aes(x = model, y = false_positive_rate, shape = model)) +
+  ggplot2::geom_hline(yintercept = settings$alpha, linetype = "dashed", color = "grey35") +
+  ggplot2::geom_pointrange(ggplot2::aes(ymin = ci_low, ymax = ci_high), linewidth = 0.45) +
   ggplot2::coord_flip() +
   ggplot2::facet_wrap(~ scenario) +
+  ggplot2::scale_y_continuous(labels = percent_labels(1), breaks = seq(0, 1, by = 0.25), limits = c(0, 1)) +
+  ggplot2::scale_shape_manual(values = c(
+    "Gaussian identity" = 16,
+    "Standard binomial logit" = 15,
+    "Standard binomial probit" = 18,
+    "Chance-corrected binomial logit" = 17
+  )) +
   ggplot2::labs(
-    title = "C. False-positive interaction rate",
-    subtitle = "Dashed line is nominal alpha",
+    title = "B. False-positive interaction rate",
+    subtitle = "Dashed line is nominal alpha; data were generated with no link-scale interaction",
     x = NULL,
-    y = "Rate"
+    y = "Significant age-by-group tests",
+    shape = NULL
   ) +
-  link_theme(base_size = 9)
+  link_theme(base_size = 9) +
+  ggplot2::theme(legend.position = "none")
 
 save_plot_grid(
-  list(pA, pB, pC),
+  list(pA, pB),
   filename_base = settings$output_figure_base,
   width = figure_width,
-  height = 7.2,
+  height = 5.9,
   ncol = 1,
   dpi = default_dpi
 )
@@ -529,12 +569,18 @@ save_plot_grid(
 # Extra inspection plot: model-implied effect sizes.
 p_effect <- ggplot2::ggplot(
   simulation_summary,
-  ggplot2::aes(x = model, y = median_change_in_group_difference_outcome_units)
+  ggplot2::aes(x = model, y = median_change_in_group_difference_outcome_units, shape = model)
 ) +
   ggplot2::geom_hline(yintercept = 0, linetype = "dashed") +
   ggplot2::geom_point(size = 2) +
   ggplot2::coord_flip() +
   ggplot2::facet_wrap(~ scenario) +
+  ggplot2::scale_shape_manual(values = c(
+    "Gaussian identity" = 16,
+    "Standard binomial logit" = 15,
+    "Standard binomial probit" = 18,
+    "Chance-corrected binomial logit" = 17
+  )) +
   ggplot2::labs(
     title = "Inspection: median model-implied change in the group difference",
     subtitle = "Values are contrasts, not possible observed counts",
@@ -543,9 +589,11 @@ p_effect <- ggplot2::ggplot(
       settings$age_range[1],
       settings$age_range[2],
       settings$k_trials
-    )
+    ),
+    shape = NULL
   ) +
-  link_theme()
+  link_theme() +
+  ggplot2::theme(legend.position = "none")
 
 save_single_plot(
   p_effect,

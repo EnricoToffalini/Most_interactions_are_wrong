@@ -5,17 +5,139 @@ if (!requireNamespace("ggplot2", quietly = TRUE)) {
   stop("Please install ggplot2.", call. = FALSE)
 }
 
-link_theme <- function(base_size = 10) {
-  ggplot2::theme_bw(base_size = base_size) +
+# ---------------------------------------------------------------------
+# Shared visual system
+# ---------------------------------------------------------------------
+
+link_palette <- function(keys = NULL) {
+  pal <- c(
+    "Group 0" = "#0072B2",
+    "Group 1" = "#D55E00",
+    "Identity" = "#009E73",
+    "Gaussian identity" = "#009E73",
+    "Standard logit" = "#0072B2",
+    "Standard probit" = "#CC79A7",
+    "Standard binomial logit" = "#0072B2",
+    "Chance-corrected logit" = "#D55E00",
+    "Chance-corrected binomial" = "#D55E00",
+    "Chance-corrected binomial link" = "#D55E00",
+    "Observed data" = "grey30",
+    "Generating model" = "black"
+  )
+  
+  if (is.null(keys)) {
+    return(pal)
+  }
+  
+  out <- pal[keys]
+  missing <- is.na(out)
+  
+  if (any(missing)) {
+    extra <- grDevices::hcl.colors(sum(missing), palette = "Dark 3")
+    names(extra) <- keys[missing]
+    out[missing] <- extra
+  }
+  
+  out
+}
+
+link_linetypes <- function(keys = NULL) {
+  ltys <- c(
+    "Group 0" = "solid",
+    "Group 1" = "longdash",
+    "Identity" = "solid",
+    "Gaussian identity" = "solid",
+    "Standard logit" = "solid",
+    "Standard probit" = "dotdash",
+    "Standard binomial logit" = "solid",
+    "Chance-corrected logit" = "longdash",
+    "Chance-corrected binomial" = "longdash",
+    "Chance-corrected binomial link" = "longdash",
+    "Observed data" = "blank",
+    "Generating model" = "solid"
+  )
+  
+  if (is.null(keys)) {
+    return(ltys)
+  }
+  
+  out <- ltys[keys]
+  out[is.na(out)] <- "solid"
+  out
+}
+
+link_shapes <- function(keys = NULL) {
+  shp <- c(
+    "Group 0" = 16,
+    "Group 1" = 17,
+    "Identity" = 16,
+    "Gaussian identity" = 16,
+    "Standard logit" = 15,
+    "Standard probit" = 18,
+    "Standard binomial logit" = 15,
+    "Chance-corrected logit" = 17,
+    "Chance-corrected binomial" = 17,
+    "Chance-corrected binomial link" = 17,
+    "Observed data" = 16,
+    "Generating model" = 1
+  )
+  
+  if (is.null(keys)) {
+    return(shp)
+  }
+  
+  out <- shp[keys]
+  out[is.na(out)] <- 16
+  out
+}
+
+link_scale_color_discrete <- function(..., values = link_palette()) {
+  ggplot2::scale_color_manual(values = values, ...)
+}
+
+link_scale_linetype_discrete <- function(..., values = link_linetypes()) {
+  ggplot2::scale_linetype_manual(values = values, ...)
+}
+
+link_scale_shape_discrete <- function(..., values = link_shapes()) {
+  ggplot2::scale_shape_manual(values = values, ...)
+}
+
+percent_labels <- function(accuracy = 1) {
+  force(accuracy)
+  function(x) paste0(round(100 * x / accuracy) * accuracy, "%")
+}
+
+link_theme <- function(base_size = 10, base_family = "") {
+  ggplot2::theme_minimal(base_size = base_size, base_family = base_family) +
     ggplot2::theme(
-      plot.title = ggplot2::element_text(face = "bold", size = base_size + 1),
-      plot.subtitle = ggplot2::element_text(size = base_size - 1),
+      plot.title = ggplot2::element_text(
+        face = "bold",
+        size = base_size + 1,
+        margin = ggplot2::margin(b = 3)
+      ),
+      plot.subtitle = ggplot2::element_text(
+        size = base_size - 1,
+        color = "grey25",
+        margin = ggplot2::margin(b = 6)
+      ),
+      axis.title = ggplot2::element_text(size = base_size),
+      axis.text = ggplot2::element_text(size = base_size - 1, color = "grey20"),
       strip.text = ggplot2::element_text(face = "bold", size = base_size - 1),
       legend.position = "bottom",
-      legend.title = ggplot2::element_blank(),
-      panel.grid.minor = ggplot2::element_blank()
+      legend.title = ggplot2::element_text(size = base_size - 1),
+      legend.text = ggplot2::element_text(size = base_size - 1),
+      legend.key.width = grid::unit(1.25, "lines"),
+      panel.grid.minor = ggplot2::element_blank(),
+      panel.grid.major = ggplot2::element_line(linewidth = 0.25, color = "grey88"),
+      panel.spacing = grid::unit(0.9, "lines"),
+      plot.margin = ggplot2::margin(6, 8, 6, 8)
     )
 }
+
+# ---------------------------------------------------------------------
+# Existing helpers retained
+# ---------------------------------------------------------------------
 
 bin_midpoints <- function(x) {
   lev <- levels(x)
@@ -54,14 +176,14 @@ axis_title_change_group_gap_probability <- function(low, high) {
 
 save_single_plot <- function(plot, filename_base, width = 7.2, height = 5, dpi = 300) {
   dir.create(dirname(filename_base), recursive = TRUE, showWarnings = FALSE)
-
+  
   ggplot2::ggsave(
     paste0(filename_base, ".pdf"),
     plot = plot,
     width = width,
     height = height
   )
-
+  
   ggplot2::ggsave(
     paste0(filename_base, ".png"),
     plot = plot,
@@ -69,7 +191,7 @@ save_single_plot <- function(plot, filename_base, width = 7.2, height = 5, dpi =
     height = height,
     dpi = dpi
   )
-
+  
   invisible(filename_base)
 }
 
@@ -77,20 +199,20 @@ save_plot_grid <- function(plots, filename_base, width = 7.2, height = 7, ncol =
   if (!requireNamespace("grid", quietly = TRUE)) {
     stop("The grid package is required.", call. = FALSE)
   }
-
+  
   dir.create(dirname(filename_base), recursive = TRUE, showWarnings = FALSE)
-
+  
   n <- length(plots)
   if (n == 0) stop("plots must contain at least one plot.", call. = FALSE)
-
+  
   nrow <- ceiling(n / ncol)
-
+  
   draw <- function() {
     grid::grid.newpage()
     vp <- grid::viewport(layout = grid::grid.layout(nrow, ncol))
     grid::pushViewport(vp)
     on.exit(grid::popViewport(), add = TRUE)
-
+    
     for (i in seq_along(plots)) {
       r <- ceiling(i / ncol)
       c <- i - (r - 1) * ncol
@@ -100,11 +222,11 @@ save_plot_grid <- function(plots, filename_base, width = 7.2, height = 7, ncol =
       )
     }
   }
-
+  
   grDevices::pdf(paste0(filename_base, ".pdf"), width = width, height = height)
   draw()
   grDevices::dev.off()
-
+  
   grDevices::png(
     paste0(filename_base, ".png"),
     width = width,
@@ -114,6 +236,6 @@ save_plot_grid <- function(plots, filename_base, width = 7.2, height = 7, ncol =
   )
   draw()
   grDevices::dev.off()
-
+  
   invisible(filename_base)
 }

@@ -56,8 +56,9 @@ scenario$age_summary_values <- c(
 scenario$age_plot_values <- seq(
   scenario$age_range[1],
   scenario$age_range[2],
-  length.out = 200
+  length.out = 240
 )
+
 scenario$age_bin_breaks <- seq(
   scenario$age_range[1],
   scenario$age_range[2],
@@ -369,90 +370,237 @@ plot_grid$group <- group_factor(plot_grid$group_num)
 plot_grid$age_c <- plot_grid$age - scenario$age_center
 plot_grid$expected_accuracy <- p_fun(plot_grid$age, plot_grid$group_num)
 
-pred_long <- do.call(
+# For the figure, show the no-product-term baselines implied by each model.
+# The interaction models fitted above are retained for the model-results table.
+fit_identity_additive <- stats::lm(accuracy ~ age_c + group, data = d)
+
+fit_logit_additive <- stats::glm(
+  cbind(y, k - y) ~ age_c + group,
+  family = stats::binomial("logit"),
+  data = d
+)
+
+fit_chance_additive <- fit_chance_binom(
+  ~ age_c + group,
+  data = d,
+  y_col = "y",
+  k_col = "k",
+  chance = scenario$chance,
+  link = scenario$generating_link
+)
+
+baseline_model_names <- c(
+  "Gaussian identity",
+  "Standard binomial logit",
+  "Chance-corrected binomial"
+)
+
+predict_baseline <- function(model_name, newdata) {
+  if (model_name == "Gaussian identity") {
+    return(stats::predict(fit_identity_additive, newdata = newdata))
+  }
+  
+  if (model_name == "Standard binomial logit") {
+    return(stats::predict(fit_logit_additive, newdata = newdata, type = "response"))
+  }
+  
+  if (model_name == "Chance-corrected binomial") {
+    return(predict_chance_binom(fit_chance_additive, newdata = newdata, type = "response"))
+  }
+  
+  stop("Unknown baseline model: ", model_name, call. = FALSE)
+}
+
+baseline_long <- do.call(
   rbind,
-  lapply(plot_model_names, function(m) {
+  lapply(baseline_model_names, function(m) {
     data.frame(
       age = plot_grid$age,
       group = plot_grid$group,
       model = m,
-      predicted = predict_model(m, plot_grid),
+      predicted = predict_baseline(m, plot_grid),
       stringsAsFactors = FALSE
     )
   })
 )
-pred_long$model <- factor(pred_long$model, levels = plot_model_names)
 
-pred_long$model_label <- factor(
-  pred_long$model,
-  levels = plot_model_names,
+baseline_long$model <- factor(baseline_long$model, levels = baseline_model_names)
+baseline_long$model_label <- factor(
+  baseline_long$model,
+  levels = baseline_model_names,
   labels = c(
-    "Gaussian\nidentity",
-    "Standard\nbinomial logit",
-    "Chance-corrected\nbinomial link"
+    "Gaussian identity",
+    "Standard binomial logit",
+    "Chance-corrected binomial link"
   )
 )
 
-# Binned data for readability.
+# Binned data for readability. The same binned points are repeated in each facet.
 d$age_bin <- cut(d$age, breaks = scenario$age_bin_breaks, include.lowest = TRUE)
 binned <- stats::aggregate(accuracy ~ age_bin + group, d, mean)
 binned$age_mid <- bin_midpoints(binned$age_bin)
 
+binned_facets <- merge(
+  binned,
+  data.frame(model_label = levels(baseline_long$model_label)),
+  by = NULL
+)
+
+binned_facets$model_label <- factor(
+  binned_facets$model_label,
+  levels = levels(baseline_long$model_label)
+)
+
+# Light construction lines in Panel A: equal one-year age steps are equal
+# steps on eta because beta_age = 1 and beta_age_group = 0, but not equal
+# steps on the observed accuracy scale.
+step_ages <- seq(
+  scenario$age_range[1],
+  scenario$age_range[2],
+  by = 1
+)
+
+step_df <- data.frame(
+  age = step_ages,
+  group = group_factor(0),
+  expected_accuracy = p_fun(step_ages, 0)
+)
+
+step_h <- data.frame(
+  x = min(scenario$age_plot_values),
+  xend = step_df$age,
+  y = step_df$expected_accuracy,
+  yend = step_df$expected_accuracy
+)
+
+step_v <- data.frame(
+  x = step_df$age,
+  xend = step_df$age,
+  y = scenario$chance,
+  yend = step_df$expected_accuracy
+)
+
+floor_rect <- data.frame(
+  xmin = -Inf,
+  xmax = Inf,
+  ymin = -Inf,
+  ymax = scenario$chance
+)
+
 p1 <- ggplot2::ggplot(
   plot_grid,
-  ggplot2::aes(age, expected_accuracy, linetype = group)
+  ggplot2::aes(age, expected_accuracy, color = group, linetype = group)
 ) +
-  ggplot2::geom_hline(yintercept = scenario$chance, linetype = "dashed") +
-  ggplot2::geom_line(linewidth = 1) +
-  ggplot2::scale_y_continuous(limits = c(scenario$chance - 0.02, 1.02)) +
+  ggplot2::geom_rect(
+    data = floor_rect,
+    ggplot2::aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    inherit.aes = FALSE,
+    fill = "grey95",
+    color = NA
+  ) +
+  ggplot2::geom_segment(
+    data = step_h,
+    ggplot2::aes(x = x, xend = xend, y = y, yend = yend),
+    inherit.aes = FALSE,
+    linewidth = 0.25,
+    color = "grey70"
+  ) +
+  ggplot2::geom_segment(
+    data = step_v,
+    ggplot2::aes(x = x, xend = xend, y = y, yend = yend),
+    inherit.aes = FALSE,
+    linewidth = 0.25,
+    color = "grey70"
+  ) +
+  ggplot2::geom_hline(
+    yintercept = scenario$chance,
+    linewidth = 0.45,
+    linetype = "dotted",
+    color = "grey30"
+  ) +
+  ggplot2::geom_line(linewidth = 1.0) +
+  ggplot2::geom_point(
+    data = step_df,
+    ggplot2::aes(age, expected_accuracy),
+    inherit.aes = FALSE,
+    size = 1.6,
+    color = "grey25"
+  ) +
+  ggplot2::coord_cartesian(ylim = c(scenario$chance - 0.02, 1.02)) +
+  ggplot2::scale_y_continuous(
+    breaks = c(0.50, 0.60, 0.75, 0.90, 1.00),
+    labels = percent_labels()
+  ) +
+  link_scale_color_discrete(name = "Group") +
+  link_scale_linetype_discrete(name = "Group") +
   ggplot2::labs(
-    title = "A. True scenario",
-    subtitle = "No age-by-group term on the 2-AFC link scale",
+    title = "A. Data-generating pattern",
+    subtitle = "No age-by-group term on the chance-corrected 2-AFC scale",
     x = "Age",
     y = "Expected accuracy"
   ) +
-  link_theme()
+  link_theme(base_size = 10.5)
 
 p2 <- ggplot2::ggplot() +
-  ggplot2::geom_hline(yintercept = scenario$chance, linetype = "dashed") +
-  ggplot2::geom_point(
-    data = d,
-    ggplot2::aes(age, accuracy, shape = group),
-    alpha = 0.20,
-    size = 0.8
+  ggplot2::geom_rect(
+    data = floor_rect,
+    ggplot2::aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    inherit.aes = FALSE,
+    fill = "grey95",
+    color = NA
+  ) +
+  ggplot2::geom_hline(
+    yintercept = scenario$chance,
+    linewidth = 0.45,
+    linetype = "dotted",
+    color = "grey30"
   ) +
   ggplot2::geom_point(
-    data = binned,
-    ggplot2::aes(age_mid, accuracy, shape = group),
-    size = 2.1
+    data = binned_facets,
+    ggplot2::aes(age_mid, accuracy, color = group, shape = group),
+    size = 1.9,
+    alpha = 0.85
   ) +
-  ggplot2::scale_y_continuous(limits = c(scenario$chance - 0.02, 1.02)) +
-  ggplot2::labs(
-    title = "B. One simulated dataset",
-    subtitle = "Small points are participants; larger points are age-bin means",
-    x = "Age",
-    y = "Observed accuracy"
+  ggplot2::geom_line(
+    data = baseline_long,
+    ggplot2::aes(age, predicted, color = group, linetype = group),
+    linewidth = 0.9
   ) +
-  link_theme()
-
-p3 <- ggplot2::ggplot(
-  pred_long,
-  ggplot2::aes(age, predicted, linetype = group)
-) +
-  ggplot2::geom_hline(yintercept = scenario$chance, linetype = "dashed") +
-  ggplot2::geom_line(linewidth = 0.9) +
   ggplot2::facet_wrap(~ model_label, ncol = 3) +
-  ggplot2::scale_y_continuous(limits = c(scenario$chance - 0.04, 1.04)) +
-  ggplot2::labs(
-    title = "C. Fitted curves from three plausible models",
-    subtitle = "Same data, different no-interaction baselines",
-    x = "Age",
-    y = "Predicted accuracy"
+  ggplot2::coord_cartesian(ylim = c(0.30, 1.02)) +
+  ggplot2::scale_y_continuous(
+    breaks = c(0.30, 0.50, 0.70, 0.90, 1.00),
+    labels = percent_labels()
   ) +
-  link_theme(base_size = 9)
+  link_scale_color_discrete(name = "Group") +
+  link_scale_linetype_discrete(name = "Group") +
+  link_scale_shape_discrete(name = "Group") +
+  ggplot2::labs(
+    title = "B. Same binned data, different no-interaction baselines",
+    subtitle = "Each facet fits an additive model on a different scale",
+    x = "Age",
+    y = "Accuracy"
+  ) +
+  link_theme(base_size = 9.5) +
+  ggplot2::theme(
+    legend.position = "bottom",
+    strip.text = ggplot2::element_text(size = 8.8, face = "bold")
+  )
 
 save_plot_grid(
-  list(p1, p2, p3),
+  list(p1, p2),
+  filename_base = settings$figure_base,
+  width = figure_width,
+  height = 6.4,
+  ncol = 1,
+  dpi = default_dpi
+)
+
+
+# SAVE OUTPUT #
+
+save_plot_grid(
+  list(p1, p2),
   filename_base = settings$figure_base,
   width = figure_width,
   height = 7.2,
@@ -467,12 +615,15 @@ saveRDS(
     scenario_table = scenario_table,
     example_dataset = d,
     model_results_example = model_results,
-    predictions = pred_long,
+    predictions = baseline_long,
     fits = list(
       identity = fit_identity,
       logit = fit_logit,
       probit = fit_probit,
-      chance_logit = fit_chance
+      chance_logit = fit_chance,
+      identity_additive = fit_identity_additive,
+      logit_additive = fit_logit_additive,
+      chance_logit_additive = fit_chance_additive
     )
   ),
   file = settings$rds_path

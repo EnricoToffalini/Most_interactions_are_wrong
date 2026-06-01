@@ -1,14 +1,12 @@
 # scripts/06-diagnostic-worked-example.R
-# Diagnostic worked example: wrong-link false-positive interaction vs DHARMa detection.
+# Diagnostic worked example: wrong-link false-positive interaction vs diagnostic detection.
 #
 # Purpose:
 #   The data are generated with a .50 chance floor, but the fitted model is a
 #   standard binomial GLM with a lower asymptote at 0. The script compares:
 #     1. the false-positive rate for the age-by-group product term;
-#     2. the rate at which four prespecified DHARMa residual diagnostics flag
-#        the wrong-link problem;
-#     3. a Pregibon-style added-term link check, retained only as a secondary
-#        link-specific comparator.
+#     2. separate DHARMa residual diagnostic detection rates;
+#     3. a Pregibon-style added-term link check as a secondary comparator.
 #
 # Design rule for this project:
 #   Global technical defaults and reusable functions live in R/.
@@ -19,6 +17,10 @@ rm(list = ls())
 # ---------------------------------------------------------------------
 # 0. Project setup
 # ---------------------------------------------------------------------
+
+if (!file.exists("R/project-settings.R") && file.exists("../R/project-settings.R")) {
+  setwd("..")
+}
 
 required_packages <- c("DHARMa", "ggplot2")
 missing_packages <- required_packages[
@@ -59,7 +61,7 @@ settings <- list(
   beta_age_group = 0.00,
   generating_link = "logit",
   fitted_link = "logit",
-  B = default_B,
+  B = as.integer(Sys.getenv("N_SIM", as.character(default_B))),
   alpha = default_alpha,
   dharma_n_sim = as.integer(Sys.getenv("DHARMA_N_SIM", "250")),
   age_plot_n = 200,
@@ -96,7 +98,9 @@ validate_settings <- function(settings) {
   if (settings$age_range[1] >= settings$age_range[2]) {
     stop("settings$age_range must be increasing.", call. = FALSE)
   }
-  if (settings$age_center < settings$age_range[1] || settings$age_center > settings$age_range[2]) {
+  if (!is.finite(settings$age_center) ||
+      settings$age_center < settings$age_range[1] ||
+      settings$age_center > settings$age_range[2]) {
     stop("settings$age_center should lie inside settings$age_range.", call. = FALSE)
   }
   if (!is.finite(settings$B) || settings$B <= 0) stop("settings$B must be positive.", call. = FALSE)
@@ -112,18 +116,15 @@ validate_settings <- function(settings) {
 }
 
 validate_settings(settings)
-
-# This folder is used only for a representative DHARMa inspection plot.
 dir.create(dirname(settings$output_dharma_example), recursive = TRUE, showWarnings = FALSE)
 
 report_section("Scenario parameters you can tune")
 print_compact(list_to_table(settings))
 cat("\nThis diagnostic example deliberately generates data with a .50 lower asymptote,\n")
 cat("then fits a standard binomial-logit model whose lower asymptote is 0.\n")
-cat("The main diagnostic question is whether DHARMa simulation-based residual checks\n")
-cat("flag the wrong link as often as the wrong link produces a significant\n")
-cat("age-by-group interaction. A Pregibon-style added-term link check is reported\n")
-cat("only as a secondary, link-specific comparator.\n")
+cat("The main comparison is between the false-positive rate for the wrong-link\n")
+cat("age-by-group interaction and the detection rates of separate diagnostics.\n")
+cat("No Holm omnibus decision is used as the main result.\n")
 
 eta_fun <- function(age, group_num) {
   age_c <- age - settings$age_center
@@ -280,16 +281,16 @@ safe_dharma_test <- function(expr) {
 # diagnostics separately: overall uniformity, dispersion, residual quantile
 # patterns over fitted values, and residual quantile patterns over age.
 # We do not combine them into a single omnibus p-value, because these checks
-# are partly overlapping summaries of the same simulated residuals. The goal is
-# descriptive and diagnostic: to evaluate which checks, if any, detect the
-# wrong-link problem in the same simulations where the wrong link can produce
-# a false-positive interaction.
+# are partly overlapping summaries of the same simulated residuals and have
+# different diagnostic meanings. For Monte Carlo replications, seed = NULL
+# avoids reusing DHARMa's default fixed seed in every replication.
 dharma_diagnostics <- function(fit, data) {
   sim <- try(
     DHARMa::simulateResiduals(
       fittedModel = fit,
       n = settings$dharma_n_sim,
-      plot = FALSE
+      plot = FALSE,
+      seed = NULL
     ),
     silent = TRUE
   )
@@ -522,92 +523,114 @@ pA <- ggplot2::ggplot(
   ggplot2::geom_line(linewidth = .95) +
   ggplot2::scale_y_continuous(limits = c(settings$chance - .02, 1.02)) +
   ggplot2::labs(
-    title = "A. Scenario",
-    subtitle = "Generated with a .50 floor; fitted with a standard logit",
+    title = "A. Generating pattern",
+    subtitle = "Chance-corrected binomial model; no age-by-group product term on the generating link scale",
     x = "Age",
-    y = "Expected accuracy"
+    y = "Expected accuracy",
+    linetype = NULL
   ) +
-  link_theme()
+  link_theme() +
+  ggplot2::theme(legend.position = "bottom")
+
+interaction_row <- simulation_summary[
+  simulation_summary$quantity == "Wrong-link interaction",
+]
+interaction_row$quantity <- "Wrong-link interaction"
 
 pB <- ggplot2::ggplot(
-  gap_data,
-  ggplot2::aes(age, group_difference_correct_out_of_k_trials)
+  interaction_row,
+  ggplot2::aes(x = quantity, y = rate)
 ) +
-  ggplot2::geom_hline(yintercept = 0, linetype = "dashed") +
-  ggplot2::geom_line(linewidth = .95) +
-  ggplot2::labs(
-    title = "B. True group gap on the observed scale",
-    subtitle = "Group 1 minus Group 0",
-    x = "Age",
-    y = axis_title_group_gap_correct(settings$k_trials)
+  ggplot2::geom_hline(yintercept = settings$alpha, linetype = "dashed") +
+  ggplot2::geom_col(width = .55, fill = "grey70", color = "grey20") +
+  ggplot2::geom_errorbar(
+    ggplot2::aes(ymin = ci_low, ymax = ci_high),
+    width = .15,
+    linewidth = .45
   ) +
-  link_theme()
+  ggplot2::coord_cartesian(ylim = c(0, 1)) +
+  ggplot2::labs(
+    title = "B. Interaction false-positive rate",
+    subtitle = "Wrong standard binomial-logit link; dashed line is nominal alpha",
+    x = NULL,
+    y = "Rate"
+  ) +
+  link_theme() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 0, hjust = .5))
 
-figure_summary <- simulation_summary[
-  simulation_summary$quantity %in% c(
-    "Wrong-link interaction",
-    "DHARMa uniformity",
-    "DHARMa dispersion",
-    "DHARMa residual quantiles over fitted values",
-    "DHARMa residual quantiles over age",
-    "Pregibon-style added-term link check, secondary"
-  ),
+diagnostic_rows <- simulation_summary[
+  simulation_summary$quantity != "Wrong-link interaction",
 ]
 
-figure_summary$quantity <- factor(
-  figure_summary$quantity,
+diagnostic_rows$quantity <- factor(
+  diagnostic_rows$quantity,
   levels = c(
     "Pregibon-style added-term link check, secondary",
     "DHARMa residual quantiles over age",
     "DHARMa residual quantiles over fitted values",
     "DHARMa dispersion",
-    "DHARMa uniformity",
-    "Wrong-link interaction"
+    "DHARMa uniformity"
   )
 )
 
 pC <- ggplot2::ggplot(
-  figure_summary,
-  ggplot2::aes(x = quantity, y = rate)
+  diagnostic_rows,
+  ggplot2::aes(x = quantity, y = rate, fill = diagnostic_family)
 ) +
   ggplot2::geom_hline(yintercept = settings$alpha, linetype = "dashed") +
-  ggplot2::geom_pointrange(ggplot2::aes(ymin = ci_low, ymax = ci_high)) +
-  ggplot2::coord_flip() +
-  ggplot2::labs(
-    title = "C. Interaction false positives and diagnostic detection",
-    subtitle = "DHARMa checks are reported separately; dashed line is nominal alpha",
-    x = NULL,
-    y = "Rate"
+  ggplot2::geom_col(width = .62, color = "grey20") +
+  ggplot2::geom_errorbar(
+    ggplot2::aes(ymin = ci_low, ymax = ci_high),
+    width = .18,
+    linewidth = .45
   ) +
-  link_theme()
+  ggplot2::coord_flip(ylim = c(0, 1)) +
+  ggplot2::scale_fill_manual(
+    values = c(
+      "DHARMa" = "grey78",
+      "Pregibon-style link check" = "grey45"
+    )
+  ) +
+  ggplot2::labs(
+    title = "C. Diagnostic detection rates",
+    subtitle = "Separate diagnostics, not one Holm omnibus decision",
+    x = NULL,
+    y = "Detection rate",
+    fill = NULL
+  ) +
+  link_theme() +
+  ggplot2::theme(legend.position = "bottom")
 
 save_plot_grid(
   list(pA, pB, pC),
   filename_base = settings$output_figure_base,
   width = figure_width,
-  height = 7.0,
+  height = 7.2,
   ncol = 1,
   dpi = default_dpi
 )
 
-# Save one representative DHARMa diagnostic plot for inspection. This helps
-# inspect what DHARMa is seeing in one simulated dataset.
+# Save one representative DHARMa diagnostic plot for inspection. This file is
+# not a main-text figure. It helps inspect what DHARMa sees in one simulated
+# dataset and keeps the main figure focused on detection rates.
 example_data <- simulate_one()
 example_fit <- fit_wrong_link_model(example_data)
 example_sim <- DHARMa::simulateResiduals(
   fittedModel = example_fit,
   n = settings$dharma_n_sim,
-  plot = FALSE
+  plot = FALSE,
+  seed = 123
 )
 
 grDevices::pdf(settings$output_dharma_example, width = 7.2, height = 6.5)
 old_par <- graphics::par(mfrow = c(2, 2), mar = c(4, 4, 2, 1))
-graphics::plot(example_sim, quantreg = TRUE)
+DHARMa::plotQQunif(example_sim, main = "Overall uniformity")
+DHARMa::plotResiduals(example_sim, quantreg = TRUE, main = "Residuals over fitted values")
 DHARMa::plotResiduals(
   example_sim,
   form = example_data$age_c,
   quantreg = TRUE,
-  main = "Residuals by age"
+  main = "Residuals over age"
 )
 DHARMa::plotResiduals(
   example_sim,
