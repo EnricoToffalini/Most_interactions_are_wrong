@@ -403,7 +403,7 @@ ggplot(link_curves, aes(x = eta, y = expected_response, color = link, linetype =
   )
 ```
 
-@fig-family-link-distinction shows why link choice is a scale choice, not only a curve-fitting choice. In each panel, the grey construction lines are anchored to a target link: the chance-corrected logit for forced-choice accuracy and the log link for Gamma mean response times. Equal steps on the target-link scale map to unequal steps on any other scale. Conversely, the same observed response values would not be equally spaced on an alternative link scale. Floor and ceiling effects are the most visible version of this problem, because the response scale has almost no room left to move. But the same logic is not limited to the endpoints: when the inverse link is nonlinear, the amount of response-scale change implied by the same link-scale effect varies across the scale. This is the central reason why link choice matters for interactions. A data-generating process without a product term is matched by an additive model only on the scale defined by the correct link. When another plausible link is used, the same response-scale pattern can imply a different no-interaction baseline and therefore a different moderation claim.
+@fig-family-link-distinction shows why link choice is a scale choice, not only a curve-fitting choice. In each panel, the grey construction lines are anchored to a target link: the chance-corrected logit for forced-choice accuracy and the log link for Gamma mean response times. Equal steps on the target-link scale map to unequal steps on any other scale. Conversely, the same observed response values would not be equally spaced on an alternative link scale. Floor and ceiling effects are the most visible version of this problem, because the response scale has almost no room left to move. But the same logic is not limited to the endpoints: whenever the mapping from the linear predictor to the response is nonlinear, the amount of response-scale change implied by the same link-scale effect varies across the scale. This is the central reason why link choice matters for interactions. A data-generating process without a product term is matched by an additive model only on the scale defined by the correct link. When another plausible link is used, the same response-scale pattern can imply a different no-interaction baseline and therefore a different moderation claim.
 
 @fig-motivating-example uses a simulated two-alternative forced-choice accuracy dataset as an illustrative example. Each participant completes 50 trials, and the outcome is the proportion correct. The predictors are age and group. The data-generating model includes an age effect and a group effect, but no age-by-group term on the chance-corrected logit scale, the scale on which the task has a $0.50$ chance floor. The figure illustrates how the same data can apparently support different moderation claims when fitted models define different no-interaction baselines [@loftus1978; @cox1984; @domingue2024; @mccabe2022], that is, when they use different link functions.
 
@@ -667,36 +667,47 @@ $$
 
 with $\beta_1 < 0$. On the observed count scale, the same model implies $E(Y) = \exp(\beta_0 + \beta_1 \text{age})$, a curved decreasing function. The curvature is not an extra psychological mechanism, but the expected consequence of mapping an additive model on the log scale back to non-negative counts.
 
-Now add a group difference in overall error rate (e.g., clinical vs neurotypical group), but no age-by-group product term on the log scale. On the observed count scale, the absolute age-related reduction will usually be larger where expected errors are high and smaller where expected errors are low. A Gaussian identity model fitted to raw counts may treat this changing absolute difference as moderation. A Poisson-log model can describe the same pattern as additive main effects on the log-count scale. The point is not that Poisson-log is always correct. The point is that product-term coefficients and response-scale contrasts answer different questions for counts and other non-Gaussian outcomes [@mccabe2022; @domingue2024].
+Now add a group/condition difference in overall error rate, but no age-by-condition product term on the log scale. On the observed count scale, the absolute age-related reduction will usually be larger where expected errors are high and smaller where expected errors are low. A model that assumes additivity on another scale, especially an identity link, can treat this changing absolute difference as moderation. The same logic applies within the same family: a Poisson model with an identity link and a Poisson model with a log link both model counts, but they define different no-interaction baselines. The point is not that Poisson-log is always correct. The point is that a product term is a departure from additivity on the fitted link scale, whereas response-scale differences may change even when there is no product term on the generating scale [@mccabe2022; @domingue2024].
 
 ```{r}
 #| label: fig-simple-count-example
-#| fig-cap: "A simple count example. The two groups have the same age effect on the log-count scale and no age-by-group product term on that scale. After the inverse log link, expected error counts decrease nonlinearly on the observed scale, and absolute group differences change with age."
+#| fig-cap: "A simple count example. The two groups/conditions have the same age effect on the log-count scale and no age-by-condition product term on that scale, but after exponentiating the linear predictor, expected error counts decrease nonlinearly on the observed count scale, and differences between conditions appear to change with age."
 #| fig.width: 6.4
 #| fig.height: 4.2
 
-age_grid <- seq(6, 10, length.out = 200)
+set.seed(3)
 
-count_example <- expand.grid(
-  age = age_grid,
-  group = c("Lower baseline error rate", "Higher baseline error rate")
+N <- 250
+d_count <- data.frame(
+  age = round(runif(N, 6, 10), 1),
+  condition = factor(rbinom(N, 1, .5), labels = c("Lower baseline", "Higher baseline"))
 )
 
-count_example$eta <- with(
-  count_example,
-  2.2 - 0.55 * (age - 6) +
-    ifelse(group == "Higher baseline error rate", 0.45, 0)
-)
+d_count$eta <- with(d_count, 2.6 - 0.55 * (age - 6) + 0.65 * (condition == "Higher baseline"))
+d_count$errors <- rpois(N, exp(d_count$eta))
 
-count_example$expected_errors <- exp(count_example$eta)
+fit_count <- glm(errors ~ age + condition, family = poisson(link = "log"), data = d_count)
 
-ggplot(count_example, aes(x = age, y = expected_errors, linetype = group)) +
-  geom_line(linewidth = 1.2) +
-  labs(
-    x = "Age",
-    y = "Expected number of errors",
-    linetype = NULL
+count_pred <- expand.grid(age = seq(6, 10, length.out = 200), condition = levels(d_count$condition))
+p <- predict(fit_count, newdata = count_pred, type = "link", se.fit = TRUE)
+
+count_pred$fit <- exp(p$fit)
+count_pred$lower <- exp(p$fit - 1.96 * p$se.fit)
+count_pred$upper <- exp(p$fit + 1.96 * p$se.fit)
+
+ggplot(d_count, aes(age, errors, color = condition, shape = condition)) +
+  geom_point(size = 2.6, alpha = .55) +
+  geom_ribbon(
+    data = count_pred,
+    aes(x = age, ymin = lower, ymax = upper, fill = condition, group = condition),
+    inherit.aes = FALSE, alpha = .18, color = NA
   ) +
+  geom_line(
+    data = count_pred,
+    aes(x = age, y = fit, linetype = condition, group = condition),
+    linewidth = 1.1
+  ) +
+  labs(x = "Age", y = "Number of errors", color = NULL, fill = NULL, shape = NULL, linetype = NULL) +
   link_theme(base_size = 11) +
   theme(legend.position = "top")
 ```
@@ -1179,7 +1190,7 @@ The table reports false-positive rates relative to the generating-link null. The
 
 Finally, we examined whether common diagnostics would flag the same link problems that produced pseudo-interactions. This simulation is not meant to be a general benchmark of all possible checks. It is tied to the paper's main question: when the fitted link defines the wrong scale of additivity, does the diagnostic evidence become visible before, after, or at the same time as the false interaction?
 
-We used four scenarios, each tied to a previous example in the paper. The first is the simple count example in @fig-simple-count-example. Data are generated from a Poisson-log model in which expected errors decline with age, with no age-by-group product term on the log-count scale. The coefficients are the same as in the figure: intercept 2.20, age effect -0.55 per year after age 6, and group effect 0.45. The fitted model keeps the Poisson family and the interaction formula, but uses an identity link. This makes the comparison a same-family link comparison, not a comparison between Poisson and Gaussian models.
+We used four scenarios, each tied to a previous example in the paper. The first is the simple count example in @fig-simple-count-example. Data are generated from a Poisson-log model in which expected errors decline with age, with no age-by-group product term on the log-count scale. The coefficients are the same as in the figure: intercept 2.60, age effect -0.55 per year after age 6, and group effect 0.65. The fitted model keeps the Poisson family and the interaction formula, but uses an identity link. This makes the comparison a same-family link comparison, not a comparison between Poisson and Gaussian models.
 
 The second scenario is the lower-performance forced-choice scenario from Simulation 1. Data are generated with a .50 chance floor, 20 trials per participant, intercept -0.80, age effect 0.60, group effect -0.90, and no age-by-group product term on the chance-corrected logit scale. The fitted model is a standard binomial-logit interaction model, which respects the binomial trial structure but places the lower asymptote at 0 rather than at chance.
 
