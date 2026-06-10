@@ -1,7 +1,0 @@
-"quantity","diagnostic_family","n_successful_fits","n_significant","rate","ci_low","ci_high"
-"Wrong-link interaction","Interaction test",300,255,0.85,0.805182388854671,0.885967531288147
-"DHARMa uniformity","DHARMa",300,1,0.00333333333333333,0.000588657721851156,0.0186366936945312
-"DHARMa dispersion","DHARMa",300,1,0.00333333333333333,0.000588657721851156,0.0186366936945312
-"DHARMa residual quantiles over fitted values","DHARMa",300,52,0.173333333333333,0.134700600497468,0.220226140702569
-"DHARMa residual quantiles over age","DHARMa",300,89,0.296666666666667,0.247811390537847,0.350663417760135
-"Pregibon-style added-term link check, secondary","Pregibon-style link check",300,179,0.596666666666667,0.540271195643406,0.650617829919849

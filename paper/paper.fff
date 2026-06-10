@@ -26,22 +26,21 @@ curves look similar over the observed range.}
 \ifnextchar[{\eatarg}{}
 
 
-\caption{\label{fig-motivating-example}Same data, different
-no-interaction baselines. Data were simulated from a 2-alternative
-forced-choice accuracy task with 50 trials per participant and a .50
-chance floor. The data-generating model included age and group effects,
-but no age-by-group interaction on the chance-corrected 2-AFC logit
-scale. Panel A shows the true response-scale pattern implied by that
-model. Panel B shows one simulated dataset. Panel C fits the same data
-with three models. The Gaussian identity model is simple and
-interpretable on the observed accuracy scale, but it can produce
-predictions outside the 0-to-1 range and ignores the binomial sampling
-process. The standard binomial logit/probit model, shown here with a
-logit link, respects the binomial process and the 0-to-1 range, but
-assumes a lower asymptote at 0. The chance-corrected binomial link
-incorporates the task's chance floor. The question is not only which
-curve fits, but which scale defines the scientific null hypothesis of no
-moderation.}
+\caption{\label{fig-motivating-example}Same data, different link
+functions. Data were simulated from a 2-alternative forced-choice
+accuracy task with 50 trials per participant and a 0.50 chance floor.
+The data-generating model included age and group effects, but no
+age-by-group interaction on the chance-corrected 2-AFC logit scale.
+Panel A shows the true response-scale pattern implied by that model.
+Panel B shows one simulated dataset. Panel C fits the same data with
+three models. The Gaussian identity model is simple and interpretable on
+the observed accuracy scale, but it can produce predictions outside the
+0-to-1 range and ignores the binomial sampling process. The standard
+binomial logit/probit model, shown here with a logit link, respects the
+binomial process and the 0-to-1 range, but assumes a lower asymptote at
+0. The chance-corrected binomial link incorporates the task's chance
+floor. The question is which scale defines the scientific null
+hypothesis of no moderation.}
 
 \centering{
 
@@ -167,14 +166,16 @@ dashed line marks nominal alpha.}
 \ifnextchar[{\eatarg}{}
 
 
-\caption{\label{fig-diagnostic-worked-example}Diagnostic worked example.
-Panel A shows the deterministic generating pattern: a chance-corrected
-binomial model with a .50 floor and no age-by-group product term on the
-generating link scale. Panel B shows the false-positive rate for the
-age-by-group interaction after fitting the wrong standard binomial-logit
-link. Panel C shows diagnostic detection rates reported separately:
-DHARMa uniformity, DHARMa dispersion, DHARMa residual quantiles over
-fitted values, DHARMa residual quantiles over age, and a Pregibon-style
+\caption{\label{fig-diagnostic-worked-example}Diagnostic simulation for
+the chance-floor scenario. Panel A shows the deterministic generating
+pattern for the lower-performance forced-choice scenario from Simulation
+1: a chance-corrected binomial model with a .50 floor and no
+age-by-group product term on the generating link scale. Panel B shows
+the false-positive rate for the age-by-group interaction after fitting
+the wrong standard binomial-logit link. Panel C shows diagnostic
+detection rates reported separately: DHARMa uniformity, DHARMa
+dispersion, DHARMa residual quantiles over fitted values, DHARMa
+residual quantiles over the focal predictor, and a Pregibon-style
 added-term link check used as a secondary comparator. Error bars are
 Wilson 95\% confidence intervals, and dashed lines mark nominal alpha.}
 
