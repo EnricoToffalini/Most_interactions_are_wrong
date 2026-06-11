@@ -1,4 +1,4 @@
-# scripts/04-simulation-sum-scores.R
+# scripts/03b-simulation-sum-scores.R
 # Simulation 2: sum scores as bounded and discrete outcomes.
 #
 # Scientific choices for this simulation live in this script.
@@ -35,7 +35,7 @@ settings <- list(
   alpha = default_alpha,
   scenario_table_path = "tables/scenario-table-sum-scores.csv",
   simulation_summary_path = "tables/simulation-summary-sum-scores.csv",
-  figure_base = "paper/figs/fig3-sum-score-simulation",
+  figure_base = "figs/fig3-sum-score-simulation",
   inspection_effect_base = "outputs/inspection/sum-score-effect-size-inspection",
   inspection_thresholds_base = "outputs/inspection/sum-score-thresholds-inspection",
   rds_path = "outputs/simulation-sum-scores.rds"

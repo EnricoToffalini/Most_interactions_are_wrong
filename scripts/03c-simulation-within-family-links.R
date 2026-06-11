@@ -1,4 +1,4 @@
-# scripts/05-simulation-within-family-links.R
+# scripts/03c-simulation-within-family-links.R
 # Simulation 3: within-family link choice with repeated binary trials.
 # Logit coefficients are scaled so the logit DGP has cell probabilities close
 # to the probit reference scenario, while preserving zero product term on the
@@ -36,8 +36,8 @@ settings <- list(
   alpha = default_alpha,
   scenario_table_path = "tables/scenario-table-within-family-links.csv",
   simulation_summary_path = "tables/simulation-summary-within-family-links.csv",
-  figure_base = "paper/figs/fig4-within-family-links",
-  inspection_pseudo_base = "paper/figs/figS-within-family-link-pseudo-interaction",
+  figure_base = "figs/fig4-within-family-links",
+  inspection_pseudo_base = "outputs/inspection/figS-within-family-link-pseudo-interaction",
   rds_path = "outputs/simulation-within-family-links.rds"
 )
 

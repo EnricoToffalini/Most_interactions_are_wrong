@@ -6,8 +6,8 @@
 #   implying a structured pointwise discrepancy in fitted probabilities.
 #
 # Output:
-#   paper/figs/fig4-logit-probit-fitted-example.pdf
-#   paper/figs/fig4-logit-probit-fitted-example.png
+#   figs/fig4-logit-probit-fitted-example.pdf
+#   figs/fig4-logit-probit-fitted-example.png
 #   tables/model-results-fig4-logit-probit-fitted-example.csv
 #   outputs/fig4-logit-probit-fitted-example.rds
 
@@ -72,7 +72,7 @@ settings <- list(
   # Output.
   figure_width = 7.2,
   figure_height = 5.8,
-  figure_base = "paper/figs/fig4-logit-probit-fitted-example",
+  figure_base = "figs/fig4-logit-probit-fitted-example",
   table_path = "tables/model-results-fig4-logit-probit-fitted-example.csv",
   rds_path = "outputs/fig4-logit-probit-fitted-example.rds"
 )

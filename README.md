@@ -39,7 +39,7 @@ source("run.R")
 Then render the manuscript:
 
 ```bash
-quarto render paper.qmd
+quarto render paper/paper.qmd
 ```
 
 If the repository includes an `renv.lock` file, restore the package environment before running the analyses:
@@ -53,19 +53,22 @@ renv::restore()
 - `01-review-descriptives.R`  
   Produces descriptive summaries of the preregistered review.
 
-- `02-figure1-motivating-example.R`  
+- `02a-figure1-motivating-example.R`  
   Generates the motivating example showing how different links imply different interaction conclusions.
 
-- `03-simulation-forced-choice.R`  
+- `02b-figure4-logit-probit-fitted-example.R`  
+  Generates the fitted logit-versus-probit example used for the within-family link discussion.
+
+- `03a-simulation-forced-choice.R`  
   Simulates forced-choice accuracy data with a non-zero chance floor and compares standard and chance-corrected links.
 
-- `04-simulation-sum-scores.R`  
+- `03b-simulation-sum-scores.R`  
   Simulates bounded, discrete sum scores from an underlying latent scale and compares manifest-score and alternative analyses.
 
-- `05-simulation-within-family-links.R`  
+- `03c-simulation-within-family-links.R`  
   Examines how logit and probit links can differ for interaction claims even within the binomial family.
 
-- `06-diagnostic-worked-example.R`  
+- `04-diagnostic-worked-example.R`  
   Compares false-positive interaction rates with the ability of residual checks, link checks, and AIC comparisons to detect the wrong link.
 
 ## Computational notes
@@ -73,7 +76,7 @@ renv::restore()
 Simulation settings are defined inside each script. Many scripts use environment variables to control the number of replications and cores. For example:
 
 ```bash
-N_SIM=1000 N_CORES=4 Rscript scripts/03-simulation-forced-choice.R
+N_SIM=1000 N_CORES=4 Rscript scripts/03a-simulation-forced-choice.R
 ```
 
 For quick checks, use smaller values of `N_SIM`. For manuscript results, use the values reported in the paper or supplement.

@@ -1,4 +1,4 @@
-# scripts/03-simulation-forced-choice.R
+# scripts/03a-simulation-forced-choice.R
 # Simulation 1: forced-choice accuracy with a non-zero chance floor.
 #
 # This script first shows the deterministic scenario, then simulates data,
@@ -46,7 +46,7 @@ settings <- list(
   alpha = default_alpha,
   output_scenario_table = "tables/scenario-table-forced-choice.csv",
   output_summary_table = "tables/simulation-summary-forced-choice.csv",
-  output_figure_base = "paper/figs/fig2-forced-choice-simulation",
+  output_figure_base = "figs/fig2-forced-choice-simulation",
   output_inspection_base = "outputs/inspection/forced-choice-effect-size-inspection",
   output_rds = "outputs/simulation-forced-choice.rds"
 )

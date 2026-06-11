@@ -85,19 +85,19 @@ where $\lambda$ controls the upper asymptote. The main paper uses the simpler fi
 
 ## Simulation 1: Forced-Choice Accuracy
 
-Report the settings used in `scripts/03-simulation-forced-choice.R`: number of replications, sample sizes, trials per subject, predictor distributions, generating coefficients, fitted models, and false-positive criterion.
+Report the settings used in `scripts/03a-simulation-forced-choice.R`: number of replications, sample sizes, trials per subject, predictor distributions, generating coefficients, fitted models, and false-positive criterion.
 
 ## Simulation 2: Sum Scores
 
-Report the latent-variable model, item thresholds, number of items, response categories, fitted models, and false-positive criterion used in `scripts/04-simulation-sum-scores.R`.
+Report the latent-variable model, item thresholds, number of items, response categories, fitted models, and false-positive criterion used in `scripts/03b-simulation-sum-scores.R`.
 
 ## Simulation 3: Within-Family Links
 
-Report the binary outcome DGP, generating links, fitted links, and scenario definitions used in `scripts/05-simulation-within-family-links.R`.
+Report the binary outcome DGP, generating links, fitted links, and scenario definitions used in `scripts/03c-simulation-within-family-links.R`.
 
 ## Diagnostic Worked Example
 
-Report the single selected scenario, the Pregibon-style added-term check, the false-positive interaction criterion, and the diagnostic detection criterion used in `scripts/06-diagnostic-worked-example.R`.
+Report the diagnostic scenarios, the Pregibon-style added-term check, the false-positive interaction criterion, and the diagnostic detection criterion used in `scripts/04-diagnostic-worked-example.R`.
 
 # Extended Simulation Results
 

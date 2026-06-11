@@ -5,7 +5,7 @@ ensure_output_dirs <- function(dirs = NULL) {
   if (is.null(dirs)) {
     dirs <- get0(
       "project_output_dirs",
-      ifnotfound = c("tables", "outputs", "outputs/inspection", "paper/figs")
+      ifnotfound = c("tables", "figs", "outputs", "outputs/inspection")
     )
   }
 

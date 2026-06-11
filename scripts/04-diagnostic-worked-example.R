@@ -104,7 +104,7 @@ settings <- list(
   output_scenario_summary_paper = "tables/table7-diagnostic-scenarios.csv",
   output_scenario_summary_legacy = "tables/table6-diagnostic-scenarios.csv",
   output_replications = "outputs/diagnostic-simulation-replications.csv",
-  output_figure_base = "paper/figs/fig5-diagnostic-worked-example",
+  output_figure_base = "figs/fig5-diagnostic-worked-example",
   output_dharma_example = "outputs/inspection/dharma-diagnostic-example.pdf",
   output_rds = "outputs/diagnostic-worked-example.rds"
 )

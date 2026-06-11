@@ -29,7 +29,7 @@ figure_height <- 7.0
 # These are technical project paths, not simulation parameters.
 project_output_dirs <- c(
   "tables",
+  "figs",
   "outputs",
-  "outputs/inspection",
-  "paper/figs"
+  "outputs/inspection"
 )
