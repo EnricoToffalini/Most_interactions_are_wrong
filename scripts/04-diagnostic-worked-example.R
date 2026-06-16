@@ -104,7 +104,6 @@ settings <- list(
   output_scenario_summary_paper = "tables/table7-diagnostic-scenarios.csv",
   output_scenario_summary_legacy = "tables/table6-diagnostic-scenarios.csv",
   output_replications = "outputs/diagnostic-simulation-replications.csv",
-  output_figure_base = "figs/fig5-diagnostic-worked-example",
   output_dharma_example = "outputs/inspection/dharma-diagnostic-example.pdf",
   output_rds = "outputs/diagnostic-worked-example.rds"
 )
@@ -216,7 +215,7 @@ set.seed(settings$seed)
 
 report_section("Scenario parameters you can tune")
 print_compact(list_to_table(settings))
-cat("\nAIC is used as a same-formula link comparison: true-link interaction model vs fitted wrong-link interaction model.\n")
+cat("\nAIC is used as a same-formula comparison between the target interaction model and the misspecified interaction model.\n")
 cat("DHARMa checks are scenario-aware: quantile checks for continuous predictors, categorical checks for categorical design cells.\n")
 cat("Pregibon-style checks are applied to the fitted wrong-link interaction model.\n")
 
@@ -1168,6 +1167,7 @@ make_scenario_summary_one <- function(name, dat, scn) {
     pregibon_detection = pregibon$rate,
     pregibon_detection_ci_low = pregibon$ci_low,
     pregibon_detection_ci_high = pregibon$ci_high,
+    aic_favors_target = aic_true$rate,
     aic_favors_true_link = aic_true$rate,
     aic_favors_fitted_link = aic_fitted$rate,
     median_aic_fitted_minus_true = stats::median(dat$aic_fitted_minus_true, na.rm = TRUE),
@@ -1201,12 +1201,8 @@ cat("- DHARMa and Pregibon checks are applied to that same fitted wrong-link int
 cat("- DHARMa quantile checks are used only when the predictor has enough unique values.\n")
 cat("- For the 2 x 2 binary repeated-trials scenario, DHARMa uses a categorical design-cell check instead.\n")
 cat("- The continuous binary scenario matches the 2 x 2 binary scenario in coefficients, ICC, and trials, but replaces condition with x in [0, 1].\n")
-cat("- AIC compares true-link interaction vs fitted-link interaction, with the same formula.\n")
-cat("- AIC always favors one of the two models when both AIC values are available.\n")
-
-# ---------------------------------------------------------------------
-# 8. Main figure for the central chance-floor diagnostic scenario
-# ---------------------------------------------------------------------
+cat("- AIC compares the target interaction model with the misspecified interaction model, with the same formula.\n")
+cat("- AIC always favors one of the two candidate models when both AIC values are available.\n")
 
 chance <- diag_scenarios$chance_floor
 plot_grid <- expand.grid(
@@ -1223,106 +1219,6 @@ plot_grid$eta <- chance$beta_intercept + chance$beta_age * plot_grid$age_c +
   chance$beta_group * plot_grid$group_num +
   chance$beta_age_group * plot_grid$age_c * plot_grid$group_num
 plot_grid$expected_accuracy <- chance_logit_inv_local(plot_grid$eta, chance = chance$chance)
-
-chance_long <- long_summary[long_summary$scenario == chance$scenario, ]
-interaction_row <- chance_long[chance_long$quantity == "Wrong-link interaction", ]
-interaction_row$quantity <- "Wrong-link interaction"
-
-diagnostic_rows <- chance_long[
-  chance_long$quantity %in% c(
-    "DHARMa uniformity",
-    "DHARMa dispersion",
-    "DHARMa residual quantiles over fitted values",
-    "DHARMa residual quantiles over focal predictor",
-    "Pregibon-style added-term link check, secondary"
-  ),
-]
-
-diagnostic_rows$quantity <- factor(
-  diagnostic_rows$quantity,
-  levels = c(
-    "Pregibon-style added-term link check, secondary",
-    "DHARMa residual quantiles over focal predictor",
-    "DHARMa residual quantiles over fitted values",
-    "DHARMa dispersion",
-    "DHARMa uniformity"
-  )
-)
-
-pA <- ggplot2::ggplot(
-  plot_grid,
-  ggplot2::aes(age, expected_accuracy, linetype = group)
-) +
-  ggplot2::geom_hline(yintercept = chance$chance, linetype = "dashed") +
-  ggplot2::geom_line(linewidth = .95) +
-  ggplot2::scale_y_continuous(limits = c(chance$chance - .02, 1.02)) +
-  ggplot2::labs(
-    title = "A. Generating pattern",
-    subtitle = "Lower-performance forced-choice scenario; no product term on the chance-corrected scale",
-    x = "Age",
-    y = "Expected accuracy",
-    linetype = NULL
-  ) +
-  link_theme() +
-  ggplot2::theme(legend.position = "bottom")
-
-pB <- ggplot2::ggplot(
-  interaction_row,
-  ggplot2::aes(x = quantity, y = rate)
-) +
-  ggplot2::geom_hline(yintercept = settings$alpha, linetype = "dashed") +
-  ggplot2::geom_col(width = .55, fill = "grey70", color = "grey20") +
-  ggplot2::geom_errorbar(
-    ggplot2::aes(ymin = ci_low, ymax = ci_high),
-    width = .15,
-    linewidth = .45
-  ) +
-  ggplot2::coord_cartesian(ylim = c(0, 1)) +
-  ggplot2::labs(
-    title = "B. Interaction false-positive rate",
-    subtitle = "Wrong standard binomial-logit link; dashed line is nominal alpha",
-    x = NULL,
-    y = "Rate"
-  ) +
-  link_theme() +
-  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 0, hjust = .5))
-
-pC <- ggplot2::ggplot(
-  diagnostic_rows,
-  ggplot2::aes(x = quantity, y = rate, fill = diagnostic_family)
-) +
-  ggplot2::geom_hline(yintercept = settings$alpha, linetype = "dashed") +
-  ggplot2::geom_col(width = .62, color = "grey20") +
-  ggplot2::geom_errorbar(
-    ggplot2::aes(ymin = ci_low, ymax = ci_high),
-    width = .18,
-    linewidth = .45
-  ) +
-  ggplot2::coord_flip(ylim = c(0, 1)) +
-  ggplot2::scale_fill_manual(
-    values = c(
-      "DHARMa" = "grey78",
-      "Pregibon-style link check" = "grey45"
-    )
-  ) +
-  ggplot2::labs(
-    title = "C. Diagnostic detection rates",
-    subtitle = "Separate diagnostics, not one omnibus decision",
-    x = NULL,
-    y = "Detection rate",
-    fill = NULL
-  ) +
-  link_theme() +
-  ggplot2::theme(legend.position = "bottom")
-
-save_plot_grid(
-  list(pA, pB, pC),
-  filename_base = settings$output_figure_base,
-  width = figure_width,
-  height = 7.2,
-  ncol = 1,
-  dpi = default_dpi
-)
 
 # Save one representative DHARMa plot for inspection. This is not a main-text figure.
 example_data <- simulate_chance_floor(chance)
@@ -1373,7 +1269,6 @@ cat("- ", settings$output_long_summary, "\n", sep = "")
 cat("- ", settings$output_scenario_summary, "\n", sep = "")
 cat("- ", settings$output_scenario_summary_paper, "\n", sep = "")
 cat("- ", settings$output_scenario_summary_legacy, "\n", sep = "")
-cat("- ", settings$output_figure_base, ".pdf/png\n", sep = "")
 cat("- ", settings$output_dharma_example, "\n", sep = "")
 cat("- ", settings$output_rds, "\n", sep = "")
 cat("\nDone.\n")

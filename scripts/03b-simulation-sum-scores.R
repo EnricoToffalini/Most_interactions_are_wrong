@@ -316,13 +316,13 @@ simulate_one <- function(threshold_shift) {
   items <- simulate_items(theta, make_thresholds(threshold_shift))
   sum_score <- rowSums(items)
   
-  # The Gaussian-logit model below requires responses strictly inside (0, 1).
+  # The Gaussian-probit model below requires responses strictly inside (0, 1).
   # We therefore use a continuity-corrected score proportion for that model:
   # (sum_score + 0.5) / (max_score + 1).
   # The raw sum score and raw score proportion are left unchanged for all
   # descriptive summaries, plots, and the identity-link model.
   score_prop <- sum_score / settings$max_score
-  score_prop_logit <- (sum_score + 0.5) / (settings$max_score + 1)
+  score_prop_probit <- (sum_score + 0.5) / (settings$max_score + 1)
   
   data.frame(
     x = x,
@@ -332,7 +332,7 @@ simulate_one <- function(threshold_shift) {
     theta = theta,
     sum_score = sum_score,
     score_prop = score_prop,
-    score_prop_logit = score_prop_logit,
+    score_prop_probit = score_prop_probit,
     max_score = settings$max_score,
     stringsAsFactors = FALSE
   )
@@ -357,13 +357,13 @@ print_compact(stats::aggregate(sum_score ~ scenario + group, example_data, mean)
 # 5. Model fitting helpers
 # ---------------------------------------------------------------------
 # The intermediate bounded-score model is deliberately not a binomial model.
-# It is a Gaussian GLM with a logit link, fitted to the continuity-corrected
+# It is a Gaussian GLM with a probit link, fitted to the continuity-corrected
 # score proportion defined in simulate_one(). Thus it constrains fitted means
 # to the 0-1 interval before rescaling predictions to the sum-score metric,
 # but it does not assume binomial variance or independent item-level successes.
 model_names <- c(
   "Observed sum-score identity",
-  "Gaussian-logit bounded score",
+  "Gaussian-probit bounded score",
   "Latent generating scale"
 )
 
@@ -373,10 +373,10 @@ fit_models <- function(d) {
       stats::lm(sum_score ~ x * group, data = d),
       silent = TRUE
     ),
-    "Gaussian-logit bounded score" = try(
+    "Gaussian-probit bounded score" = try(
       stats::glm(
-        score_prop_logit ~ x * group,
-        family = stats::gaussian(link = "logit"),
+        score_prop_probit ~ x * group,
+        family = stats::gaussian(link = stats::make.link("probit")),
         data = d
       ),
       silent = TRUE
