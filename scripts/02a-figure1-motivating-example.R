@@ -587,16 +587,6 @@ p2 <- ggplot2::ggplot() +
     strip.text = ggplot2::element_text(size = 8.8, face = "bold")
   )
 
-save_plot_grid(
-  list(p1, p2),
-  filename_base = settings$figure_base,
-  width = figure_width,
-  height = 6.4,
-  ncol = 1,
-  dpi = default_dpi
-)
-
-
 # SAVE OUTPUT #
 
 save_plot_grid(

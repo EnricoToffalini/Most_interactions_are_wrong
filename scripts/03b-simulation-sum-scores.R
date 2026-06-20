@@ -31,7 +31,7 @@ settings <- list(
   x_summary_values = c(-1, 0, 1),
   x_plot_range = c(-2.5, 2.5),
   x_bin_breaks = seq(-2.5, 2.5, length.out = 11),
-  B = default_B,
+  B = as.integer(Sys.getenv("N_SIM", as.character(default_B))),
   alpha = default_alpha,
   scenario_table_path = "tables/scenario-table-sum-scores.csv",
   simulation_summary_path = "tables/simulation-summary-sum-scores.csv",

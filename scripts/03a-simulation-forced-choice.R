@@ -42,7 +42,7 @@ settings <- list(
   beta_group = -0.90,
   beta_age_group = 0.00,
   generating_link = "logit",
-  B = default_B,
+  B = as.integer(Sys.getenv("N_SIM", as.character(default_B))),
   alpha = default_alpha,
   output_scenario_table = "tables/scenario-table-forced-choice.csv",
   output_summary_table = "tables/simulation-summary-forced-choice.csv",

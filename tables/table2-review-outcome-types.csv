@@ -1,9 +1,9 @@
-"outcome_type","n","denominator_n","percent"
-"Binary / accuracy / proportions",86,200,43
-"Sum scores / composites",77,200,38.5
-"Ordinal / Likert / ratings",49,200,24.5
-"Response times / durations",29,200,14.5
-"Neural / physiological measures",23,200,11.5
-"Difference / distance scores",21,200,10.5
-"Counts / error counts",12,200,6
-"Correlations / associations",8,200,4
+"row_id","outcome_type","n","denominator_n","percent"
+"binary_accuracy_proportion","Binary / accuracy / proportions",84,200,42
+"sum_scores_composites","Sum scores / composites",66,200,33
+"ordinal_likert_ratings","Ordinal / Likert / ratings",36,200,18
+"response_times_durations","Response times / durations",30,200,15
+"counts_error_counts","Counts / error counts",9,200,4.5
+"neural_physiological","Neural / physiological measures",23,200,11.5
+"correlations_associations","Correlations / associations",8,200,4
+"difference_distance_scores","Difference / distance scores",17,200,8.5

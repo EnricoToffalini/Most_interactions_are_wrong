@@ -242,14 +242,8 @@ p <- patchwork::wrap_plots(
   pA,
   pB,
   ncol = 1,
-  heights = c(2.2, 1.0),
-  guides = "collect"
-) +
-  patchwork::plot_annotation(
-    theme = ggplot2::theme(
-      legend.position = "bottom"
-    )
-  )
+  heights = c(2.2, 1.0)
+)
 
 # ---------------------------------------------------------------------
 # 6. Show, save, and export

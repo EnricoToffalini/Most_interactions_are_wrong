@@ -1,7 +1,8 @@
-"quantity","n","denominator_n","percent","ci_low","ci_high","denominator","note"
-"Eligible empirical articles reviewed",331,331,100,98.9,100,"Eligible articles","Articles passing eligibility screening."
-"Articles testing at least one interaction",200,331,60.4,55.1,65.5,"Eligible articles","Interaction tested via statistical model or ANOVA."
-"Interaction-testing articles using a non-identity link",58,200,29,23.2,35.6,"Articles testing interactions","At least one tested interaction was analyzed with a non-identity link."
-"Interaction-testing articles explicitly reporting the link function",46,200,23,17.7,29.3,"Articles testing interactions","The link function was explicitly declared or identifiable from the report."
-"Interaction-testing articles with a potentially problematic identity-link analysis",144,200,72,65.4,77.8,"Articles testing interactions","Coded when at least one interaction used an identity-link analysis for an outcome where a non-identity link appeared more appropriate."
-"Potentially problematic identity-link cases reporting at least one significant interaction",124,144,86.1,79.5,90.8,"Potentially problematic identity-link cases","At least one such interaction was reported as statistically significant or interpreted analogously."
+"row_id","quantity","n","denominator_n","percent","ci_low","ci_high"
+"eligible_empirical","Eligible empirical articles",331,331,100,98.9,100
+"testing_interactions","Eligible empirical articles testing at least one interaction",200,331,60.4,55.1,65.5
+"non_identity_link","Interaction-testing articles using at least one non-identity link",58,200,29,23.2,35.6
+"explicit_link","Interaction-testing articles explicitly reporting the link function",46,200,23,17.7,29.3
+"incorrect_identity","Interaction-testing articles with formally incorrect identity-link analyses of constrained observed outcomes",144,200,72,65.4,77.8
+"significant_incorrect_identity","Formally incorrect identity-link cases with at least one significant interaction",124,144,86.1,79.5,90.8
+"eligible_not_testing_interactions","Eligible empirical articles not testing interactions",131,331,39.6,34.5,44.9
