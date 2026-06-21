@@ -1,5 +1,5 @@
-"variable","label","n_double_coded","agreement","kappa","n_disagreements","n_00","n_01","n_10","n_11"
-"Uses_non_identity_link_function","Uses non-identity link function",199,0.919597989949749,0.805426546076754,16,133,10,6,50
-"Explicit_link_function","Explicit link function",199,0.889447236180904,0.662087063908614,22,147,11,11,30
-"Incorrect_identity_link_function","Formally incorrect identity-link analyses of constrained observed outcomes",197,0.883248730964467,0.711529891131343,23,44,12,11,130
-"Finds_significant_interaction","Finds significant interaction",141,0.914893617021277,0.677959649790635,12,16,3,9,113
+"variable","label","n_double_coded","agreement","kappa","coder1_yes_percent","coder2_yes_percent","coder1_no_percent","coder2_no_percent","n_disagreements","n_00","n_01","n_10","n_11"
+"Uses_non_identity_link_function","Uses non-identity link function",199,0.919597989949749,0.805426546076754,28.1407035175879,30.1507537688442,71.8592964824121,69.8492462311558,16,133,10,6,50
+"Explicit_link_function","Explicit link function",199,0.889447236180904,0.662087063908614,20.6030150753769,20.6030150753769,79.3969849246231,79.3969849246231,22,147,11,11,30
+"Incorrect_identity_link_function","Formally incorrect identity-link analyses of constrained observed outcomes",197,0.883248730964467,0.711529891131343,71.5736040609137,72.0812182741117,28.4263959390863,27.9187817258883,23,44,12,11,130
+"Finds_significant_interaction","Finds significant interaction",141,0.914893617021277,0.677959649790635,86.5248226950355,82.2695035460993,13.4751773049645,17.7304964539007,12,16,3,9,113
