@@ -409,9 +409,68 @@ ggplot(link_curves, aes(x = eta, y = expected_response, color = link, linetype =
 
 @fig-family-link-distinction shows why link choice is a scale choice, not only a curve-fitting choice. In each panel, equal steps on the target-link scale map to unequal steps on any other scale. Floor and ceiling effects are the most visible version of this problem, but the same logic applies whenever the mapping from the linear predictor to the response is nonlinear. This is the link-scale version of the scale-dependence problem introduced above.
 
-@fig-motivating-example uses a simulated two-alternative forced-choice accuracy dataset as an illustrative example. Each participant completes 50 trials, and the outcome is the proportion correct. The predictors are age and group. The data-generating model includes an age effect and a group effect, but no age-by-group term on the chance-corrected logit scale, the scale on which the task has a $0.50$ chance floor. The figure applies the same link-scale point to a concrete moderation claim: the same data can appear to support different moderation conclusions when fitted models define different no-interaction baselines [@loftus1978; @cox1984; @domingue2024; @mccabe2022].
+The most basic case involves counts.
 
-![Same data, different link functions. Data were simulated from a 2-alternative forced-choice accuracy task with 50 trials per participant and a 0.50 chance floor. The data-generating model included age and group effects, but no age-by-group interaction on the chance-corrected 2-AFC logit scale. Panel A shows the true response-scale pattern implied by that model. Panel B shows one binned simulated dataset fitted with three additive models: a Gaussian identity model, a standard binomial logit model, and a chance-corrected binomial link. The Gaussian identity model is simple and interpretable on the observed accuracy scale, but it can produce predictions outside the 0-to-1 range and ignores the binomial sampling process. The standard binomial logit model respects the binomial process and the 0-to-1 range, but assumes a lower asymptote at 0. The chance-corrected binomial link incorporates the task's chance floor. The question is which scale defines the scientific null hypothesis of no moderation.](../figs/fig1-motivating-example.pdf){#fig-motivating-example}
+::: {.callout-note title="A simple count example" icon="false"}
+Suppose children make fewer errors as they grow up. A Poisson model with a log link can represent this as a linear age effect on the log mean,
+
+$$
+\log\{E(Y)\} = \beta_0 + \beta_1 \text{age},
+$$
+
+with $\beta_1 < 0$. On the observed count scale, the same model implies $E(Y) = \exp(\beta_0 + \beta_1 \text{age})$, a curved decreasing function. The curvature is not an extra psychological mechanism, but the expected consequence of mapping an additive model on the log scale back to non-negative counts.
+
+Now add a group/condition difference in overall error rate, with no age-by-condition product term on the log scale. On the observed count scale, the absolute age-related reduction will usually be larger where expected errors are high and smaller where expected errors are low. A model that assumes additivity on another scale, especially an identity link, can treat this changing absolute difference as moderation. The same logic applies within the same family: a Poisson model with an identity link and a Poisson model with a log link both model counts, but they define different no-interaction baselines. A Poisson-log model is appropriate when log-count additivity is the target. A product term is a departure from additivity on the fitted link scale, whereas response-scale differences may change even when there is no product term on the generating scale [@mccabe2022; @domingue2024].
+
+```{r}
+#| label: fig-simple-count-example
+#| fig-cap: "A simple count example. The two groups/conditions have the same age effect on the log-count scale and no age-by-condition product term on that scale, but after exponentiating the linear predictor, expected error counts decrease nonlinearly on the observed count scale, and differences between conditions appear to change with age."
+#| fig.width: 6.4
+#| fig.height: 4.2
+
+set.seed(3)
+
+N <- 250
+d_count <- data.frame(
+  age = round(runif(N, 6, 10), 1),
+  condition = factor(rbinom(N, 1, .5), labels = c("Lower baseline", "Higher baseline"))
+)
+
+d_count$eta <- with(d_count, 2.6 - 0.55 * (age - 6) + 0.65 * (condition == "Higher baseline"))
+d_count$errors <- rpois(N, exp(d_count$eta))
+
+fit_count <- glm(errors ~ age + condition, family = poisson(link = "log"), data = d_count)
+
+count_pred <- expand.grid(age = seq(6, 10, length.out = 200), condition = levels(d_count$condition))
+p <- predict(fit_count, newdata = count_pred, type = "link", se.fit = TRUE)
+
+count_pred$fit <- exp(p$fit)
+count_pred$lower <- exp(p$fit - 1.96 * p$se.fit)
+count_pred$upper <- exp(p$fit + 1.96 * p$se.fit)
+
+ggplot(d_count, aes(age, errors, color = condition, shape = condition)) +
+  geom_point(size = 2.6, alpha = .55) +
+  geom_ribbon(
+    data = count_pred,
+    aes(x = age, ymin = lower, ymax = upper, fill = condition, group = condition),
+    inherit.aes = FALSE, alpha = .18, color = NA
+  ) +
+  geom_line(
+    data = count_pred,
+    aes(x = age, y = fit, linetype = condition, group = condition),
+    linewidth = 1.1
+  ) +
+  scale_color_manual(values = c("Lower baseline" = "#0072B2", "Higher baseline" = "#D55E00")) +
+  scale_fill_manual(values = c("Lower baseline" = "#0072B2", "Higher baseline" = "#D55E00")) +
+  labs(x = "Age", y = "Number of errors", color = NULL, fill = NULL, shape = NULL, linetype = NULL) +
+  link_theme(base_size = 11) +
+  theme(legend.position = "top")
+```
+:::
+
+For binary and accuracy data the same tension appears, and it can even flip the sign of the interaction. @fig-motivating-example makes the same link-scale point in the simplest possible design: a $2 \times 2$ layout crossing a condition with a group, where every panel shows the identical four cell probabilities. The data are constructed so that there is no condition-by-group product term on the chance-corrected logit scale, the scale on which the task has a $0.50$ chance floor. Yet the implied interaction coefficient depends entirely on the scale used to define it: it is positive on the standard logit scale, negative on the raw probability scale, and exactly zero on the chance-corrected logit scale that generated the data. The same four cells can therefore appear to support a positive interaction, a negative interaction, or none at all, depending only on which scale defines the no-interaction baseline [@loftus1978; @cox1984; @domingue2024; @mccabe2022].
+
+![Same cells, different interaction. A minimal $2 \times 2$ design crosses a condition (x-axis) with a group (color), shown on three scales. The four cell probabilities are identical in every panel; only the scale on which the product term is evaluated changes. The data were generated with no condition-by-group interaction on the chance-corrected logit scale, which has a $0.50$ chance floor, so the interaction coefficient is exactly zero on that scale ($B = 0.000$). The same cells imply a positive interaction on the standard logit scale ($B = +0.513$) and a negative interaction on the raw probability scale ($B = -0.103$), a sign reversal produced entirely by the choice of scale. Light horizontal lines are equally spaced on each panel's own link scale, so equal steps on that scale map to unequal steps on the probability axis. The question is which scale defines the scientific null hypothesis of no moderation.](../figs/fig1-motivating-example.pdf){#fig-motivating-example}
 
 Some interactions remain stable across scale choices, especially crossover interactions, whose order reversal survives any monotone rescaling [e.g., @loftus1978; @cox1984; @wagenmakers2012]. The removable versus nonremovable distinction is clearest and easiest to apply in the $2 \times 2$ case, where it coincides with the absence or presence of a crossover. For multi-level, higher-order, or continuous designs, the classification is less clear-cut: order can be preserved while no single monotone transformation removes the interaction. Classification may also depend on which lower-order contrasts, conditional slices, or regions of the predictor space define the target claim. An apparent reversal under a linear fit can also be produced by functional-form assumptions near a bound, without implying a process-level crossover. Removability is one well-defined special case within the broader scale problem. This paper therefore focuses on the scale of additivity that a model assumes when testing an interaction. Many quantitative interaction claims remain underspecified when researchers leave implicit the scale of additivity, the distinction between linear-predictor and observed-response scales, or the robustness of the conclusion across plausible links. In this sense, link choice becomes part of the scientific claim.
 
@@ -695,61 +754,6 @@ The inverse link, $g^{-1}(\eta)$, maps the additive model back to the expected r
 
 The distinction is hidden in ordinary linear models because the identity link makes the two scales coincide. If $g(\mu) = \mu$, then additivity on the linear predictor scale is also additivity on the response scale. For any other link function, this equivalence disappears. A logit link defines additivity in log odds. A probit link defines additivity on a latent-normal scale. A log link defines additivity in log means (which corresponds to multiplicative change on the response scale). The same general point applies within a family. As noted in the introduction, a Gamma model for response times may use an identity, log, or inverse (the canonical) link: the family is the same, but the implied no-interaction baseline is different across link choices.
 
-::: {.callout-note title="A simple count example" icon="false"}
-Suppose children make fewer errors as they grow up. A Poisson model with a log link can represent this as a linear age effect on the log mean,
-
-$$
-\log\{E(Y)\} = \beta_0 + \beta_1 \text{age},
-$$
-
-with $\beta_1 < 0$. On the observed count scale, the same model implies $E(Y) = \exp(\beta_0 + \beta_1 \text{age})$, a curved decreasing function. The curvature is not an extra psychological mechanism, but the expected consequence of mapping an additive model on the log scale back to non-negative counts.
-
-Now add a group/condition difference in overall error rate, with no age-by-condition product term on the log scale. On the observed count scale, the absolute age-related reduction will usually be larger where expected errors are high and smaller where expected errors are low. A model that assumes additivity on another scale, especially an identity link, can treat this changing absolute difference as moderation. The same logic applies within the same family: a Poisson model with an identity link and a Poisson model with a log link both model counts, but they define different no-interaction baselines. A Poisson-log model is appropriate when log-count additivity is the target. A product term is a departure from additivity on the fitted link scale, whereas response-scale differences may change even when there is no product term on the generating scale [@mccabe2022; @domingue2024].
-
-```{r}
-#| label: fig-simple-count-example
-#| fig-cap: "A simple count example. The two groups/conditions have the same age effect on the log-count scale and no age-by-condition product term on that scale, but after exponentiating the linear predictor, expected error counts decrease nonlinearly on the observed count scale, and differences between conditions appear to change with age."
-#| fig.width: 6.4
-#| fig.height: 4.2
-
-set.seed(3)
-
-N <- 250
-d_count <- data.frame(
-  age = round(runif(N, 6, 10), 1),
-  condition = factor(rbinom(N, 1, .5), labels = c("Lower baseline", "Higher baseline"))
-)
-
-d_count$eta <- with(d_count, 2.6 - 0.55 * (age - 6) + 0.65 * (condition == "Higher baseline"))
-d_count$errors <- rpois(N, exp(d_count$eta))
-
-fit_count <- glm(errors ~ age + condition, family = poisson(link = "log"), data = d_count)
-
-count_pred <- expand.grid(age = seq(6, 10, length.out = 200), condition = levels(d_count$condition))
-p <- predict(fit_count, newdata = count_pred, type = "link", se.fit = TRUE)
-
-count_pred$fit <- exp(p$fit)
-count_pred$lower <- exp(p$fit - 1.96 * p$se.fit)
-count_pred$upper <- exp(p$fit + 1.96 * p$se.fit)
-
-ggplot(d_count, aes(age, errors, color = condition, shape = condition)) +
-  geom_point(size = 2.6, alpha = .55) +
-  geom_ribbon(
-    data = count_pred,
-    aes(x = age, ymin = lower, ymax = upper, fill = condition, group = condition),
-    inherit.aes = FALSE, alpha = .18, color = NA
-  ) +
-  geom_line(
-    data = count_pred,
-    aes(x = age, y = fit, linetype = condition, group = condition),
-    linewidth = 1.1
-  ) +
-  labs(x = "Age", y = "Number of errors", color = NULL, fill = NULL, shape = NULL, linetype = NULL) +
-  link_theme(base_size = 11) +
-  theme(legend.position = "top")
-```
-:::
-
 The same logic applies directly to interaction coefficients. The coefficient $\beta_3$ is a product-term interaction on the link scale, $g(\mu)$. When $\beta_3 = 0$, the fitted model assumes additivity on that scale. It does not necessarily assume additivity on the observed response scale. A response-scale interaction can instead be defined as a difference between expected differences. For two binary predictors, one such quantity is
 
 $$
@@ -776,7 +780,7 @@ $$
 h''(\eta)\beta\gamma.
 $$
 
-Thus, an additive model on the link scale can imply a response-scale interaction whenever the inverse link is locally curved. In a $2 \times 2$ design, the same point appears as a difference between differences:
+Thus, an additive model on the link scale can imply a response-scale interaction whenever the inverse link is locally curved, as in the count example of @fig-simple-count-example. In a $2 \times 2$ design, the same point appears as a difference between differences, the quantity that changes sign across scales in @fig-motivating-example:
 
 $$
 h(\eta+a+b)-h(\eta+a)-h(\eta+b)+h(\eta)
@@ -904,7 +908,7 @@ Diagnostics should be part of link-aware modeling, but they cannot settle the li
 
 Pregibon-style link tests are useful because they target link adequacy more directly than generic residual plots [@pregibon1980]. They expand the fitted GLM by adding terms derived from the fitted link, then ask whether the expanded model improves the fit. A significant added-term test suggests that the assumed link may be inadequate, but it does not identify the correct link. The signal may also reflect a missing nonlinear predictor, an omitted covariate, an omitted interaction, or another problem in the systematic component. A non-significant result is also limited. It means that this diagnostic, in this sample, did not detect this particular departure.
 
-Simulation-based residual diagnostics provide a broader check. DHARMa implements randomized quantile residuals by simulating new responses from the fitted model and comparing the observed response with the fitted predictive distribution [@dunnsmyth1996; @hartig2024]. These residuals are easier to interpret across GLMs and GLMMs than raw, Pearson, or deviance residuals. In the diagnostic simulation below, we use four DHARMa checks: residual uniformity, dispersion, residual quantile patterns over fitted values, and residual quantile patterns over the focal predictor. These checks can detect broad misfit, dispersion problems, and structured residual patterns. But they do not by themselves distinguish link misspecification from family misspecification, a missing nonlinearity, a missing interaction, or a target-metric mismatch.
+Simulation-based residual diagnostics provide a broader check. DHARMa implements randomized quantile residuals by simulating new responses from the fitted model and comparing the observed response with the fitted predictive distribution [@dunnsmyth1996; @hartig2024]. These residuals are easier to interpret across GLMs and GLMMs than raw, Pearson, or deviance residuals. In the diagnostic simulation below, we use four DHARMa checks: residual uniformity, dispersion, residual quantile patterns over fitted values, and residual structure over the focal predictor, implemented as a quantile check for continuous predictors and as a design-cell comparison for the categorical $2 \times 2$ case. These checks can detect broad misfit, dispersion problems, and structured residual patterns. But they do not by themselves distinguish link misspecification from family misspecification, a missing nonlinearity, a missing interaction, or a target-metric mismatch.
 
 Model comparison tools, such as AIC, BIC, WAIC, or LOO, add another source of evidence, but only within a clear candidate set. For link diagnostics, their cleanest use is to compare candidate links while holding fixed the observed outcome, likelihood family or support, and structural formula. In that use, AIC can compare Poisson-log and Poisson-identity fits to the same counts, binomial-logit and binomial-probit fits to the same successes and trials, or Gamma-log and Gamma-inverse fits to the same positive outcome. It can also compare a standard binomial link with a chance-corrected binomial link when both define likelihoods for the same binomial data. It is less direct when the comparison changes the outcome, the likelihood support, or the measurement metric, which is why we do not treat sum-score alternatives as a simple AIC contest among links. More importantly, information criteria compare predictive fit among the models supplied by the analyst. They do not decide which scale defines the scientific no-interaction claim. A wrong or incomplete link may even be favored when the product term absorbs part of the curvature created by the misspecification. Thus, a lower AIC is evidence about relative fit in the candidate set, not proof of link adequacy.
 
@@ -1309,7 +1313,7 @@ The table reports false-positive rates relative to the generating-link null. The
 
 Finally, we examined whether common diagnostics would flag the same link problems that produced pseudo-interactions. This simulation is not a general benchmark of all possible checks. It asks whether diagnostic evidence appears before, after, or at the same time as the false interaction.
 
-We used five scenarios, each tied to a previous example or matched counterpart in the paper. The first is the simple count example in @fig-simple-count-example. Data are generated from a Poisson-log model in which expected errors decline with age, with no age-by-group product term on the log-count scale. The coefficients are the same as in the figure: intercept 2.60, age effect -0.55 per year after age 6, and group effect 0.65. The fitted model keeps the Poisson family and the interaction formula, but uses an identity link. This makes the comparison a same-family link comparison, not a comparison between Poisson and Gaussian models.
+We used five scenarios, each tied to a previous example or matched counterpart in the paper. The first is tied to the simple count example in @fig-simple-count-example. Data are generated from a Poisson-log model in which expected errors decline with age, with no age-by-group product term on the log-count scale. The diagnostic scenario uses the same qualitative structure as the figure, with coefficients recorded in the generated scenario table: intercept 2.20, age effect -0.55 per year after age 6, and group effect 0.45. The fitted model keeps the Poisson family and the interaction formula, but uses an identity link. This makes the comparison a same-family link comparison, not a comparison between Poisson and Gaussian models.
 
 The second scenario is the lower-performance forced-choice scenario from Simulation 1. Data are generated with a .50 chance floor, 20 trials per participant, intercept -0.80, age effect 0.60, group effect -0.90, and no age-by-group product term on the chance-corrected logit scale. The fitted model is a standard binomial-logit interaction model, which respects the binomial trial structure but places the lower asymptote at 0 rather than at chance.
 
@@ -1321,7 +1325,7 @@ The fifth scenario connects to the Gamma example in @fig-family-link-distinction
 
 In each replication, diagnostics were applied to the misspecified interaction model, because this is the model an analyst would usually inspect after finding the interaction. This design targets a realistic post-estimation question: does the same fitted model that produced the product-term finding also show enough diagnostic evidence to warn the analyst about the link problem? The choice is demanding because the product term can absorb part of the curvature created by the wrong link. A diagnostic workflow applied to an additive model before adding the product term would answer a different question. The present simulation asks whether ordinary checks protect the interaction conclusion once the misspecified interaction model has been fitted.
 
-The residual workflow used four DHARMa checks: residual uniformity, dispersion, residual quantile patterns over fitted values, and residual quantile patterns over the focal predictor [@dunnsmyth1996; @hartig2024]. We also used a Pregibon-style added-term link check as a more link-oriented diagnostic [@pregibon1980].
+The residual workflow used four DHARMa checks: residual uniformity, dispersion, residual quantile patterns over fitted values, and residual structure over the focal predictor, using a quantile check for continuous predictors and a design-cell comparison for the categorical $2 \times 2$ case [@dunnsmyth1996; @hartig2024]. We also used a Pregibon-style added-term link check as a more link-oriented diagnostic [@pregibon1980].
 
 Finally, we used AIC only for relative comparisons among prespecified candidate mean models fitted to the same response data with the same interaction formula. In the count and Gamma scenarios, the response family is held fixed and only the link changes. In the binary scenarios, the binomial sampling model is held fixed. The chance-floor scenario compares two binomial mean mappings: a standard logit model and a chance-corrected logit model with a design-implied lower asymptote. Thus, AIC varies the candidate mean-link mapping, not the presence or absence of the product term. We report the proportion of replications in which the lower AIC favored the target model. Because no inconclusive ΔAIC category is used, the complement favors the misspecified model when both AIC values are available. These values should be read as relative fit within a limited candidate set, not as evidence that AIC can identify the scientifically correct scale of additivity.
 

@@ -18,8 +18,9 @@
 #   DHARMa diagnostics are scenario-aware. Quantile-regression residual checks
 #   are used only when the relevant predictor has enough unique values. In the
 #   binary repeated-trials 2 x 2 scenario, the focal predictors are categorical,
-#   so the script uses DHARMa::testCategorical() on the group-by-condition
-#   design cells instead of DHARMa::testQuantiles(..., predictor = condition_num).
+#   so the script uses a Kruskal-Wallis test of the DHARMa scaled residuals
+#   across the group-by-condition design cells instead of
+#   DHARMa::testQuantiles(..., predictor = condition_num).
 #   The script then adds a continuous-predictor binary scenario to show the same
 #   logit-vs-probit issue when quantile-based residual diagnostics are in
 #   principle better identified.
@@ -431,9 +432,15 @@ dharma_diagnostics <- function(name, fit, data, scn) {
   
   if (identical(scn$focal_dharma, "categorical_design")) {
     design_cell <- interaction(data$group, data$condition, drop = TRUE)
-    if (length(unique(design_cell)) >= 2) {
+    res <- sim$scaledResiduals
+    # DHARMa::testCategorical() returns no scalar $p.value, so it never flowed
+    # through extract_p_value() and this check silently produced NA in every
+    # replication. A Kruskal-Wallis test of the scaled residuals across design
+    # cells is a scalar, version-independent check of cell-specific misfit and
+    # passes cleanly through safe_dharma_test().
+    if (nlevels(design_cell) >= 2 && length(res) == length(design_cell)) {
       p_categorical_design <- safe_dharma_test(
-        DHARMa::testCategorical(sim, catPred = design_cell, plot = FALSE)
+        stats::kruskal.test(res ~ design_cell)
       )
     }
   }

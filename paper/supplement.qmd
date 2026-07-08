@@ -1,130 +1,473 @@
 ---
 title: "Supplementary Materials for The Link Function Problem in Psychological Interaction Testing"
+author:
+  - Enrico Toffalini
+  - Margherita Calderan
+  - Laura Sità
+  - Tommaso Feraco
+  - Filippo Gambarota
 bibliography: references.bib
 format:
-  html: default
-  pdf: default
+  pdf:
+    toc: true
+    number-sections: false
+  html:
+    toc: true
+    number-sections: false
+execute:
+  echo: false
+  warning: false
+  message: false
 ---
 
-# Review Methods
+```{r}
+#| label: setup
+#| include: false
 
-This supplement reports details of the preregistered descriptive review, mathematical background, simulation data-generating processes, and reproducibility information. The main text reports only compact summaries.
-
-## Protocol and Scope
-
-Describe the preregistered protocol, selected journals, search source, inclusion and exclusion criteria, and screening workflow. Include the OSF or repository link once available.
-
-## Coding Variables
-
-Summarize the variables from the review data dictionary: interaction testing, non-identity link use, explicit link reporting, potentially problematic identity-link analyses, significant interactions, and response-variable categories.
-
-## Additional Review Tables
-
-```{r review-supplement-tables}
-#| echo: false
-#| results: asis
-
-journal_table_path <- "../tables/tableS1-review-by-journal.csv"
-if (file.exists(journal_table_path)) {
-  journal_table <- read.csv(journal_table_path)
-  knitr::kable(journal_table, caption = "Review descriptives by journal.", digits = 1)
-} else {
-  cat("Run scripts/01-review-descriptives.R to generate the journal-level review table.")
-}
-```
-
-# Mathematical Details
-
-## GLM Notation
-
-A GLM links the expected outcome $\mu_i = E(Y_i)$ to a linear predictor $\eta_i$ through
-
-$$
-g(\mu_i) = \eta_i.
-$$
-
-With two predictors and a product term,
-
-$$
-\eta_i = \beta_0 + \beta_1 X_i + \beta_2 Z_i + \beta_3 X_iZ_i.
-$$
-
-The coefficient $\beta_3$ is an interaction on the link scale. Response-scale interactions require applying the inverse link and computing the relevant contrast.
-
-## Response-Scale Difference-in-Differences
-
-For binary or categorical predictors, one response-scale interaction estimand is
-
-$$
-\{E(Y \mid X = 1, Z = 1) - E(Y \mid X = 0, Z = 1)\}
--
-\{E(Y \mid X = 1, Z = 0) - E(Y \mid X = 0, Z = 0)\}.
-$$
-
-In nonlinear GLMs this quantity can differ from the product-term coefficient in sign, size, or statistical conclusion.
-
-# Chance-Corrected Link Details
-
-The simple fixed-chance link used in the paper is
-
-$$
-p_i = c + (1 - c)F(\eta_i),
-$$
-
-where $c$ is the chance level and $F$ is a cumulative distribution function such as the logistic or normal CDF. For 2-AFC tasks, $c = .50$.
-
-A more general version with a lapse parameter is
-
-$$
-p_i = c + (1 - c - \lambda)F(\eta_i),
-$$
-
-where $\lambda$ controls the upper asymptote. The main paper uses the simpler fixed-chance version for transparency.
-
-# Simulation Data-Generating Processes
-
-## Simulation 1: Forced-Choice Accuracy
-
-Report the settings used in `scripts/03a-simulation-forced-choice.R`: number of replications, sample sizes, trials per subject, predictor distributions, generating coefficients, fitted models, and false-positive criterion.
-
-## Simulation 2: Sum Scores
-
-Report the latent-variable model, item thresholds, number of items, response categories, fitted models, and false-positive criterion used in `scripts/03b-simulation-sum-scores.R`.
-
-## Simulation 3: Within-Family Links
-
-Report the binary outcome DGP, generating links, fitted links, and scenario definitions used in `scripts/03c-simulation-within-family-links.R`.
-
-## Diagnostic Worked Example
-
-Report the diagnostic scenarios, the Pregibon-style added-term check, the false-positive interaction criterion, and the diagnostic detection criterion used in `scripts/04-diagnostic-worked-example.R`.
-
-# Extended Simulation Results
-
-```{r extended-simulation-results}
-#| echo: false
-#| results: asis
-
-files <- c(
-  "../tables/table3-forced-choice-simulation.csv",
-  "../tables/table4-sum-score-simulation.csv",
-  "../tables/table5-within-family-links.csv",
-  "../tables/table6-diagnostic-worked-example.csv"
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  comment = "#>"
 )
 
-for (f in files) {
-  if (file.exists(f)) {
-    cat("\n\n")
-    knitr::kable(read.csv(f), caption = basename(f), digits = 3)
+# This supplement reads a few already-generated result files so that the
+# printed tables reproduce exactly. The reader does not need any of these
+# files: every table below degrades to a short note if its source is absent,
+# and the text never asks the reader to open a repository file.
+find_file <- function(...) {
+  rel <- file.path(...)
+  candidates <- c(rel, file.path("..", rel))
+  hit <- candidates[file.exists(candidates)]
+  if (length(hit) == 0) return(NA_character_)
+  hit[1]
+}
+
+read_csv_if_exists <- function(...) {
+  path <- find_file(...)
+  if (is.na(path)) return(NULL)
+  read.csv(path, stringsAsFactors = FALSE, check.names = FALSE)
+}
+
+missing_note <- function(text) {
+  cat("*", text, "*\n\n", sep = "")
+  invisible(NULL)
+}
+
+zap0 <- function(x, tol = 1e-8) {
+  x <- as.numeric(x)
+  x[!is.na(x) & abs(x) < tol] <- 0
+  x
+}
+
+fmt_num <- function(x, digits = 3) {
+  ifelse(is.na(x), "--", formatC(zap0(as.numeric(x)), format = "f", digits = digits))
+}
+
+fmt_percent <- function(x, digits = 1) {
+  ifelse(is.na(x), "--", paste0(formatC(as.numeric(x), format = "f", digits = digits), "%"))
+}
+
+fmt_rate <- function(x, digits = 1) {
+  ifelse(is.na(x), "--", paste0(formatC(100 * as.numeric(x), format = "f", digits = digits), "%"))
+}
+
+fmt_rate_ci <- function(rate, low, high, digits = 1) {
+  ifelse(
+    is.na(rate),
+    "--",
+    paste0(
+      fmt_rate(rate, digits),
+      " [", formatC(100 * as.numeric(low), format = "f", digits = digits),
+      ", ", formatC(100 * as.numeric(high), format = "f", digits = digits), "]"
+    )
+  )
+}
+
+short_journal <- function(x) {
+  x <- gsub("Journal of Experimental Psychology: General", "JEP: General", x, fixed = TRUE)
+  x <- gsub("Journal of Personality and Social Psychology", "JPSP", x, fixed = TRUE)
+  x
+}
+
+short_item <- function(x) {
+  out <- x
+  out[grepl("non-identity", out, ignore.case = TRUE)] <- "Uses non-identity link"
+  out[grepl("Explicit link", out, ignore.case = TRUE)] <- "Explicit link reported"
+  out[grepl("incorrect", out, ignore.case = TRUE)] <- "Identity link flagged"
+  out[grepl("significant", out, ignore.case = TRUE)] <- "Significant flagged interaction"
+  out
+}
+
+print_table_if_exists <- function(caption, note_if_missing, ..., transform = identity, digits = 3) {
+  d <- read_csv_if_exists(...)
+  if (is.null(d)) return(missing_note(note_if_missing))
+  d <- transform(d)
+  print(knitr::kable(d, caption = caption, digits = digits))
+  cat("\n\n")
+  invisible(d)
+}
+
+include_graphic_if_exists <- function(..., note_if_missing = NULL) {
+  path <- find_file(...)
+  if (!is.na(path) && grepl("\\.pdf$", path) && !knitr::is_latex_output()) {
+    png_alt <- sub("\\.pdf$", ".png", path)
+    path <- if (file.exists(png_alt)) png_alt else NA_character_
   }
+  if (is.na(path)) {
+    if (is.null(note_if_missing)) note_if_missing <- "Figure not available in this build."
+    return(missing_note(note_if_missing))
+  }
+  knitr::include_graphics(path)
+}
+
+compact_agreement <- function(d) {
+  label <- if ("label" %in% names(d)) d$label else d$variable
+  data.frame(
+    Item = short_item(label),
+    N = d$n_double_coded,
+    Agreement = fmt_rate(d$agreement),
+    Kappa = fmt_num(d$kappa, 2),
+    `Coder 1 yes` = fmt_percent(d$coder1_yes_percent),
+    `Coder 2 yes` = fmt_percent(d$coder2_yes_percent),
+    check.names = FALSE
+  )
+}
+
+compact_by_journal <- function(d) {
+  data.frame(
+    Journal = short_journal(d$journal),
+    `Eligible` = d$eligible_n,
+    `Interaction` = d$interaction_testing_n,
+    `Interaction / eligible` = fmt_percent(d$interaction_testing_percent_of_eligible),
+    `Non-identity link` = fmt_percent(d$non_identity_link_percent_interaction),
+    `Explicit link` = fmt_percent(d$explicit_link_percent_interaction),
+    `Identity flagged` = fmt_percent(d$incorrect_identity_percent_interaction),
+    check.names = FALSE
+  )
 }
 ```
 
-# Reproducibility
+# S1. Scope of this supplement
 
-All simulations set seeds in the corresponding scripts. Heavy computation is kept outside the manuscript file. The main paper reads saved tables and figures.
+This supplement collects material that supports the main paper without repeating it. The conceptual argument, the worked examples, the figures, and the headline result tables are in the main paper, and they are not reproduced here. Instead, this document provides four kinds of complementary detail: (i) the extended methods and reliability of the preregistered review; (ii) the algebra of the chance-corrected binomial link, including a lapse-rate generalization not stated in the main text; (iii) the full data-generating processes and estimation details of the simulations; and (iv) a set of supplementary tables and one figure that report quantities at a finer grain than the main paper, such as per-check diagnostic detection rates and deterministic link-scale decompositions.
 
-```{r session-info}
-#| echo: false
-sessionInfo()
+The supplement is written to be read on its own. It refers to the main paper where a concept or figure is needed, but it does not ask the reader to open any external file, and it does not depend on the internal organization of the project archive. The complete data, code, and generated outputs are archived in the public repository associated with the article, for readers who wish to reproduce the numbers rather than read them.
+
+# S2. Preregistered review: extended methods and reliability
+
+## Protocol and sampling frame
+
+The review protocol was preregistered before any record was screened and is available at <https://osf.io/bdu73/>, together with the coding data dictionary. The protocol specified a descriptive review of recent psychological research articles from five pre-specified journals, one per major area: *Psychological Science* (general), *Journal of Experimental Psychology: General* (experimental), *Journal of Personality and Social Psychology* (social), *Developmental Science* (developmental), and *Psychological Medicine* (clinical). Journals were selected on a discretionary combination of criteria stated in the protocol: first-quartile Impact Factor in the 2023 Journal Citation Reports, not primarily publishing reviews, not narrowly specialized, and strong general reputation in the respective field, as jointly evaluated by the coauthors.
+
+Article records were retrieved from Elsevier's Scopus database for all articles published in these journals in 2024. For each journal, the full record list was randomly ordered and then screened in that order until 40 eligible interaction-testing articles were included, for a planned total of 200 interaction-testing articles across the five journals. Screening a larger set also allowed estimating the proportion of eligible empirical articles that test interactions. The design is targeted and descriptive: it characterizes reporting practice in influential outlets during the sampled year. It is not a random or stratified sample of all psychology journals, and the estimates are not prevalence estimates for the discipline.
+
+## Eligibility and coding workflow
+
+Eligible articles were empirical articles presenting original psychological research. The following were excluded, per protocol: reviews and meta-analyses; editorials, commentaries, opinion papers, and theoretical articles without empirical data; qualitative-only articles; replication-only studies; and psychometric validation studies. Articles were coded in detail only if they tested at least one interaction, through statistical modeling or ANOVA. The coding scheme targeted observed-outcome analyses; articles whose relevant tests were conducted only at the latent-variable level, or whose empirical analyses relied only on structural equation models, were excluded from detailed coding.
+
+The resulting screening flow is reported in @tbl-screening-flow. The table is generated from the saved review-descriptives output, so that rerendering the supplement uses the current repository values.
+
+```{r}
+#| label: tbl-screening-flow
+#| results: asis
+
+print_table_if_exists(
+  caption = "Screening flow for the preregistered review, generated from the saved review-descriptives output.",
+  note_if_missing = "Screening-flow table not available in this build.",
+  "tables", "tableS3-review-screening-flow.csv",
+  transform = function(d) {
+    required <- c("step", "n")
+    missing <- setdiff(required, names(d))
+    if (length(missing) > 0) {
+      stop("Screening-flow table is missing required columns: ", paste(missing, collapse = ", "), call. = FALSE)
+    }
+    out <- data.frame(
+      Step = d$step,
+      N = d$n,
+      check.names = FALSE
+    )
+    optional_cols <- setdiff(names(d), c("step", "n"))
+    for (col in optional_cols) {
+      out[[col]] <- d[[col]]
+    }
+    out
+  }
+)
 ```
+
+Each interaction-testing article was independently coded by two researchers. Discrepancies were resolved through discussion or, if needed, by consulting the other coauthors. The preregistered variable definitions are reproduced below.
+
+| Variable | Definition (preregistered) | Type |
+|---|-------------|---|
+| `Tests_interactions` | Whether the article tests at least one interaction term in a statistical model or using an ANOVA. | Boolean |
+| `Uses_non_identity_link_function` | Whether at least one tested interaction is presumably analyzed with a non-identity link function (for example, because a generalized linear model was used). | Boolean |
+| `Explicit_link_function` | Whether the link function is explicitly declared for at least one statistical model in the article. Indicating only which generalized linear model or family was used is not enough. | Boolean |
+| `Incorrect_identity_link_function` | Whether at least one tested interaction is analyzed using an identity link function when another, non-identity link function would be more appropriate. | Boolean |
+| `Finds_significant_interactions` | Whether at least one interaction, among those where the link was coded as incorrectly identity, yields a statistically significant result, or is considered and discussed analogously in non-frequentist analyses. | Boolean |
+| `Response_variable_types` | Non-exclusive list of response-variable types on which interactions are tested (for example, sum score, accuracy, error count, response times, ordinal/Likert). | Category |
+
+: Coded variables and their preregistered definitions. {#tbl-variables}
+
+Two coding notes bound the interpretation of these variables. First, `Incorrect_identity_link_function` is a conservative screening flag for a formal mismatch between the observed-outcome constraints and the identity-link generative model. Cases were flagged only when the constraint was identifiable from the published report; when the report did not allow this judgment, the case was not counted. The flag is not an error rate, not a severity grade, and does not imply that the substantive conclusion is false, since an observed-score estimand can be a deliberate and defensible target. Second, `Response_variable_types` is non-exclusive: one article can contribute to several categories, so the category counts do not sum to the number of articles.
+
+Coding relied only on what a reader can observe in a published report: the analysis described, the outcome described, and any explicit statement of family or link. The review therefore documents reporting practice, not the correctness of substantive conclusions. For the same reason, the review did not classify interactions as removable or nonremovable at the article level, because published reports rarely provide the target contrast, the complete coefficients, and the assumed measurement scale that such a classification requires. Removability is used in the main paper as a conceptual lens inherited from the scale-dependence literature [@loftus1978; @cox1984; @wagenmakers2012], not as a coded outcome.
+
+## Interrater agreement
+
+Double-coded records with complete coder pairs are summarized in @tbl-agreement, with raw percentage agreement and Cohen's kappa reported together. Several coded variables had imbalanced marginal distributions, a setting in which kappa can be conservative, so the coder-specific yes rates are reported alongside to let readers evaluate the agreement pattern directly.
+
+```{r}
+#| label: tbl-agreement
+#| results: asis
+
+print_table_if_exists(
+  caption = "Interrater agreement for double-coded records.",
+  note_if_missing = "Interrater agreement table not available in this build.",
+  "tables", "tableS2-review-intercoder-agreement.csv",
+  transform = compact_agreement
+)
+```
+
+## By-journal descriptives
+
+@tbl-by-journal reports the review descriptives by journal. Percentages are computed within interaction-testing articles, except for the interaction-testing percentage, which is computed within eligible articles. The main paper reports only the range of these quantities across journals and the position of *Psychological Medicine*, which had the lowest screening proportion and the highest non-identity-link proportion in this sample.
+
+```{r}
+#| label: tbl-by-journal
+#| results: asis
+
+print_table_if_exists(
+  caption = "By-journal review descriptives.",
+  note_if_missing = "By-journal table not available in this build.",
+  "tables", "tableS1-review-by-journal.csv",
+  transform = compact_by_journal
+)
+```
+
+# S3. The chance-corrected binomial link
+
+In a generalized linear model the expected outcome $\mu_i = E(Y_i)$ is related to the linear predictor $\eta_i$ through a link function $g$, so that $g(\mu_i) = \eta_i$. Choosing the outcome family fixes the sampling process for $Y_i$; choosing $g$ fixes the scale on which the predictors combine additively when no product term is present. The main paper develops why this second choice, not the family alone, defines the no-interaction baseline. This section gives the algebra of one link used in the paper that has no closed form in the standard GLM catalogue.
+
+For binomial accuracy with a known chance level $c$, the chance-corrected link keeps the binomial family but maps the linear predictor onto the interval from $c$ to $1$,
+
+$$
+p_i = c + (1 - c)\,F(\eta_i),
+$$
+
+where $F$ is a cumulative distribution function, taken to be logistic in the analyses reported here. The corresponding link applies $F^{-1}$ to the above-chance quantity,
+
+$$
+g(p_i) = F^{-1}\!\left(\frac{p_i - c}{1 - c}\right).
+$$
+
+For a two-alternative forced-choice or true/false task with $c = .50$ this becomes $p_i = .50 + .50\,F(\eta_i)$. A standard binomial logit or probit is the special case $c = 0$. Both specifications respect the binomial sampling process, but they define different no-interaction baselines: a product term under the standard link tests additivity over the full $0$-to-$1$ range, whereas under the chance-corrected link it tests additivity on a performance-above-chance scale that already encodes the task-implied lower asymptote.
+
+The fixed-chance form used in the paper is the simplest member of a broader psychometric-function family. A more general version adds a lapse parameter $\lambda$ that lowers the upper asymptote,
+
+$$
+p_i = c + (1 - c - \lambda)\,F(\eta_i),
+$$
+
+so that performance saturates below $1$ when occasional lapses are plausible [@wichmann2001; @knoblauch2012]. The analyses in the paper fix $\lambda = 0$ and fix $c$ by task design, for transparency and identifiability; the lapse-rate version is the natural extension when the design and data can support estimation of an upper asymptote.
+
+# S4. Data-generating processes and estimation details
+
+This section gives the formal generative models and the estimation internals for the simulations. The main paper describes the purpose and interpretation of each simulation; here we state the equations, the fixed parameter values, and the fitting procedures needed to reproduce the reported behaviour. Unless noted otherwise, each scenario used $B = 300$ Monte Carlo replications with a significance level of $\alpha = .05$, and each simulation set a fixed random seed.
+
+## Simulation 1: forced-choice accuracy with a chance floor
+
+For each participant $i$, age is drawn on the range $6$ to $10$ and centered at $8$, group is a two-level factor, and the number of correct responses out of $k = 20$ trials is binomial with
+
+$$
+p_i = .50 + .50\,\mathrm{logistic}(\eta_i), \qquad
+\eta_i = \beta_0 + 0.60\,\text{age}_c - 0.90\,\text{group} + 0\,(\text{age}_c \times \text{group}).
+$$
+
+The generating scale is the chance-corrected logit with a fixed floor of $.50$, and the age-by-group product term is exactly zero on that scale. Three scenarios move the same structure along the accuracy range through the intercept: lower performance ($\beta_0 = -0.80$), middle performance ($\beta_0 = 0.00$), and higher performance ($\beta_0 = 0.80$). Each replication samples $N = 250$ participants.
+
+Four candidate models are fitted to each replication with the same `age_c * group` interaction formula: (1) a Gaussian identity model on the accuracy proportion; (2) a standard binomial logit on successes out of trials; (3) a standard binomial probit; and (4) a chance-corrected binomial logit fitted by direct maximum likelihood on the binomial likelihood with mean $p = c + (1-c)\,\mathrm{logistic}(\eta)$ and $c = .50$ fixed by design. For the chance-corrected fit, starting values come from a standard binomial fit, optimization uses BFGS with a numerically computed Hessian, and Wald $p$-values are derived from the inverse Hessian. Replications in which optimization or the Hessian inversion fails are recorded as failed fits and summarized over successful fits only. The chance-corrected model can fail when observed performance sits close to the floor, where the likelihood carries little information about above-chance changes; the main paper treats this as information about the design rather than as a numerical nuisance.
+
+## Simulation 2: sum scores
+
+Each replication samples $N = 600$ participants. A latent trait is generated as
+
+$$
+\theta_i = 0.85\,x_i - 0.90\,\text{group}_i + 0\,(x_i \times \text{group}_i) + \varepsilon_i,
+\qquad \varepsilon_i \sim N(0, 1),
+$$
+
+so the x-by-group product term is exactly zero on the latent generating scale. The latent trait is mapped to $J = 9$ ordinal items, each scored $0$ to $3$, through a graded logistic threshold model: item $j$ has three ordered thresholds, and the probability of reaching category $k$ or higher is $\mathrm{logistic}(\theta_i - \tau_{jk})$. Thresholds are deterministic, with base values $(-1, 0, 1)$, evenly spaced item offsets from $-0.45$ to $0.45$ across the nine items, and a scenario-level shift: middle of scale (shift $0.00$), near floor (shift $+1.60$, harder items compress scores toward the lower bound), and near ceiling (shift $-1.60$). The observed outcome is the item total, bounded between $0$ and $27$, discrete, and differentially compressed across the score range.
+
+Three analyses are fitted with the same `x * group` formula, to separate the relevant scales: (1) an observed sum-score identity model, `lm()` on the manifest total; (2) a Gaussian-probit bounded-score model, a Gaussian GLM with a probit link fitted to the continuity-corrected score proportion $(\text{sum} + 0.5) / (\text{max} + 1)$, included as a sensitivity model on the manifest total rather than a measurement model; and (3) a latent-scale benchmark, `lm()` on the true $\theta$, available only because $\theta$ is known in the simulation.
+
+## Simulation 3: within-family link choice
+
+Repeated binary trials are generated in a two-group, two-condition design with $n = 700$ participants, $k = 15$ trials per participant-condition cell, and a subject random intercept. The reference fixed effects on the probit scale are intercept $1.50$, group $-1.00$, condition $-1.00$, and product term $0$. When the generating link is logit, all fixed effects are multiplied by $1.65$, so that the logit and probit data-generating processes imply similar cell probabilities while preserving a zero product term on the generating link scale. The random-intercept standard deviation is set from a latent-scale ICC of $.30$, using the latent residual variance of the generating link ($\pi^2/3$ for logit, $1$ for probit).
+
+Generating and fitted links are fully crossed (logit and probit in both roles), giving two matched-link and two wrong-link cells. All models are random-intercept GLMMs fitted with `glmmTMB`, using the same `group * condition` fixed-effect formula. A separate single-dataset illustration, used for the fitted logit-versus-probit figure in the main paper, fits a binomial-logit and a binomial-probit GLM to the same $N = 1000$ binary responses generated from a logistic curve with intercept $0.05$ and slope $1.75$; the fitted coefficients are reported in @tbl-fitted-coefs below.
+
+## Diagnostic simulation: estimation and checks
+
+The diagnostic simulation ties each of five link-misspecification scenarios (defined in the main paper's diagnostic section) to a misspecified fitted link, holding the outcome family and the interaction formula fixed. In every replication the interaction model is fitted under the wrong link, and all diagnostics are applied to that same fitted model, because that is the model an analyst would inspect after finding the interaction. The technical specification of the checks is as follows.
+
+*Simulation-based residuals* [@dunnsmyth1996; @hartig2024] were computed with DHARMa, simulating $250$ responses from the fitted model per replication. Four prespecified checks were applied: residual uniformity (`testUniformity`), dispersion (`testDispersion`), residual quantile patterns over fitted values (`testQuantiles`), and residual structure over the focal predictor. The last check is scenario-aware: `testQuantiles` over the predictor is used when the predictor has at least eight unique values; for the $2 \times 2$ repeated-trials scenario, residuals are instead compared across the group-by-condition design cells using a Kruskal-Wallis test on the DHARMa scaled residuals. @tbl-diagnostic-breakdown reports this design-cell check for D3. Cells are marked "--" only when a check is not applicable or returns no usable replications in the saved diagnostic summary.
+
+*The Pregibon-style added-term link check* [@pregibon1980] extracts the fitted linear predictor, adds its square to the model formula, and tests the significance of the added term on the same fitted wrong-link interaction model.
+
+*The same-formula AIC comparison* contrasts the target-link and the misspecified-link interaction models, holding the response data, the likelihood family, and the structural formula fixed, so only the mean-link mapping varies. No inconclusive $\Delta$AIC category is used, so the two AIC rows in @tbl-diagnostic-breakdown are complementary whenever both AIC values are available.
+
+# S5. Supplementary tables and figures
+
+The tables in this section report quantities at a finer grain than the main paper, or quantities the main paper states only in prose or in a figure. They do not restate the headline false-positive summaries, which appear in the main paper.
+
+## Cell-level values of the motivating example
+
+The motivating $2 \times 2$ example in the main paper is fully deterministic. Four cell probabilities are generated with no condition-by-group product term on the chance-corrected logit scale with floor $c = .50$, using $\eta = \beta_0 + \beta_c\,\text{condition} + \beta_g\,\text{group}$ and $p = .50 + .50\,\mathrm{logistic}(\eta)$, with $\beta_0 = -1.00$, $\beta_c = 2.10$, $\beta_g = 1.70$. @tbl-motivating-cells gives the exact linear predictor and probability for each cell; the implied interaction coefficients on the three scales are reported in the caption of the corresponding main-paper figure.
+
+```{r}
+#| label: tbl-motivating-cells
+#| tbl-cap: "Deterministic cell values of the motivating example, generated with no product term on the chance-corrected logit scale."
+
+beta0 <- -1.00; betac <- 2.10; betag <- 1.70; chance <- 0.50
+cells <- expand.grid(condition = c(0, 1), group = c(0, 1))
+cells$eta <- beta0 + betac * cells$condition + betag * cells$group
+cells$p <- chance + (1 - chance) * plogis(cells$eta)
+
+knitr::kable(
+  data.frame(
+    condition = cells$condition,
+    group = cells$group,
+    eta = formatC(cells$eta, format = "f", digits = 2),
+    p = formatC(cells$p, format = "f", digits = 4)
+  ),
+  align = c("r", "r", "r", "r")
+)
+```
+
+## Fitted logit versus probit coefficients
+
+@tbl-fitted-coefs reports the fitted coefficients and AIC for the single-dataset logit-versus-probit illustration described in Section S4. The main paper shows only the fitted curves and their pointwise difference; the coefficients are given here for completeness.
+
+```{r}
+#| label: tbl-fitted-coefs
+#| results: asis
+
+print_table_if_exists(
+  caption = "Fitted logit and probit coefficients for the single-dataset illustration.",
+  note_if_missing = "Fitted-coefficient table not available in this build.",
+  "tables", "model-results-fig4-logit-probit-fitted-example.csv",
+  transform = function(d) {
+    data.frame(
+      Model = d$model,
+      AIC = fmt_num(d$AIC, 1),
+      Intercept = fmt_num(d$intercept, 3),
+      Slope = fmt_num(d$slope, 3),
+      check.names = FALSE
+    )
+  }
+)
+```
+
+## Deterministic link-scale decomposition, Simulation 3
+
+The false-positive rates for Simulation 3 are in the main paper. @tbl-within-family-deterministic instead reports the deterministic quantities behind them: for each generating-by-fitted link combination, the product-term contrast induced by evaluating the generating cell probabilities on the fitted link scale, and the corresponding response-scale difference-in-differences. Under a matched link the induced product term is zero by construction; under a wrong link it is a fixed nonzero value that the Monte Carlo test has power to detect.
+
+```{r}
+#| label: tbl-within-family-deterministic
+#| results: asis
+
+print_table_if_exists(
+  caption = "Deterministic link-scale decomposition for Simulation 3. The induced product term is evaluated on the fitted link scale; the response-scale difference-in-differences is on the probability scale.",
+  note_if_missing = "Within-family decomposition table not available in this build.",
+  "tables", "simulation-summary-within-family-links.csv",
+  transform = function(d) {
+    data.frame(
+      `Generating link` = d$generating_link,
+      `Fitted link` = d$fitted_link,
+      Match = d$link_match,
+      `Induced product (fitted scale)` = fmt_num(d$deterministic_product_on_fitted_link_scale, 3),
+      `Response-scale diff-in-diff` = fmt_num(d$deterministic_response_scale_difference_in_differences, 3),
+      check.names = FALSE
+    )
+  }
+)
+```
+
+## Per-check diagnostic detection rates
+
+The main paper reports the DHARMa detection rate as a min-to-max range across checks. @tbl-diagnostic-breakdown gives the individual checks, so the reader can see which specific check fired in which scenario. The anchor row reproduces, for comparison, the rate at which the misspecified interaction model detected a product term absent on the generating link scale. Each cell is read from the saved diagnostic summary and reports the detection rate among the available successful replications for that scenario; "--" marks a check that is not applicable or returned no usable value in the saved output.
+
+```{r}
+#| label: tbl-diagnostic-breakdown
+#| results: asis
+
+diag_long <- read_csv_if_exists("tables", "simulation-summary-diagnostic-worked-example.csv")
+
+if (is.null(diag_long)) {
+  missing_note("Per-check diagnostic table not available in this build.")
+} else {
+  scen_levels <- c(
+    "Count errors", "Chance-floor accuracy", "Binary repeated trials",
+    "Binary continuous predictor", "Gamma mean response time"
+  )
+  scen_codes <- c("D1", "D2", "D3", "D4", "D5")
+
+  check_map <- c(
+    "Wrong-link interaction" = "Pseudo-interaction (anchor, from main paper)",
+    "DHARMa uniformity" = "DHARMa: uniformity",
+    "DHARMa dispersion" = "DHARMa: dispersion",
+    "DHARMa residual quantiles over fitted values" = "DHARMa: quantiles vs fitted",
+    "DHARMa residual quantiles over focal predictor" = "DHARMa: quantiles vs predictor",
+    "DHARMa residual distribution across design cells" = "DHARMa: across design cells",
+    "Pregibon-style added-term link check, secondary" = "Pregibon link check",
+    "AIC same interaction formula favors true link" = "AIC favors target link",
+    "AIC same interaction formula favors fitted link" = "AIC favors misspecified link"
+  )
+
+  cell_value <- function(scenario, quantity) {
+    row <- diag_long[diag_long$scenario == scenario & diag_long$quantity == quantity, , drop = FALSE]
+    if (nrow(row) != 1 || is.na(row$rate)) return("--")
+    fmt_rate(row$rate)
+  }
+
+  out <- data.frame(Check = unname(check_map), check.names = FALSE, stringsAsFactors = FALSE)
+  for (s in seq_along(scen_levels)) {
+    out[[scen_codes[s]]] <- vapply(
+      names(check_map),
+      function(q) cell_value(scen_levels[s], q),
+      character(1)
+    )
+  }
+
+  print(knitr::kable(
+    out,
+    caption = "Per-check detection rates across the five diagnostic scenarios. Scenarios: D1 count errors (Poisson log to identity); D2 chance-floor accuracy (chance-corrected to standard logit); D3 binary 2x2 GLMM (probit to logit); D4 binary continuous-predictor GLMM (probit to logit); D5 Gamma mean response time (log to inverse)."
+  ))
+  cat("\n\n")
+}
+```
+
+## Deterministic pseudo-interaction under the wrong link
+
+@fig-within-family-inspection shows the deterministic pseudo-interaction induced on the wrong link scale in Simulation 3, before any sampling noise. It makes explicit why matched-link cells imply an exactly additive structure while wrong-link cells do not.
+
+```{r}
+#| label: fig-within-family-inspection
+#| fig-cap: "Deterministic pseudo-interaction induced on the wrong link scale in Simulation 3."
+#| results: asis
+
+include_graphic_if_exists(
+  "outputs", "inspection", "figS-within-family-link-pseudo-interaction.png",
+  note_if_missing = "Inspection figure not available in this build."
+)
+```
+
+# S6. Data, code, and computational environment
+
+All analyses were conducted in R, and the manuscript and this supplement were written in Quarto. Each simulation sets a fixed random seed, and the number of Monte Carlo replications and the significance level are recorded together with the saved results. Exact package versions are pinned with `renv`, which is the source of truth for the computational environment; the key modelling dependencies are `glmmTMB` for the mixed-model simulations and `DHARMa` for the diagnostic checks. The complete data, analysis code, preregistration materials, and generated outputs are archived in the public repository associated with the article, so that every table and figure can be regenerated from the raw inputs.
+
+# References
+
+::: {#refs}
+:::

@@ -1,6 +1,6 @@
 "step","n","basis"
-"total screened records",276,"screening workbook row count"
+"records retrieved across journal sheets",2175,"non-empty rows across all screening workbook sheets (one per journal)"
 "eligible empirical articles in final dataset",331,"Eligible == 1 in final review dataset"
 "eligible articles testing at least one interaction",200,"Tests_interactions == 1 in eligible rows"
 "eligible articles not testing interactions",131,"eligible minus interaction-testing"
-"note-based SEM / latent-variable-only exclusions",2,"note-based keyword search"
+"note-based SEM / latent-variable-only exclusions",12,"note-based keyword search"

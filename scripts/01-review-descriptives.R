@@ -11,6 +11,31 @@ read_xlsx1 <- function(path) {
   as.data.frame(readxl::read_excel(path, sheet = 1), stringsAsFactors = FALSE)
 }
 
+# The screening and eligibility workbooks store one sheet per journal
+# (DS, JEPG, JPSP, PM, PS). Reading only sheet 1 counts a single journal, so
+# both the screening-record count and the SEM keyword search must span all
+# sheets. Columns are coerced to character so sheets with different inferred
+# types row-bind cleanly; both consumers (row counting and keyword search)
+# treat cells as text, so this is lossless for those uses.
+read_xlsx_all <- function(path) {
+  if (!requireNamespace("readxl", quietly = TRUE)) {
+    stop("Package 'readxl' is required by scripts/01-review-descriptives.R")
+  }
+  sheets <- readxl::excel_sheets(path)
+  dfs <- lapply(sheets, function(s) {
+    df <- as.data.frame(readxl::read_excel(path, sheet = s), stringsAsFactors = FALSE)
+    df[] <- lapply(df, as.character)
+    df[["source_sheet"]] <- s
+    df
+  })
+  all_cols <- Reduce(union, lapply(dfs, names))
+  dfs <- lapply(dfs, function(df) {
+    for (m in setdiff(all_cols, names(df))) df[[m]] <- NA_character_
+    df[all_cols]
+  })
+  do.call(rbind, dfs)
+}
+
 pick_col <- function(data, candidates = character(), patterns = character(), required = TRUE) {
   nm <- names(data)
   hit <- nm[nm %in% candidates]
@@ -165,8 +190,8 @@ settings <- list(
 )
 
 final_data <- read_csv(settings$data_file)
-screening_data <- read_xlsx1(settings$screening_file)
-eligibility_data <- read_xlsx1(settings$eligibility_file)
+screening_data <- read_xlsx_all(settings$screening_file)
+eligibility_data <- read_xlsx_all(settings$eligibility_file)
 
 # Prefer journal-title fields; Source is only a fallback because it may store a database label such as Scopus.
 journal_col <- pick_col(
@@ -391,7 +416,7 @@ sem_basis <- if (any(sem_hits_explicit)) "explicit exclusion field" else "note-b
 
 screening_flow_table <- data.frame(
   step = c(
-    "total screened records",
+    "records retrieved across journal sheets",
     "eligible empirical articles in final dataset",
     "eligible articles testing at least one interaction",
     "eligible articles not testing interactions",
@@ -405,7 +430,7 @@ screening_flow_table <- data.frame(
     sem_n
   ),
   basis = c(
-    "screening workbook row count",
+    "non-empty rows across all screening workbook sheets (one per journal)",
     if (!is.null(eligible_col)) "Eligible == 1 in final review dataset" else "final review dataset row count",
     if (!is.null(tests_interactions_col)) "Tests_interactions == 1 in eligible rows" else "review flags present in final dataset",
     "eligible minus interaction-testing",

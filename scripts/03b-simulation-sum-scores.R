@@ -491,11 +491,13 @@ cat("For the latent-generating-scale comparison, the same quantity is expressed 
 # ---------------------------------------------------------------------
 # 7. Figure panels
 # ---------------------------------------------------------------------
-pA <- ggplot2::ggplot(plot_grid, ggplot2::aes(x, expected_sum_score, linetype = group)) +
+pA <- ggplot2::ggplot(plot_grid, ggplot2::aes(x, expected_sum_score, color = group, linetype = group)) +
   ggplot2::geom_hline(yintercept = c(0, settings$max_score), linetype = "dashed") +
   ggplot2::geom_line(linewidth = .95) +
   ggplot2::facet_wrap(~ scenario) +
   ggplot2::scale_y_continuous(limits = c(-.5, settings$max_score + .5)) +
+  link_scale_color_discrete(name = NULL) +
+  link_scale_linetype_discrete(name = NULL) +
   ggplot2::labs(
     title = "A. Implied sum-score curves",
     subtitle = "No x-by-group term on the latent scale",

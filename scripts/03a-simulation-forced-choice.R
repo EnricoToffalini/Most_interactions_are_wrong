@@ -523,8 +523,8 @@ pA <- ggplot2::ggplot(plot_grid, ggplot2::aes(age, expected_accuracy, linetype =
   ggplot2::facet_wrap(~ scenario) +
   ggplot2::coord_cartesian(ylim = c(settings$chance - 0.05, 1.00)) +
   ggplot2::scale_y_continuous(labels = percent_labels(1), breaks = seq(settings$chance, 1, by = 0.10)) +
-  ggplot2::scale_color_manual(values = c("Group 0" = "grey10", "Group 1" = "grey45")) +
-  ggplot2::scale_linetype_manual(values = c("Group 0" = "solid", "Group 1" = "longdash")) +
+  link_scale_color_discrete(name = NULL) +
+  link_scale_linetype_discrete(name = NULL) +
   ggplot2::labs(
     title = "A. Scenario curves generated above a chance floor",
     subtitle = "No age-by-group product term is present on the chance-corrected logit scale",
