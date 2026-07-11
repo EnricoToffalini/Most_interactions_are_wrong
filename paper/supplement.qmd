@@ -175,7 +175,7 @@ The resulting screening flow is reported in @tbl-screening-flow. The table is ge
 print_table_if_exists(
   caption = "Screening flow for the preregistered review, generated from the saved review-descriptives output.",
   note_if_missing = "Screening-flow table not available in this build.",
-  "tables", "tableS3-review-screening-flow.csv",
+  "tables", "review-screening-flow.csv",
   transform = function(d) {
     required <- c("step", "n")
     missing <- setdiff(required, names(d))
@@ -224,7 +224,7 @@ Double-coded records with complete coder pairs are summarized in @tbl-agreement,
 print_table_if_exists(
   caption = "Interrater agreement for double-coded records.",
   note_if_missing = "Interrater agreement table not available in this build.",
-  "tables", "tableS2-review-intercoder-agreement.csv",
+  "tables", "review-intercoder-agreement.csv",
   transform = compact_agreement
 )
 ```
@@ -240,7 +240,7 @@ print_table_if_exists(
 print_table_if_exists(
   caption = "By-journal review descriptives.",
   note_if_missing = "By-journal table not available in this build.",
-  "tables", "tableS1-review-by-journal.csv",
+  "tables", "review-by-journal.csv",
   transform = compact_by_journal
 )
 ```
@@ -356,7 +356,7 @@ knitr::kable(
 print_table_if_exists(
   caption = "Fitted logit and probit coefficients for the single-dataset illustration.",
   note_if_missing = "Fitted-coefficient table not available in this build.",
-  "tables", "model-results-fig4-logit-probit-fitted-example.csv",
+  "tables", "model-results-logit-probit-fitted-example.csv",
   transform = function(d) {
     data.frame(
       Model = d$model,
@@ -458,7 +458,7 @@ if (is.null(diag_long)) {
 #| results: asis
 
 include_graphic_if_exists(
-  "outputs", "inspection", "figS-within-family-link-pseudo-interaction.png",
+  "outputs", "inspection", "within-family-link-pseudo-interaction.png",
   note_if_missing = "Inspection figure not available in this build."
 )
 ```
