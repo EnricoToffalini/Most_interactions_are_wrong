@@ -1,14 +1,7 @@
 # R/utils-reporting.R
 # Console and output-directory helpers.
 
-ensure_output_dirs <- function(dirs = NULL) {
-  if (is.null(dirs)) {
-    dirs <- get0(
-      "project_output_dirs",
-      ifnotfound = c("tables", "figs", "outputs", "outputs/inspection")
-    )
-  }
-
+ensure_output_dirs <- function(dirs = project_output_dirs) {
   invisible(lapply(dirs, dir.create, showWarnings = FALSE, recursive = TRUE))
 }
 

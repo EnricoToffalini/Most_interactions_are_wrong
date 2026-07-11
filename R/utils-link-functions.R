@@ -1,25 +1,11 @@
 # R/utils-link-functions.R
 # Link functions, chance-corrected binomial models, and interaction helpers.
 
-check_supported_link <- function(link) {
-  supported <- c("logit", "probit", "cloglog", "log", "inverse", "identity")
-  if (!link %in% supported) {
-    stop(
-      "Unsupported link: ", link,
-      ". Supported links are: ", paste(supported, collapse = ", "),
-      call. = FALSE
-    )
-  }
-  invisible(link)
-}
-
 clip_probability <- function(p, eps = 1e-8) {
   pmin(pmax(p, eps), 1 - eps)
 }
 
 inv_link <- function(eta, link = "logit") {
-  check_supported_link(link)
-
   switch(
     link,
     logit = stats::plogis(eta),
@@ -32,8 +18,6 @@ inv_link <- function(eta, link = "logit") {
 }
 
 link_fun <- function(mu, link = "logit") {
-  check_supported_link(link)
-
   switch(
     link,
     logit = stats::qlogis(clip_probability(mu)),
@@ -46,24 +30,11 @@ link_fun <- function(mu, link = "logit") {
 }
 
 chance_linkinv <- function(eta, chance = 0.5, link = "logit") {
-  if (!is.finite(chance) || chance < 0 || chance >= 1) {
-    stop("chance must be a finite number in [0, 1).", call. = FALSE)
-  }
-
   q <- inv_link(eta, link = link)
   chance + (1 - chance) * q
 }
 
-# Backward-compatible alias used in older drafts.
-inv_chance_link <- function(eta, c = 0.5, link = "logit") {
-  chance_linkinv(eta, chance = c, link = link)
-}
-
 chance_link <- function(p, chance = 0.5, link = "logit") {
-  if (!is.finite(chance) || chance < 0 || chance >= 1) {
-    stop("chance must be a finite number in [0, 1).", call. = FALSE)
-  }
-
   q <- (p - chance) / (1 - chance)
   link_fun(clip_probability(q), link = link)
 }
@@ -120,18 +91,6 @@ interaction_p_from_glm <- function(fit) {
 
 fit_chance_binom <- function(formula, data, y_col = "y", k_col = "k",
                              chance = 0.5, link = "logit") {
-  if (!is.data.frame(data)) {
-    stop("data must be a data frame.", call. = FALSE)
-  }
-  if (!all(c(y_col, k_col) %in% names(data))) {
-    stop("Could not find y_col and/or k_col in data.", call. = FALSE)
-  }
-  if (!is.finite(chance) || chance < 0 || chance >= 1) {
-    stop("chance must be a finite number in [0, 1).", call. = FALSE)
-  }
-
-  check_supported_link(link)
-
   mf <- stats::model.frame(formula, data = data)
   X <- stats::model.matrix(formula, data = mf)
   y <- data[[y_col]]

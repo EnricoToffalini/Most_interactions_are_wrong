@@ -1,16 +1,12 @@
 # R/utils-plots.R
 # Plot helpers. Uses ggplot2 and base grid only.
 
-if (!requireNamespace("ggplot2", quietly = TRUE)) {
-  stop("Please install ggplot2.", call. = FALSE)
-}
-
 # ---------------------------------------------------------------------
 # Shared visual system
 # ---------------------------------------------------------------------
 
-link_palette <- function(keys = NULL) {
-  pal <- c(
+link_palette <- function() {
+  c(
     "Group 0" = "#0072B2",
     "Group 1" = "#D55E00",
     "Identity" = "#009E73",
@@ -24,25 +20,10 @@ link_palette <- function(keys = NULL) {
     "Observed data" = "grey30",
     "Generating model" = "black"
   )
-  
-  if (is.null(keys)) {
-    return(pal)
-  }
-  
-  out <- pal[keys]
-  missing <- is.na(out)
-  
-  if (any(missing)) {
-    extra <- grDevices::hcl.colors(sum(missing), palette = "Dark 3")
-    names(extra) <- keys[missing]
-    out[missing] <- extra
-  }
-  
-  out
 }
 
-link_linetypes <- function(keys = NULL) {
-  ltys <- c(
+link_linetypes <- function() {
+  c(
     "Group 0" = "solid",
     "Group 1" = "longdash",
     "Identity" = "solid",
@@ -56,18 +37,10 @@ link_linetypes <- function(keys = NULL) {
     "Observed data" = "blank",
     "Generating model" = "solid"
   )
-  
-  if (is.null(keys)) {
-    return(ltys)
-  }
-  
-  out <- ltys[keys]
-  out[is.na(out)] <- "solid"
-  out
 }
 
-link_shapes <- function(keys = NULL) {
-  shp <- c(
+link_shapes <- function() {
+  c(
     "Group 0" = 16,
     "Group 1" = 17,
     "Identity" = 16,
@@ -81,14 +54,6 @@ link_shapes <- function(keys = NULL) {
     "Observed data" = 16,
     "Generating model" = 1
   )
-  
-  if (is.null(keys)) {
-    return(shp)
-  }
-  
-  out <- shp[keys]
-  out[is.na(out)] <- 16
-  out
 }
 
 link_scale_color_discrete <- function(..., values = link_palette()) {
@@ -196,15 +161,9 @@ save_single_plot <- function(plot, filename_base, width = 7.2, height = 5, dpi =
 }
 
 save_plot_grid <- function(plots, filename_base, width = 7.2, height = 7, ncol = 1, dpi = 300) {
-  if (!requireNamespace("grid", quietly = TRUE)) {
-    stop("The grid package is required.", call. = FALSE)
-  }
-  
   dir.create(dirname(filename_base), recursive = TRUE, showWarnings = FALSE)
-  
+
   n <- length(plots)
-  if (n == 0) stop("plots must contain at least one plot.", call. = FALSE)
-  
   nrow <- ceiling(n / ncol)
   
   draw <- function() {

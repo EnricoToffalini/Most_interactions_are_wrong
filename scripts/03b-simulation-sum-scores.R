@@ -31,11 +31,11 @@ settings <- list(
   x_summary_values = c(-1, 0, 1),
   x_plot_range = c(-2.5, 2.5),
   x_bin_breaks = seq(-2.5, 2.5, length.out = 11),
-  B = as.integer(Sys.getenv("N_SIM", as.character(default_B))),
+  B = default_B,
   alpha = default_alpha,
   scenario_table_path = "tables/scenario-table-sum-scores.csv",
   simulation_summary_path = "tables/simulation-summary-sum-scores.csv",
-  figure_base = "figs/fig3-sum-score-simulation",
+  figure_base = "figs/sum-score-simulation",
   inspection_effect_base = "outputs/inspection/sum-score-effect-size-inspection",
   inspection_thresholds_base = "outputs/inspection/sum-score-thresholds-inspection",
   rds_path = "outputs/simulation-sum-scores.rds"
@@ -53,70 +53,10 @@ scenarios <- data.frame(
   stringsAsFactors = FALSE
 )
 
-validate_settings <- function(settings, scenarios) {
-  positive_integer_fields <- c("N", "J", "item_max", "B")
-  for (field in positive_integer_fields) {
-    value <- settings[[field]]
-    if (!is.finite(value) || value <= 0 || value != as.integer(value)) {
-      stop(field, " must be a positive integer.", call. = FALSE)
-    }
-  }
-  
-  numeric_fields <- c("theta_sd", "beta_x", "beta_group", "beta_x_group", "alpha")
-  for (field in numeric_fields) {
-    value <- settings[[field]]
-    if (!is.finite(value)) {
-      stop(field, " must be finite.", call. = FALSE)
-    }
-  }
-  
-  if (settings$theta_sd <= 0) {
-    stop("theta_sd must be positive.", call. = FALSE)
-  }
-  
-  if (settings$alpha <= 0 || settings$alpha >= 1) {
-    stop("alpha must be between 0 and 1.", call. = FALSE)
-  }
-  
-  if (length(settings$x_summary_values) < 2 || any(!is.finite(settings$x_summary_values))) {
-    stop("x_summary_values must contain at least two finite values.", call. = FALSE)
-  }
-  
-  if (length(settings$x_plot_range) != 2 || any(!is.finite(settings$x_plot_range)) ||
-      settings$x_plot_range[1] >= settings$x_plot_range[2]) {
-    stop("x_plot_range must be a finite increasing vector of length 2.", call. = FALSE)
-  }
-  
-  if (length(settings$x_bin_breaks) < 3 || any(!is.finite(settings$x_bin_breaks)) ||
-      is.unsorted(settings$x_bin_breaks, strictly = TRUE)) {
-    stop("x_bin_breaks must be a strictly increasing finite vector.", call. = FALSE)
-  }
-  
-  required_scenario_cols <- c("scenario", "threshold_shift", "interpretation")
-  missing <- setdiff(required_scenario_cols, names(scenarios))
-  if (length(missing) > 0) {
-    stop("Missing scenario columns: ", paste(missing, collapse = ", "), call. = FALSE)
-  }
-  
-  if (any(!is.finite(scenarios$threshold_shift))) {
-    stop("All threshold_shift values must be finite.", call. = FALSE)
-  }
-  
-  invisible(TRUE)
-}
-
-validate_settings(settings, scenarios)
-
-report_section("Scenario parameters you can tune")
+report_section("Scenario parameters")
 print_compact(list_to_table(settings))
 cat("\nScenario-specific threshold shifts:\n")
 print_compact(scenarios)
-cat("\nTuning guide:\n")
-cat("- Increase threshold_shift to make items harder and move scores toward the floor.\n")
-cat("- Decrease threshold_shift to make items easier and move scores toward the ceiling.\n")
-cat("- Increase beta_x to strengthen the continuous predictor effect on the latent trait.\n")
-cat("- Make beta_group more negative to increase the latent group gap.\n")
-cat("- beta_x_group = 0, so the true latent-scale interaction is absent.\n")
 
 x_low <- min(settings$x_summary_values)
 x_high <- max(settings$x_summary_values)

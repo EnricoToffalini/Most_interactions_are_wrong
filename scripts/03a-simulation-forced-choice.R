@@ -10,14 +10,6 @@ rm(list = ls())
 # ---------------------------------------------------------------------
 # 0. Project setup
 # ---------------------------------------------------------------------
-if (!file.exists("R/project-settings.R") && file.exists("../R/project-settings.R")) {
-  setwd("..")
-}
-
-if (!requireNamespace("ggplot2", quietly = TRUE)) {
-  stop("Please install ggplot2.", call. = FALSE)
-}
-
 source("R/project-settings.R")
 source("R/utils-reporting.R")
 source("R/utils-link-functions.R")
@@ -42,11 +34,11 @@ settings <- list(
   beta_group = -0.90,
   beta_age_group = 0.00,
   generating_link = "logit",
-  B = as.integer(Sys.getenv("N_SIM", as.character(default_B))),
+  B = default_B,
   alpha = default_alpha,
   output_scenario_table = "tables/scenario-table-forced-choice.csv",
   output_summary_table = "tables/simulation-summary-forced-choice.csv",
-  output_figure_base = "figs/fig2-forced-choice-simulation",
+  output_figure_base = "figs/forced-choice-simulation",
   output_inspection_base = "outputs/inspection/forced-choice-effect-size-inspection",
   output_rds = "outputs/simulation-forced-choice.rds"
 )
@@ -79,73 +71,10 @@ model_names <- c(
   "Chance-corrected binomial logit"
 )
 
-validate_settings <- function(settings, scenarios) {
-  required <- c(
-    "N", "k_trials", "chance", "age_range", "age_center",
-    "beta_age", "beta_group", "beta_age_group", "generating_link",
-    "B", "alpha", "age_summary_values", "age_plot_values", "age_bin_breaks"
-  )
-  
-  missing <- setdiff(required, names(settings))
-  if (length(missing) > 0) {
-    stop("Missing settings: ", paste(missing, collapse = ", "), call. = FALSE)
-  }
-  
-  if (length(settings$age_range) != 2 || any(!is.finite(settings$age_range))) {
-    stop("settings$age_range must contain two finite values.", call. = FALSE)
-  }
-  if (settings$age_range[1] >= settings$age_range[2]) {
-    stop("settings$age_range must be increasing.", call. = FALSE)
-  }
-  if (!is.finite(settings$age_center) ||
-      settings$age_center < settings$age_range[1] ||
-      settings$age_center > settings$age_range[2]) {
-    stop("settings$age_center must fall inside settings$age_range.", call. = FALSE)
-  }
-  if (!is.finite(settings$N) || settings$N < 1) {
-    stop("settings$N must be a positive number.", call. = FALSE)
-  }
-  if (!is.finite(settings$k_trials) || settings$k_trials < 1) {
-    stop("settings$k_trials must be a positive number.", call. = FALSE)
-  }
-  if (!is.finite(settings$chance) || settings$chance < 0 || settings$chance >= 1) {
-    stop("settings$chance must be in [0, 1).", call. = FALSE)
-  }
-  if (!is.finite(settings$B) || settings$B < 1) {
-    stop("settings$B must be a positive number.", call. = FALSE)
-  }
-  if (!is.finite(settings$alpha) || settings$alpha <= 0 || settings$alpha >= 1) {
-    stop("settings$alpha must be in (0, 1).", call. = FALSE)
-  }
-  if (!all(is.finite(unlist(settings[c("beta_age", "beta_group", "beta_age_group")])))) {
-    stop("Regression coefficients in settings must be finite.", call. = FALSE)
-  }
-  check_supported_link(settings$generating_link)
-  
-  if (!all(c("scenario", "beta_intercept") %in% names(scenarios))) {
-    stop("scenarios must contain scenario and beta_intercept columns.", call. = FALSE)
-  }
-  if (any(!is.finite(scenarios$beta_intercept))) {
-    stop("All scenario intercepts must be finite.", call. = FALSE)
-  }
-  
-  invisible(TRUE)
-}
-
-validate_settings(settings, scenarios)
-
-report_section("Scenario parameters you can tune")
+report_section("Scenario parameters")
 print_compact(list_to_table(settings))
 cat("\nScenario-specific intercepts:\n")
 print_compact(scenarios)
-cat("\nTuning guide:\n")
-cat("- Decrease beta_intercept to move a scenario toward the chance floor.\n")
-cat("- Increase beta_intercept to move it toward the ceiling.\n")
-cat("- Increase beta_age to make development steeper.\n")
-cat("- Make beta_group more negative to increase the group gap.\n")
-cat("- Set chance = .25 for a 4-AFC task, .50 for a 2-AFC or true/false task.\n")
-cat("- beta_age_group = 0, so the true generating link-scale interaction is absent.\n")
-cat("- The present values are intentionally moderate, to avoid saturated false-positive rates.\n")
 
 # ---------------------------------------------------------------------
 # 2. Data-generating functions

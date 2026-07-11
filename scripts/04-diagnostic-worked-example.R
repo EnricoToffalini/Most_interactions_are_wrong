@@ -40,42 +40,11 @@ rm(list = ls())
 # 0. Project setup
 # ---------------------------------------------------------------------
 
-if (!file.exists("R/project-settings.R") && file.exists("../R/project-settings.R")) {
-  setwd("..")
-}
-
-required_packages <- c("DHARMa", "ggplot2", "glmmTMB")
-missing_packages <- required_packages[
-  !vapply(required_packages, requireNamespace, logical(1), quietly = TRUE)
-]
-
-if (length(missing_packages) > 0) {
-  stop(
-    "Please install the following packages before running the diagnostic simulation: ",
-    paste(missing_packages, collapse = ", "),
-    call. = FALSE
-  )
-}
-
 source("R/project-settings.R")
 source("R/utils-reporting.R")
 source("R/utils-link-functions.R")
 source("R/utils-summaries.R")
 source("R/utils-plots.R")
-
-if (!exists("default_B")) default_B <- 300L
-if (!exists("default_alpha")) default_alpha <- 0.05
-if (!exists("default_dpi")) default_dpi <- 300
-if (!exists("figure_width")) figure_width <- 7.2
-
-if (!exists("progress_tick")) {
-  progress_tick <- function(i, n, label = "") {
-    step <- max(1, floor(n / 10))
-    if (i == 1 || i == n || i %% step == 0) {
-      cat(label, i, "/", n, "\n", sep = "")
-    }
-  }
-}
 
 ensure_output_dirs()
 
@@ -86,7 +55,7 @@ report_header("Diagnostic simulation")
 # ---------------------------------------------------------------------
 
 settings <- list(
-  B = as.integer(Sys.getenv("N_SIM", as.character(default_B))),
+  B = default_B,
   n_cores = max(
     1L,
     min(
@@ -102,8 +71,8 @@ settings <- list(
   output_scenario_table = "tables/scenario-table-diagnostic-worked-example.csv",
   output_long_summary = "tables/simulation-summary-diagnostic-worked-example.csv",
   output_scenario_summary = "tables/simulation-summary-diagnostic-scenarios.csv",
-  output_scenario_summary_paper = "tables/table7-diagnostic-scenarios.csv",
-  output_scenario_summary_legacy = "tables/table6-diagnostic-scenarios.csv",
+  output_scenario_summary_paper = "tables/diagnostic-scenarios.csv",
+  output_scenario_summary_legacy = "tables/diagnostic-scenarios-legacy.csv",
   output_replications = "outputs/diagnostic-simulation-replications.csv",
   output_dharma_example = "outputs/inspection/dharma-diagnostic-example.pdf",
   output_rds = "outputs/diagnostic-worked-example.rds"
@@ -114,7 +83,7 @@ diag_scenarios <- list(
   count_poisson_log_identity = list(
     scenario = "Count errors",
     short_label = "Count ",
-    paper_anchor = "Figure 3 simple count example",
+    paper_anchor = "Simple count example figure",
     outcome_family = "Poisson count",
     true_link_function = "log",
     fitted_link_function = "identity",
@@ -193,7 +162,7 @@ diag_scenarios <- list(
   gamma_log_inverse = list(
     scenario = "Gamma mean response time",
     short_label = "Gamma ",
-    paper_anchor = "Figure 1B Gamma log-link example",
+    paper_anchor = "Family-link distinction figure, Gamma log-link panel",
     outcome_family = "Gamma positive continuous",
     true_link_function = "log",
     fitted_link_function = "inverse",
@@ -852,7 +821,7 @@ fit_wrong_link_model <- function(name, data, scn, include_interaction = TRUE) {
 scenario_description <- function(name, scn) {
   if (name == "count_poisson_log_identity") {
     return(paste0(
-      "Figure 3 coefficients: log(E[y]) = ", scn$beta_intercept,
+      "Simple count example figure coefficients: log(E[y]) = ", scn$beta_intercept,
       " + ", scn$beta_age, " * (age - ", scn$age_origin, ") + ",
       scn$beta_group, " * group; no age-by-group product term."
     ))
@@ -883,7 +852,7 @@ scenario_description <- function(name, scn) {
   }
   if (name == "gamma_log_inverse") {
     return(paste0(
-      "Figure 1B log-link scale: log(E[y]) = log(400) + ", scn$beta_x,
+      "Family-link distinction figure, log-link scale: log(E[y]) = log(400) + ", scn$beta_x,
       " * x + ", scn$beta_group,
       " * group; Gamma shape = ", scn$shape,
       "; no x-by-group product term."

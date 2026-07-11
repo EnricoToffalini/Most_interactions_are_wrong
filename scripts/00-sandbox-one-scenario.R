@@ -55,57 +55,8 @@ scenario$age_plot_values <- seq(
 scenario$output_base <- file.path("outputs", "inspection", "sandbox-one-scenario")
 
 # ---------------------------------------------------------------------
-# Validation and local helper functions
+# Local helper functions
 # ---------------------------------------------------------------------
-validate_scenario <- function(scenario) {
-  required <- c(
-    "name", "N", "k_trials", "chance", "age_range", "age_center",
-    "beta_intercept", "beta_age", "beta_group", "beta_age_group",
-    "generating_link", "chance_fit_link", "age_summary_values", "age_plot_values",
-    "output_base"
-  )
-  
-  missing <- setdiff(required, names(scenario))
-  if (length(missing) > 0) {
-    stop("Missing scenario fields: ", paste(missing, collapse = ", "), call. = FALSE)
-  }
-  
-  if (!is.finite(scenario$N) || scenario$N < 1) {
-    stop("scenario$N must be a positive number.", call. = FALSE)
-  }
-  
-  if (!is.finite(scenario$k_trials) || scenario$k_trials < 1) {
-    stop("scenario$k_trials must be a positive number.", call. = FALSE)
-  }
-  
-  if (!is.finite(scenario$chance) || scenario$chance < 0 || scenario$chance >= 1) {
-    stop("scenario$chance must be in [0, 1).", call. = FALSE)
-  }
-  
-  if (length(scenario$age_range) != 2 || any(!is.finite(scenario$age_range))) {
-    stop("scenario$age_range must contain two finite values.", call. = FALSE)
-  }
-  
-  if (scenario$age_range[1] >= scenario$age_range[2]) {
-    stop("scenario$age_range must be increasing.", call. = FALSE)
-  }
-  
-  if (!is.finite(scenario$age_center)) {
-    stop("scenario$age_center must be finite.", call. = FALSE)
-  }
-  
-  if (scenario$age_center < scenario$age_range[1] || scenario$age_center > scenario$age_range[2]) {
-    stop("scenario$age_center should lie inside scenario$age_range.", call. = FALSE)
-  }
-  
-  check_supported_link(scenario$generating_link)
-  check_supported_link(scenario$chance_fit_link)
-  
-  invisible(TRUE)
-}
-
-validate_scenario(scenario)
-
 eta_fun <- function(age, group_num) {
   age_c <- age - scenario$age_center
   scenario$beta_intercept +

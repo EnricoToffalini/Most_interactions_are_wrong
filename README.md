@@ -53,10 +53,10 @@ renv::restore()
 - `01-review-descriptives.R`  
   Produces descriptive summaries of the preregistered review.
 
-- `02a-figure1-motivating-example.R`  
+- `02a-figure-motivating-example.R`  
   Generates the motivating example showing how different links imply different interaction conclusions.
 
-- `02b-figure4-logit-probit-fitted-example.R`  
+- `02b-figure-logit-probit-fitted-example.R`  
   Generates the fitted logit-versus-probit example used for the within-family link discussion.
 
 - `03a-simulation-forced-choice.R`  

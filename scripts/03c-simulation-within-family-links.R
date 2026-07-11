@@ -31,27 +31,15 @@ settings <- list(
   reference_beta_group_condition = 0,
   logit_probit_scale = 1.65,
   candidate_links = c("logit", "probit"),
-  B = as.integer(Sys.getenv("N_SIM", as.character(default_B))),
+  B = default_B,
   n_cores = as.integer(Sys.getenv("N_CORES", "7")),
   alpha = default_alpha,
   scenario_table_path = "tables/scenario-table-within-family-links.csv",
   simulation_summary_path = "tables/simulation-summary-within-family-links.csv",
-  figure_base = "figs/fig4-within-family-links",
-  inspection_pseudo_base = "outputs/inspection/figS-within-family-link-pseudo-interaction",
+  figure_base = "figs/within-family-links",
+  inspection_pseudo_base = "outputs/inspection/within-family-link-pseudo-interaction",
   rds_path = "outputs/simulation-within-family-links.rds"
 )
-
-validate_settings <- function(s) {
-  if (s$n_subjects <= 0 || s$n_subjects %% 2 != 0) stop("n_subjects must be a positive even number.", call. = FALSE)
-  if (s$k_trials <= 0) stop("k_trials must be positive.", call. = FALSE)
-  if (s$target_icc <= 0 || s$target_icc >= 1) stop("target_icc must be in (0, 1).", call. = FALSE)
-  if (!all(s$candidate_links %in% c("logit", "probit"))) stop("candidate_links can only include logit and probit.", call. = FALSE)
-  if (is.na(s$B) || s$B <= 0) stop("B must be positive.", call. = FALSE)
-  if (is.na(s$n_cores) || s$n_cores <= 0) stop("n_cores must be positive.", call. = FALSE)
-  if (!is.finite(s$logit_probit_scale) || s$logit_probit_scale <= 0) stop("logit_probit_scale must be positive.", call. = FALSE)
-  invisible(s)
-}
-validate_settings(settings)
 
 report_section("Simulation settings")
 print_compact(list_to_table(settings))

@@ -32,23 +32,12 @@ summarise_detection <- function(p_values, alpha = 0.05, conf = 0.95) {
   )
 }
 
-# Backward-compatible alias used in older scripts.
-summarise_false_positive <- function(p_values, alpha = 0.05, conf = 0.95) {
-  out <- summarise_detection(p_values, alpha = alpha, conf = conf)
-  names(out)[names(out) == "rate"] <- "false_positive_rate"
-  out
-}
-
 safe_median <- function(x) {
   if (all(!is.finite(x))) return(NA_real_)
   stats::median(x, na.rm = TRUE)
 }
 
 summarise_model_simulation <- function(dat, alpha = 0.05, conf = 0.95) {
-  if (!"p_value" %in% names(dat)) {
-    stop("dat must contain a p_value column.", call. = FALSE)
-  }
-
   det <- summarise_detection(dat$p_value, alpha = alpha, conf = conf)
 
   data.frame(
@@ -57,9 +46,9 @@ summarise_model_simulation <- function(dat, alpha = 0.05, conf = 0.95) {
     false_positive_rate = det$rate,
     ci_low = det$ci_low,
     ci_high = det$ci_high,
-    median_interaction_coef = if ("interaction_coef" %in% names(dat)) safe_median(dat$interaction_coef) else NA_real_,
-    median_change_in_group_difference_response_scale = if ("change_in_group_difference_response_scale" %in% names(dat)) safe_median(dat$change_in_group_difference_response_scale) else NA_real_,
-    median_change_in_group_difference_outcome_units = if ("change_in_group_difference_outcome_units" %in% names(dat)) safe_median(dat$change_in_group_difference_outcome_units) else NA_real_,
+    median_interaction_coef = safe_median(dat$interaction_coef),
+    median_change_in_group_difference_response_scale = safe_median(dat$change_in_group_difference_response_scale),
+    median_change_in_group_difference_outcome_units = safe_median(dat$change_in_group_difference_outcome_units),
     stringsAsFactors = FALSE
   )
 }

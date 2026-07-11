@@ -80,10 +80,7 @@ wilson_ci_percent <- function(x, n, conf.level = 0.95, digits = 1) {
 }
 
 safe_md5 <- function(path) {
-  if ("md5sum" %in% getNamespaceExports("tools")) {
-    return(unname(tools::md5sum(path)[[1]]))
-  }
-  NA_character_
+  unname(tools::md5sum(path)[[1]])
 }
 
 cohen_kappa01 <- function(x, y) {
@@ -176,11 +173,11 @@ settings <- list(
   screening_file = "Literature_review/0_screeningDataset.xlsx",
   eligibility_file = "Literature_review/1_screeningEligibilityDataset_2coders.xlsx",
   output_files = c(
-    "tables/table1-review-summary.csv",
-    "tables/table2-review-outcome-types.csv",
-    "tables/tableS1-review-by-journal.csv",
-    "tables/tableS2-review-intercoder-agreement.csv",
-    "tables/tableS3-review-screening-flow.csv",
+    "tables/review-summary.csv",
+    "tables/review-outcome-types.csv",
+    "tables/review-by-journal.csv",
+    "tables/review-intercoder-agreement.csv",
+    "tables/review-screening-flow.csv",
     "outputs/review-summary.rds"
   ),
   sem_keywords = c(
@@ -265,7 +262,7 @@ n_significant_incorrect_identity <- sum(
   na.rm = TRUE
 )
 
-table1 <- rbind(
+review_summary_table <- rbind(
   flag_row("eligible_empirical", "Eligible empirical articles", n_eligible, n_eligible),
   flag_row("testing_interactions", "Eligible empirical articles testing at least one interaction", n_interactions, n_eligible),
   flag_row("non_identity_link", "Interaction-testing articles using at least one non-identity link", n_non_identity, n_interactions),
@@ -439,11 +436,11 @@ screening_flow_table <- data.frame(
   stringsAsFactors = FALSE
 )
 
-write.csv(table1, "tables/table1-review-summary.csv", row.names = FALSE)
-write.csv(outcome_table, "tables/table2-review-outcome-types.csv", row.names = FALSE)
-write.csv(by_journal_table, "tables/tableS1-review-by-journal.csv", row.names = FALSE)
-write.csv(intercoder_agreement_table, "tables/tableS2-review-intercoder-agreement.csv", row.names = FALSE)
-write.csv(screening_flow_table, "tables/tableS3-review-screening-flow.csv", row.names = FALSE)
+write.csv(review_summary_table, "tables/review-summary.csv", row.names = FALSE)
+write.csv(outcome_table, "tables/review-outcome-types.csv", row.names = FALSE)
+write.csv(by_journal_table, "tables/review-by-journal.csv", row.names = FALSE)
+write.csv(intercoder_agreement_table, "tables/review-intercoder-agreement.csv", row.names = FALSE)
+write.csv(screening_flow_table, "tables/review-screening-flow.csv", row.names = FALSE)
 
 summary_rds <- list(
   settings = settings,
@@ -452,7 +449,7 @@ summary_rds <- list(
   n_rows_raw = count_nonempty_rows(screening_data),
   n_rows_eligible = n_eligible,
   n_rows_interaction_testing = n_interactions,
-  table1 = table1,
+  review_summary_table = review_summary_table,
   outcome_table = outcome_table,
   by_journal_table = by_journal_table,
   intercoder_agreement_table = intercoder_agreement_table,

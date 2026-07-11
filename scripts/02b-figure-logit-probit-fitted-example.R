@@ -1,15 +1,15 @@
-# scripts/02b-figure4-logit-probit-fitted-example.R
-# Figure 4: fitted logit vs probit curves on one simulated binomial dataset.
+# scripts/02b-figure-logit-probit-fitted-example.R
+# Fitted logit vs probit curves on one simulated binomial dataset.
 #
 # Purpose:
 #   Show that logit and probit fits can look almost interchangeable while still
 #   implying a structured pointwise discrepancy in fitted probabilities.
 #
 # Output:
-#   figs/fig4-logit-probit-fitted-example.pdf
-#   figs/fig4-logit-probit-fitted-example.png
-#   tables/model-results-fig4-logit-probit-fitted-example.csv
-#   outputs/fig4-logit-probit-fitted-example.rds
+#   figs/logit-probit-fitted-example.pdf
+#   figs/logit-probit-fitted-example.png
+#   tables/model-results-logit-probit-fitted-example.csv
+#   outputs/logit-probit-fitted-example.rds
 
 rm(list = ls())
 
@@ -17,29 +17,12 @@ rm(list = ls())
 # 0. Project setup
 # ---------------------------------------------------------------------
 
-if (!file.exists("R/project-settings.R") && file.exists("../R/project-settings.R")) {
-  setwd("..")
-}
-
-required_packages <- c("ggplot2", "patchwork")
-missing_packages <- required_packages[
-  !vapply(required_packages, requireNamespace, logical(1), quietly = TRUE)
-]
-
-if (length(missing_packages) > 0) {
-  stop(
-    "Please install these packages before running the script: ",
-    paste(missing_packages, collapse = ", "),
-    call. = FALSE
-  )
-}
-
 source("R/project-settings.R")
 source("R/utils-reporting.R")
 source("R/utils-plots.R")
 
 ensure_output_dirs()
-report_header("Figure 4: fitted logit vs probit example")
+report_header("Fitted logit vs probit example")
 
 # ---------------------------------------------------------------------
 # 1. User-tunable settings
@@ -51,30 +34,26 @@ settings <- list(
   # Data-generating scenario.
   N = 1000,
   k_trials = 60,
-  x_distribution = "uniform",  # "uniform" or "normal"
   x_range = c(-2.5, 2.5),
-  x_sd = 1.00,                 # used only if x_distribution = "normal"
   beta_intercept = 0.05,
   beta_x = 1.75,
-  generating_link = "logit",   # "logit" or "probit"
-  
+
   # Prediction grid.
   prediction_n = 500,
-  
+
   # Plot tuning.
   point_alpha = 0.35,
   point_size = 1.20,
   line_width = 1.05,
   discrepancy_width = 0.90,
   diff_min_limit = 0.010,
-  show_plot = TRUE,
-  
+
   # Output.
   figure_width = 7.2,
   figure_height = 5.8,
-  figure_base = "figs/fig4-logit-probit-fitted-example",
-  table_path = "tables/model-results-fig4-logit-probit-fitted-example.csv",
-  rds_path = "outputs/fig4-logit-probit-fitted-example.rds"
+  figure_base = "figs/logit-probit-fitted-example",
+  table_path = "tables/model-results-logit-probit-fitted-example.csv",
+  rds_path = "outputs/logit-probit-fitted-example.rds"
 )
 
 set.seed(settings$seed)
@@ -83,25 +62,9 @@ set.seed(settings$seed)
 # 2. Simulate one dataset
 # ---------------------------------------------------------------------
 
-if (settings$x_distribution == "uniform") {
-  x <- stats::runif(settings$N, settings$x_range[1], settings$x_range[2])
-} else if (settings$x_distribution == "normal") {
-  x <- stats::rnorm(settings$N, mean = 0, sd = settings$x_sd)
-  x <- pmax(pmin(x, settings$x_range[2]), settings$x_range[1])
-} else {
-  stop("settings$x_distribution must be 'uniform' or 'normal'.", call. = FALSE)
-}
-
+x <- stats::runif(settings$N, settings$x_range[1], settings$x_range[2])
 eta <- settings$beta_intercept + settings$beta_x * x
-
-if (settings$generating_link == "logit") {
-  p_true <- stats::plogis(eta)
-} else if (settings$generating_link == "probit") {
-  p_true <- stats::pnorm(eta)
-} else {
-  stop("settings$generating_link must be 'logit' or 'probit'.", call. = FALSE)
-}
-
+p_true <- stats::plogis(eta)
 correct <- stats::rbinom(settings$N, size = settings$k_trials, prob = p_true)
 
 d <- data.frame(
@@ -246,12 +209,8 @@ p <- patchwork::wrap_plots(
 )
 
 # ---------------------------------------------------------------------
-# 6. Show, save, and export
+# 6. Save and export
 # ---------------------------------------------------------------------
-
-if (isTRUE(settings$show_plot)) {
-  print(p)
-}
 
 dir.create(dirname(settings$figure_base), recursive = TRUE, showWarnings = FALSE)
 dir.create(dirname(settings$table_path), recursive = TRUE, showWarnings = FALSE)
@@ -295,6 +254,3 @@ cat("- ", paste0(settings$figure_base, ".png"), "\n", sep = "")
 
 cat("\nModel comparison:\n")
 print(model_results)
-
-cat("\nCheck that the script contains no save_plot_multi call:\n")
-cat("grep('save_plot_multi', readLines('scripts/02b-figure4-logit-probit-fitted-example.R'), value = TRUE)\n")

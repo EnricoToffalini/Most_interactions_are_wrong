@@ -1,5 +1,5 @@
-# scripts/02a-figure1-motivating-example.R
-# Figure 1: motivating example.
+# scripts/02a-figure-motivating-example.R
+# Motivating example figure.
 # A minimal 2 x 2 (condition x group) design with the SAME cell probabilities
 # in every panel. Because the panels only differ in the scale on which the
 # product term is evaluated, the implied interaction coefficient changes -
@@ -7,10 +7,6 @@
 # (linear) scale, and exactly zero on the chance-corrected logit scale, the
 # scale on which the data were generated. Same data, different no-interaction
 # baseline, different moderation conclusion.
-
-if (!requireNamespace("ggplot2", quietly = TRUE)) {
-  stop("Please install ggplot2.", call. = FALSE)
-}
 
 library(ggplot2)
 
@@ -187,11 +183,11 @@ p <- ggplot(
 
 save_plot_grid(
   list(p),
-  filename_base = "figs/fig1-motivating-example",
+  filename_base = "figs/motivating-example",
   width = figure_width,
   height = 3.9,
   ncol = 1,
   dpi = default_dpi
 )
 
-cat("\nSaved figs/fig1-motivating-example.pdf/png\n")
+cat("\nSaved figs/motivating-example.pdf/png\n")

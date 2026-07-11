@@ -12,14 +12,6 @@
 default_B <- as.integer(Sys.getenv("N_SIM", "300"))
 default_alpha <- as.numeric(Sys.getenv("ALPHA", "0.05"))
 
-if (!is.finite(default_B) || default_B < 1) {
-  stop("N_SIM must be a positive integer.", call. = FALSE)
-}
-
-if (!is.finite(default_alpha) || default_alpha <= 0 || default_alpha >= 1) {
-  stop("ALPHA must be a number between 0 and 1.", call. = FALSE)
-}
-
 # Shared output defaults.
 default_dpi <- 300
 figure_width <- 7.2

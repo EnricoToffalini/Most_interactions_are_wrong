@@ -37,18 +37,18 @@ find_repo_file <- function(rel) {
 MISSING_FILE_MSG <- "This file will appear after running the corresponding paper script."
 
 PAPER_FIGS <- c(
-  "figs/fig1-motivating-example.png",
-  "figs/fig2-forced-choice-simulation.png",
-  "figs/fig3-sum-score-simulation.png",
-  "figs/fig4-logit-probit-fitted-example.png",
-  "figs/fig4-within-family-links.png"
+  "figs/motivating-example.png",
+  "figs/forced-choice-simulation.png",
+  "figs/sum-score-simulation.png",
+  "figs/logit-probit-fitted-example.png",
+  "figs/within-family-links.png"
 )
 
 PAPER_TABLES <- c(
   "tables/simulation-summary-forced-choice.csv",
   "tables/simulation-summary-sum-scores.csv",
   "tables/simulation-summary-within-family-links.csv",
-  "tables/table7-diagnostic-scenarios.csv"
+  "tables/diagnostic-scenarios.csv"
 )
 
 app_theme <- theme_minimal(base_size = 16) +
