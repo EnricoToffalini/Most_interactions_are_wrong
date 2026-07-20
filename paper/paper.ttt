@@ -1,0 +1,432 @@
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Descriptive summary of the preregistered review. Formally
+incorrect identity-link analyses of constrained observed outcomes are
+cases where the reported outcome had formal constraints that make
+identity-link additivity formally incorrect as a generative model unless
+explicitly justified as an approximation or as the target observed-score
+metric.}{\label{tbl-current-practice}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.7622}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.0280}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.0490}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.0490}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1119}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Quantity
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+n
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Denom.
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+\%
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+95\% CI
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Eligible empirical articles & 331 & 331 & 100.0\% & {[}98.9\%,
+100.0\%{]} \\
+Eligible empirical articles testing at least one interaction & 200 & 331
+& 60.4\% & {[}55.1\%, 65.5\%{]} \\
+Interaction-testing articles using at least one non-identity link & 58 &
+200 & 29.0\% & {[}23.2\%, 35.6\%{]} \\
+Interaction-testing articles explicitly reporting the link function & 46
+& 200 & 23.0\% & {[}17.7\%, 29.3\%{]} \\
+Interaction-testing articles with formally incorrect identity-link
+analyses of constrained observed outcomes & 144 & 200 & 72.0\% &
+{[}65.4\%, 77.8\%{]} \\
+Formally incorrect identity-link cases with at least one significant
+interaction & 124 & 144 & 86.1\% & {[}79.5\%, 90.8\%{]} \\
+Eligible empirical articles not testing interactions & 131 & 331 &
+39.6\% & {[}34.5\%, 44.9\%{]} \\
+\end{longtable}
+
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Broad response-variable categories in interaction-testing
+articles. Categories are non-exclusive, so one article can contribute to
+more than one row.}{\label{tbl-review-outcome-types}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}lrrr@{}}
+\toprule\noalign{}
+Outcome type & n & Denominator & Percent \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Binary / accuracy / proportions & 84 & 200 & 42.0\% \\
+Sum scores / composites & 66 & 200 & 33.0\% \\
+Ordinal / Likert / ratings & 36 & 200 & 18.0\% \\
+Response times / durations & 30 & 200 & 15.0\% \\
+Counts / error counts & 9 & 200 & 4.5\% \\
+Neural / physiological measures & 23 & 200 & 11.5\% \\
+Correlations / associations & 8 & 200 & 4.0\% \\
+Difference / distance scores & 17 & 200 & 8.5\% \\
+\end{longtable}
+
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Three analytic choices that determine the scale of an
+interaction claim. The choices are conceptually distinct, but they can
+overlap in applied analyses.}{\label{tbl-family-link-metric}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Analytic choice
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Key question
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Psychological example
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Risk for interaction claims
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Outcome family & Does the model respect the support and sampling process
+of the observed outcome? & Counts, proportions, or trial accuracies
+modeled as unbounded Gaussian observations. & Constraints, discreteness,
+or the mean-variance relation may be absorbed by a product term. \\
+Link / additivity scale & Given a plausible family, on which scale
+should effects add if there is no interaction? & Forced-choice accuracy
+modeled with a standard binomial logit, although the task has a known
+chance floor such as .50. & The model may test additivity on the wrong
+scale, so a pseudo-interaction can arise even when the target link-scale
+model has only main effects. \\
+Target metric / measurement mapping & Is the observed score the scale on
+which the theoretical interaction claim is meant to hold? & A Likert
+item or sum score treated as if raw-score units directly represented
+units of the target construct. & A product term may reflect thresholds,
+bounds, or scale compression rather than moderation of the underlying
+construct. \\
+\end{longtable}
+
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Simulation 1: false-positive interaction rates and median
+model-implied observed-scale changes in the group gap for forced-choice
+accuracy data. CI = Wilson 95\% confidence
+interval.}{\label{tbl-forced-choice-simulation}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1681}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2832}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.0442}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.0354}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1770}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1327}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1593}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Scenario
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Model
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Fits
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Sig
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+False-positive rate
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+95\% CI
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Median gap change
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Lower performance & Gaussian identity & 300 & 137 & 0.457 & {[}0.401,
+0.513{]} & -1.779 \\
+Lower performance & Standard binomial logit & 300 & 191 & 0.637 &
+{[}0.581, 0.689{]} & -1.769 \\
+Lower performance & Standard binomial probit & 300 & 183 & 0.610 &
+{[}0.554, 0.663{]} & -1.781 \\
+Lower performance & Chance-corrected binomial logit & 179 & 13 & 0.073 &
+{[}0.043, 0.120{]} & -1.233 \\
+Middle performance & Gaussian identity & 300 & 40 & 0.133 & {[}0.099,
+0.176{]} & -0.865 \\
+Middle performance & Standard binomial logit & 300 & 169 & 0.563 &
+{[}0.507, 0.618{]} & -0.862 \\
+Middle performance & Standard binomial probit & 300 & 148 & 0.493 &
+{[}0.437, 0.550{]} & -0.866 \\
+Middle performance & Chance-corrected binomial logit & 300 & 18 & 0.060
+& {[}0.038, 0.093{]} & -0.707 \\
+Higher performance & Gaussian identity & 300 & 36 & 0.120 & {[}0.088,
+0.162{]} & 0.654 \\
+Higher performance & Standard binomial logit & 300 & 103 & 0.343 &
+{[}0.292, 0.399{]} & 0.555 \\
+Higher performance & Standard binomial probit & 300 & 59 & 0.197 &
+{[}0.156, 0.245{]} & 0.617 \\
+Higher performance & Chance-corrected binomial logit & 300 & 14 & 0.047
+& {[}0.028, 0.077{]} & 0.526 \\
+\end{longtable}
+
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Simulation 2: false-positive interaction rates and median
+model-implied observed-scale changes in the group gap for sum-score
+data. Data were generated with no x-by-group product term on the latent
+scale. The latent generating scale is an idealized benchmark available
+only because theta is known in the simulation. CI = Wilson 95\%
+confidence interval.}{\label{tbl-sum-score-simulation}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1322}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.2479}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1074}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.0413}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.0331}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1653}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1240}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1488}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Scenario
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Model
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Scale
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Fits
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Sig
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+False-positive rate
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+95\% CI
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Median gap change
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Middle of scale & Gaussian-probit bounded score & sum score & 300 & 14 &
+0.047 & {[}0.028, 0.077{]} & -0.568 \\
+Middle of scale & Latent generating scale & latent theta & 300 & 16 &
+0.053 & {[}0.033, 0.085{]} & 0.018 \\
+Middle of scale & Observed sum-score identity & sum score & 300 & 29 &
+0.097 & {[}0.068, 0.135{]} & -0.547 \\
+Near ceiling & Gaussian-probit bounded score & sum score & 300 & 15 &
+0.050 & {[}0.031, 0.081{]} & 1.413 \\
+Near ceiling & Latent generating scale & latent theta & 300 & 16 & 0.053
+& {[}0.033, 0.085{]} & 0.003 \\
+Near ceiling & Observed sum-score identity & sum score & 300 & 112 &
+0.373 & {[}0.321, 0.429{]} & 1.328 \\
+Near floor & Gaussian-probit bounded score & sum score & 300 & 26 &
+0.087 & {[}0.060, 0.124{]} & -1.847 \\
+Near floor & Latent generating scale & latent theta & 300 & 18 & 0.060 &
+{[}0.038, 0.093{]} & 0.011 \\
+Near floor & Observed sum-score identity & sum score & 300 & 216 & 0.720
+& {[}0.667, 0.768{]} & -1.762 \\
+\end{longtable}
+
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Simulation 3: false-positive interaction rates for the
+condition-by-group product term in repeated-trial random-intercept
+GLMMs. CI = Wilson 95\% confidence
+interval.}{\label{tbl-within-family-simulation}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.1345}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.1008}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.1092}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.0420}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.0336}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.1681}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.1261}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.2017}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.0840}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Generating link
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Fitted link
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Link status
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Fits
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Sig
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+False-positive rate
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+95\% CI
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Median beta interaction
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Median SE
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+logit & logit & Matched link & 300 & 16 & 0.053 & {[}0.033, 0.085{]} &
+-0.001 & 0.075 \\
+logit & probit & Wrong link & 300 & 45 & 0.150 & {[}0.114, 0.195{]} &
+-0.041 & 0.042 \\
+probit & logit & Wrong link & 300 & 41 & 0.137 & {[}0.102, 0.180{]} &
+0.071 & 0.076 \\
+probit & probit & Matched link & 300 & 15 & 0.050 & {[}0.031, 0.081{]} &
+-0.003 & 0.043 \\
+\end{longtable}
+
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Diagnostic simulation across five link-misspecification
+scenarios. FP interaction reports how often the misspecified interaction
+model detected a product term absent on the generating link scale.
+DHARMa gives the range across prespecified residual checks, not an
+omnibus diagnostic. Pregibon reports the added-term link check. AIC
+favors target reports the proportion of replications in which the lower
+AIC favored the target interaction model over the misspecified
+interaction model, with the structural formula held fixed. The
+complementary proportion favors the misspecified model when both AIC
+values are available. CI = Wilson 95\% confidence
+interval.}{\label{tbl-diagnostic-scenarios}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1892}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2162}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1622}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1419}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1081}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.0608}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1216}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Case
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Target model
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Misspecified model
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+FP interaction
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+DHARMa
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Pregibon
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+AIC favors target
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Count errors & Poisson log & Poisson identity & 0.942 {[}0.908, 0.964{]}
+& 0.007-0.906 (4) & 0.996 & 0.996 \\
+Chance-floor accuracy & chance-corrected binomial logit & standard
+binomial logit & 0.617 {[}0.561, 0.670{]} & 0.000-0.070 (4) & 0.303 &
+0.000 \\
+Binary repeated trials & binomial probit GLMM & binomial logit GLMM &
+0.080 {[}0.054, 0.116{]} & 0.000-0.020 (4) & 1.000 & 0.923 \\
+Binary continuous predictor & binomial probit GLMM & binomial logit GLMM
+& 0.060 {[}0.038, 0.093{]} & 0.000-0.007 (4) & 1.000 & 0.960 \\
+Gamma mean response time & Gamma log & Gamma inverse & 0.287 {[}0.238,
+0.340{]} & 0.000-0.043 (4) & 0.303 & 0.777 \\
+\end{longtable}
+
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Practical starting points for link-aware interaction testing
+across common psychological outcomes.}{\label{tbl-link-aware-workflow}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.1333}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.4386}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.4281}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Outcome type
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Plausible starting point
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Minimal sensitivity check
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Forced-choice accuracy & Binomial logit/probit; chance-corrected link
+when the task floor is part of the estimand. & Compare standard
+logit/probit and chance-corrected links; report convergence and
+response-scale contrasts. \\
+Binary/proportion outcome & Binomial logit/probit; consider cloglog for
+asymmetric processes. & Compare logit/probit; inspect calibration and
+contrasts near bounds or rare-event regions. \\
+Likert/ordinal item & Ordinal logit/probit; metric model only with a
+clear observed-scale target. & Compare ordinal and metric summaries;
+report category probabilities or response-scale contrasts. \\
+Sum score/composite & Gaussian identity when many levels stay far from
+bounds; otherwise consider item-level, ordinal, or bounded-score models.
+& Inspect bounds, skew, and score concentration; compare with item-level
+or bounded-score sensitivity models when feasible. \\
+Counts/error counts & Poisson or negative binomial, usually with log
+link; identity only with an observed-count target. & Check
+overdispersion and zero inflation; compare count contrasts across
+plausible count models. \\
+Response time/skewed positive outcome & Lognormal, Gamma log/inverse, or
+transformed Gaussian, matched to absolute, proportional, reciprocal, or
+transformed change. & Compare raw-, log-, and response-scale summaries;
+inspect tail fit and predicted values. \\
+\end{longtable}
+
+\end{table*}

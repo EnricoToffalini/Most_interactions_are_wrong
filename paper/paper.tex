@@ -1,0 +1,2860 @@
+\documentclass[
+  man,
+  longtable,
+  nolmodern,
+  notxfonts,
+  notimes,
+  colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{apa7}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+
+
+
+\RequirePackage{longtable}
+\RequirePackage{threeparttablex}
+
+\makeatletter
+\renewcommand{\paragraph}{\@startsection{paragraph}{4}{\parindent}%
+	{0\baselineskip \@plus 0.2ex \@minus 0.2ex}%
+	{-.5em}%
+	{\normalfont\normalsize\bfseries\typesectitle}}
+
+\renewcommand{\subparagraph}[1]{\@startsection{subparagraph}{5}{0.5em}%
+	{0\baselineskip \@plus 0.2ex \@minus 0.2ex}%
+	{-\z@\relax}%
+	{\normalfont\normalsize\bfseries\itshape\hspace{\parindent}{#1}\textit{\addperi}}{\relax}}
+\makeatother
+
+
+
+
+\usepackage{longtable, booktabs, multirow, multicol, colortbl, hhline, caption, array, float, xpatch}
+\usepackage{subcaption}
+
+
+\renewcommand\thesubfigure{\Alph{subfigure}}
+\setcounter{topnumber}{2}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{4}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.85}
+\renewcommand{\textfraction}{0.15}
+\renewcommand{\floatpagefraction}{0.7}
+
+\usepackage{tcolorbox}
+\tcbuselibrary{listings,theorems, breakable, skins}
+\usepackage{fontawesome5}
+
+\definecolor{quarto-callout-color}{HTML}{909090}
+\definecolor{quarto-callout-note-color}{HTML}{0758E5}
+\definecolor{quarto-callout-important-color}{HTML}{CC1914}
+\definecolor{quarto-callout-warning-color}{HTML}{EB9113}
+\definecolor{quarto-callout-tip-color}{HTML}{00A047}
+\definecolor{quarto-callout-caution-color}{HTML}{FC5300}
+\definecolor{quarto-callout-color-frame}{HTML}{ACACAC}
+\definecolor{quarto-callout-note-color-frame}{HTML}{4582EC}
+\definecolor{quarto-callout-important-color-frame}{HTML}{D9534F}
+\definecolor{quarto-callout-warning-color-frame}{HTML}{F0AD4E}
+\definecolor{quarto-callout-tip-color-frame}{HTML}{02B875}
+\definecolor{quarto-callout-caution-color-frame}{HTML}{FD7E14}
+
+%\newlength\Oldarrayrulewidth
+%\newlength\Oldtabcolsep
+
+
+\usepackage{hyperref}
+
+
+
+
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+
+
+% definitions for citeproc citations
+\NewDocumentCommand\citeproctext{}{}
+\NewDocumentCommand\citeproc{mm}{%
+  \begingroup\def\citeproctext{#2}\cite{#1}\endgroup}
+\makeatletter
+ % allow citations to break across lines
+ \let\@cite@ofmt\@firstofone
+ % avoid brackets around text for \cite:
+ \def\@biblabel#1{}
+ \def\@cite#1#2{{#1\if@tempswa , #2\fi}}
+\makeatother
+\newlength{\cslhangindent}
+\setlength{\cslhangindent}{1.5em}
+\newlength{\csllabelwidth}
+\setlength{\csllabelwidth}{3em}
+\newenvironment{CSLReferences}[2] % #1 hanging-indent, #2 entry-spacing
+ {\begin{list}{}{%
+  \setlength{\itemindent}{0pt}
+  \setlength{\leftmargin}{0pt}
+  \setlength{\parsep}{0pt}
+  % turn on hanging indent if param 1 is 1
+  \ifodd #1
+   \setlength{\leftmargin}{\cslhangindent}
+   \setlength{\itemindent}{-1\cslhangindent}
+  \fi
+  % set entry spacing
+  \setlength{\itemsep}{#2\baselineskip}}}
+ {\end{list}}
+\usepackage{calc}
+\newcommand{\CSLBlock}[1]{\hfill\break\parbox[t]{\linewidth}{\strut\ignorespaces#1\strut}}
+\newcommand{\CSLLeftMargin}[1]{\parbox[t]{\csllabelwidth}{\strut#1\strut}}
+\newcommand{\CSLRightInline}[1]{\parbox[t]{\linewidth - \csllabelwidth}{\strut#1\strut}}
+\newcommand{\CSLIndent}[1]{\hspace{\cslhangindent}#1}
+
+
+
+
+
+\usepackage{newtx}
+
+\defaultfontfeatures{Scale=MatchLowercase}
+\defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+
+
+
+
+
+\title{The Link Function Problem in Psychological Interaction Testing}
+
+
+\shorttitle{Link Functions and Interactions}
+
+
+\usepackage{etoolbox}
+
+
+
+
+
+
+
+
+
+\authorsnames[{1},{1},{1},{1},{2}]{Enrico Toffalini,Margherita
+Calderan,Laura Sità,Tommaso Feraco,Filippo Gambarota}
+
+
+
+
+
+
+
+\authorsaffiliations{
+{Department of General Psychology, University of Padova},{Department of
+Developmental Psychology and Socialization, University of Padova}}
+
+
+
+
+\leftheader{Toffalini, Calderan, Sità, Feraco and Gambarota}
+
+
+
+\abstract{Interaction tests are common in psychology, but an interaction
+claim is not defined by a product term alone. It also depends on the
+scale on which additivity is assumed. We reframe this scale problem in
+the GLM language of outcome family and link function: the family
+describes the response, whereas the link defines the scale on which no
+product-term interaction is assumed. We first report a preregistered
+descriptive review of recent articles from five leading psychology
+journals, showing that interaction tests are common and that family,
+link, and scale-of-additivity choices are often left implicit even when
+outcomes have formal constraints. We develop a link-centered framework,
+grounded in prior work on scale dependence, outcome-model mismatch, and
+GLM interaction interpretation, that separates family, link, and
+target-metric choices. The main focus is the case in which the response
+family is broadly plausible but the chosen link still defines the wrong
+no-interaction baseline. Worked examples and simulations focus on common
+psychological response formats: forced-choice accuracy with a non-zero
+chance floor, within-family link choices such as logit versus probit,
+and sum scores as a related measurement case. The simulations show that
+plausible but inadequate links can turn additive main-effect structures
+on one scale into statistically significant pseudo-interactions on
+another. A diagnostic simulation shows that residual checks, link
+checks, and AIC comparisons may help, but they do not by themselves
+decide which scale is right for the scientific interaction claim. We
+argue that interaction claims are often underspecified unless
+researchers state, justify, and probe the scale on which no interaction
+is assumed. }
+
+\keywords{interactions, moderation, generalized linear models, link
+functions, model misspecification}
+
+\authornote{\par{\addORCIDlink{Enrico
+Toffalini}{0000-0002-1404-5133}}\par{\addORCIDlink{Margherita
+Calderan}{0009-0005-5668-5162}}\par{\addORCIDlink{Laura
+Sità}{0009-0000-6017-9979}}\par{\addORCIDlink{Tommaso
+Feraco}{0000-0002-8920-5330}}\par{\addORCIDlink{Filippo
+Gambarota}{0000-0002-6666-1747}} 
+\par{ }
+\par{       }
+\par{Correspondence concerning this article should be addressed
+to Enrico Toffalini, Department of General Psychology, University of
+Padova, Via Venezia
+8, Padova 35131, Italy, Email: \href{mailto:enrico.toffalini@unipd.it}{enrico.toffalini@unipd.it}}
+}
+
+\makeatletter
+\let\endoldlt\endlongtable
+\def\endlongtable{
+\hline
+\endoldlt
+}
+\makeatother
+\RequirePackage{longtable}
+\DeclareDelayedFloatFlavor{longtable}{table}
+
+\urlstyle{same}
+
+
+
+\makeatletter
+\@ifpackageloaded{tcolorbox}{}{\usepackage[skins,breakable]{tcolorbox}}
+\@ifpackageloaded{fontawesome5}{}{\usepackage{fontawesome5}}
+\definecolor{quarto-callout-color}{HTML}{909090}
+\definecolor{quarto-callout-note-color}{HTML}{0758E5}
+\definecolor{quarto-callout-important-color}{HTML}{CC1914}
+\definecolor{quarto-callout-warning-color}{HTML}{EB9113}
+\definecolor{quarto-callout-tip-color}{HTML}{00A047}
+\definecolor{quarto-callout-caution-color}{HTML}{FC5300}
+\definecolor{quarto-callout-color-frame}{HTML}{acacac}
+\definecolor{quarto-callout-note-color-frame}{HTML}{4582ec}
+\definecolor{quarto-callout-important-color-frame}{HTML}{d9534f}
+\definecolor{quarto-callout-warning-color-frame}{HTML}{f0ad4e}
+\definecolor{quarto-callout-tip-color-frame}{HTML}{02b875}
+\definecolor{quarto-callout-caution-color-frame}{HTML}{fd7e14}
+\makeatother
+\makeatletter
+\@ifpackageloaded{caption}{}{\usepackage{caption}}
+\AtBeginDocument{%
+\ifdefined\contentsname
+  \renewcommand*\contentsname{Table of contents}
+\else
+  \newcommand\contentsname{Table of contents}
+\fi
+\ifdefined\listfigurename
+  \renewcommand*\listfigurename{List of Figures}
+\else
+  \newcommand\listfigurename{List of Figures}
+\fi
+\ifdefined\listtablename
+  \renewcommand*\listtablename{List of Tables}
+\else
+  \newcommand\listtablename{List of Tables}
+\fi
+\ifdefined\figurename
+  \renewcommand*\figurename{Figure}
+\else
+  \newcommand\figurename{Figure}
+\fi
+\ifdefined\tablename
+  \renewcommand*\tablename{Table}
+\else
+  \newcommand\tablename{Table}
+\fi
+}
+\@ifpackageloaded{float}{}{\usepackage{float}}
+\floatstyle{ruled}
+\@ifundefined{c@chapter}{\newfloat{codelisting}{h}{lop}}{\newfloat{codelisting}{h}{lop}[chapter]}
+\floatname{codelisting}{Listing}
+\newcommand*\listoflistings{\listof{codelisting}{List of Listings}}
+\makeatother
+\makeatletter
+\makeatother
+\makeatletter
+\@ifpackageloaded{caption}{}{\usepackage{caption}}
+\@ifpackageloaded{subcaption}{}{\usepackage{subcaption}}
+\makeatother
+
+% From https://tex.stackexchange.com/a/645996/211326
+%%% apa7 doesn't want to add appendix section titles in the toc
+%%% let's make it do it
+\makeatletter
+\xpatchcmd{\appendix}
+  {\par}
+  {\addcontentsline{toc}{section}{\@currentlabelname}\par}
+  {}{}
+\makeatother
+
+%% Disable longtable counter
+%% https://tex.stackexchange.com/a/248395/211326
+
+\usepackage{etoolbox}
+
+\makeatletter
+\patchcmd{\LT@caption}
+  {\bgroup}
+  {\bgroup\global\LTpatch@captiontrue}
+  {}{}
+\patchcmd{\longtable}
+  {\par}
+  {\par\global\LTpatch@captionfalse}
+  {}{}
+\apptocmd{\endlongtable}
+  {\ifLTpatch@caption\else\addtocounter{table}{-1}\fi}
+  {}{}
+\newif\ifLTpatch@caption
+\makeatother
+
+\begin{document}
+
+\maketitle
+
+
+
+
+\setlength\LTleft{0pt}
+
+
+
+
+Psychological theories often test whether the effect of one variable
+depends on another. Stress may impair performance more strongly among
+people with high anxiety. A treatment may help some participants more
+than others. A developmental difference may be large at one age and
+small at another. These are interaction claims: claims about moderation,
+boundary conditions, and heterogeneous effects.In practice, testing such
+claims has become almost automatic once main effects are in hand. This
+is understandable, because interactions often express important
+theoretical ideas. Yet an interaction claim should not be interpreted
+automatically from the presence or absence of a product term
+(\citeproc{ref-rimpler2026}{Rimpler et al., 2026};
+\citeproc{ref-rohrer2021}{Rohrer \& Arslan, 2021}).
+
+Statistically, many interaction claims can be understood as claims about
+a difference between differences. Does the treatment-control difference
+change across groups? Does the age-related difference differ between
+populations? Does the effect of task difficulty vary as anxiety
+increases? While this formulation sounds intuitive, it hides a crucial
+assumption. An interaction is a difference between differences, but
+whether two differences are equal depends on the scale on which those
+differences are expressed.
+
+The scale problem has been recognized for a long time. Loftus argued
+that interactions involving response probabilities are meaningful only
+relative to an assumed mapping between the observed response and the
+theoretical component of interest (\citeproc{ref-loftus1978}{Loftus,
+1978}). Cox treated interaction as a statistical concept tied to model
+formulation, transformation, and interpretation
+(\citeproc{ref-cox1984}{Cox, 1984}). Wagenmakers and colleagues later
+emphasized the distinction between removable and nonremovable
+interactions, showing that some interactions depend on the measurement
+scale and therefore do not support unambiguous conclusions about latent
+psychological processes (\citeproc{ref-wagenmakers2012}{Wagenmakers et
+al., 2012}). Busemeyer and Jones (\citeproc{ref-busemeyer1983}{1983})
+showed how conclusions about multiplicative combination rules depend on
+the measurement model and on measurement error in the observed
+variables. Lubinski and Humphreys illustrated how apparently substantive
+moderator effects can arise from model specification choices rather than
+real psychological synergy (\citeproc{ref-lubinski1990}{Lubinski \&
+Humphreys, 1990}). More recently, Rohrer and Arslan argued that
+interaction tests can provide precise answers to vague questions when
+researchers do not specify the estimand, scale, or substantive meaning
+of the interaction (\citeproc{ref-rohrer2021}{Rohrer \& Arslan, 2021}).
+
+In psychology, this scale problem often has a measurement origin.
+Researchers usually reason about constructs such as ability, symptom
+severity, attitude strength, or processing efficiency as if they were
+continuous underlying dimensions. Most psychological dimensions may
+indeed be treated as smooth and roughly Gaussian, because they plausibly
+reflect many small sources of variation. If such processes were observed
+directly on an interval scale, a Gaussian identity model might often be
+a reasonable choice. But psychological phenomena are rarely observed
+directly. They are observed indirectly through tasks, items, ratings,
+counts, accuracies, and summed responses. These observations impose
+bounds, thresholds, discreteness, floors, ceilings, and chance levels.
+The link-function problem is one formal expression of this broader
+psychometric problem: the model must say how an additive structure on
+one scale is mapped onto the scale on which the data are observed.
+
+This is the reason for the emphasis on binary, binomial, ordinal, and
+bounded examples in this paper. Many standard psychological outcomes
+begin as discrete or ordered response processes, even when they are
+later reported as percentages, means, totals, or composites: a trial is
+correct or incorrect, an item is endorsed or rejected, a respondent
+chooses one ordered category, and a score aggregates such responses.
+Response times, psychophysiological measures, neuroimaging indices,
+movement measures, and other continuous behavioral traces raise related
+issues with positive support, skew, or transformations. Still, bounded
+and ordinal response formats are one of the main routes through which
+psychological processes become observed data.
+
+A related literature has sharpened the problem for modern psychological
+data. Work on multiplicative interaction models has warned that
+interaction estimates can depend strongly on functional-form assumptions
+and on the observed range of the data
+(\citeproc{ref-hainmueller2019}{Hainmueller et al., 2019}). Recent
+guidance on power and stability also shows that interaction estimates
+are often fragile for ordinary statistical reasons, such as small
+effects, low reliability, and limited power
+(\citeproc{ref-baranger2023}{Baranger et al., 2023};
+\citeproc{ref-castillo2026}{Castillo et al., 2026}). McCabe and
+colleagues showed that, in generalized linear models (GLMs) for
+probabilities and counts, product-term coefficients are not generally
+equal to interaction effects on the response scale
+(\citeproc{ref-mccabe2022}{McCabe et al., 2022}). Work on nonlinear
+probability models reaches the same practical conclusion: interaction
+effects should often be evaluated as conditional marginal effects or
+response-scale contrasts, not as product coefficients alone
+(\citeproc{ref-ainorton2003}{Ai \& Norton, 2003};
+\citeproc{ref-mize2019}{Mize, 2019}). More broadly, estimand-centered
+approaches recommend treating models as tools for generating
+substantively meaningful quantities rather than interpreting
+coefficients mechanically (\citeproc{ref-rohrer2026}{Rohrer \&
+Arel-Bundock, 2026}). Together, these contributions show that
+interaction testing requires more than adding a product term to a
+regression equation.
+
+Some methodological advances consist in taking old warnings seriously
+enough. This paper applies that idea to interaction testing in GLMs. The
+scale dependence of interactions is already well established
+(\citeproc{ref-cox1984}{Cox, 1984}; \citeproc{ref-loftus1978}{Loftus,
+1978}; \citeproc{ref-wagenmakers2012}{Wagenmakers et al., 2012}), and
+product terms in GLMs cannot be read directly as response-scale
+interactions (\citeproc{ref-ainorton2003}{Ai \& Norton, 2003};
+\citeproc{ref-mccabe2022}{McCabe et al., 2022};
+\citeproc{ref-mize2019}{Mize, 2019}). Domingue and colleagues showed
+that outcome-model misspecification can produce false interaction
+findings for binary, count, and censored outcomes
+(\citeproc{ref-domingue2024}{Domingue et al., 2024}). Liddell and
+Kruschke showed that treating ordinal responses as metric can affect
+error rates and interaction conclusions
+(\citeproc{ref-liddellkruschke2018}{Liddell \& Kruschke, 2018}). Czado
+and Santner, and later Yu and Huang, studied the inferential
+consequences of link misspecification in binary GLMs and GLMMs
+(\citeproc{ref-czadosantner1992}{Czado \& Santner, 1992};
+\citeproc{ref-yuhuang2019}{Yu \& Huang, 2019}). Rimpler and colleagues
+showed that product terms in linear models can mismatch the functional
+form implied by a substantive conditional-effect claim
+(\citeproc{ref-rimpler2026}{Rimpler et al., 2026}).
+
+These contributions identify adjacent parts of a shared scale problem.
+The present paper narrows the problem to interaction-focused link choice
+in applied psychological analyses, especially cases where the outcome
+family is broadly plausible but the link still defines a disputable
+no-interaction baseline. The incremental contribution is to separate
+outcome family, link function, and target metric in one framework for
+interaction testing, then turn this separation into an applied workflow
+for common psychological response formats. The review documents how
+often this residual ambiguity persists in recent psychological practice.
+The worked examples and simulations quantify the inferential risk in
+selected cases where link choices can generate pseudo-interactions.
+
+Choosing the outcome family solves only one part of interaction testing.
+Two models can respect the same outcome family while defining different
+no-interaction baselines. For response times, for example, a Gamma
+family may be plausible because the outcome is positive, continuous, and
+right-skewed. Yet \texttt{Gamma(link\ =\ "log")} assumes additivity in
+log mean response times, which corresponds to proportional change on the
+millisecond scale, whereas \texttt{Gamma(link\ =\ "inverse")}, the
+canonical link, assumes additivity in inverse mean response times. The
+relevant question is whether the scientific claim concerns proportional
+change, reciprocal change, absolute change, or some other scale. Link
+misspecification can affect likelihood-based inference in GLMs and GLMMs
+(\citeproc{ref-czadosantner1992}{Czado \& Santner, 1992};
+\citeproc{ref-yuhuang2019}{Yu \& Huang, 2019}).
+
+The same logic applies to binary and accuracy data, which are frequently
+reported in psychological research. A binomial family may correctly
+represent the sampling process of correct and incorrect responses, but
+the link still defines the scale of additivity. A standard logit link
+maps the linear predictor to the full 0-to-1 probability range, and a
+probit link makes a similar but not identical mapping, with different
+curvature especially away from the middle of the probability scale. In a
+two-alternative forced-choice task, however, the task-implied lower
+bound for performance above guessing is often \(0.50\). A
+chance-corrected link can encode this lower asymptote directly when that
+is the scale required by the scientific claim. Thus, the distinction is
+not only between linear models and GLMs. It is also across plausible
+links within a generally appropriate family.
+
+\begin{figure}
+
+\caption{\label{fig-family-link-distinction}Same outcome family,
+different link functions. The grey construction lines are drawn from a
+target link: the chance-corrected logit in Panel A and the log link in
+Panel B. Vertical grey lines mark equal intervals on the target-link
+linear predictor scale. Horizontal grey lines show where those equally
+spaced target-link values fall on the observed response scale. The key
+point is that equal intervals on one link scale do not remain equal
+intervals under another link. Thus, models with the same outcome family
+can imply different no-interaction baselines, even when their fitted
+curves look similar over the observed range.}
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{paper_files/figure-pdf/fig-family-link-distinction-1.pdf}}
+
+}
+
+\end{figure}%
+
+Figure~\ref{fig-family-link-distinction} shows why link choice is a
+scale choice, not only a curve-fitting choice. In each panel, equal
+steps on the target-link scale map to unequal steps on any other scale.
+Floor and ceiling effects are the most visible version of this problem,
+but the same logic applies whenever the mapping from the linear
+predictor to the response is nonlinear. This is the link-scale version
+of the scale-dependence problem introduced above.
+
+The most basic case involves counts.
+
+\begin{tcolorbox}[enhanced jigsaw, toprule=.15mm, colbacktitle=quarto-callout-note-color!10!white, title={A simple count example}, bottomtitle=1mm, rightrule=.15mm, colback=white, toptitle=1mm, breakable, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, titlerule=0mm, arc=.35mm, opacityback=0, colframe=quarto-callout-note-color-frame, leftrule=.75mm, left=2mm]
+
+Suppose children make fewer errors as they grow up. A Poisson model with
+a log link can represent this as a linear age effect on the log mean,
+
+\[
+\log\{E(Y)\} = \beta_0 + \beta_1 \text{age},
+\]
+
+with \(\beta_1 < 0\). On the observed count scale, the same model
+implies \(E(Y) = \exp(\beta_0 + \beta_1 \text{age})\), a curved
+decreasing function. The curvature is not an extra psychological
+mechanism, but the expected consequence of mapping an additive model on
+the log scale back to non-negative counts.
+
+Now add a group/condition difference in overall error rate, with no
+age-by-condition product term on the log scale. On the observed count
+scale, the absolute age-related reduction will usually be larger where
+expected errors are high and smaller where expected errors are low. A
+model that assumes additivity on another scale, especially an identity
+link, can treat this changing absolute difference as moderation. The
+same logic applies within the same family: a Poisson model with an
+identity link and a Poisson model with a log link both model counts, but
+they define different no-interaction baselines. A Poisson-log model is
+appropriate when log-count additivity is the target. A product term is a
+departure from additivity on the fitted link scale, whereas
+response-scale differences may change even when there is no product term
+on the generating scale (\citeproc{ref-domingue2024}{Domingue et al.,
+2024}; \citeproc{ref-mccabe2022}{McCabe et al., 2022}).
+
+\begin{figure}[H]
+
+\caption{\label{fig-simple-count-example}A simple count example. The two
+groups/conditions have the same age effect on the log-count scale and no
+age-by-condition product term on that scale, but after exponentiating
+the linear predictor, expected error counts decrease nonlinearly on the
+observed count scale, and differences between conditions appear to
+change with age.}
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{paper_files/figure-pdf/fig-simple-count-example-1.pdf}}
+
+}
+
+\end{figure}%
+
+\end{tcolorbox}
+
+For binary and accuracy data the same tension appears, and it can even
+flip the sign of the interaction. Figure~\ref{fig-motivating-example}
+makes the same link-scale point in the simplest possible design: a
+\(2 \times 2\) layout crossing a condition with a group, where every
+panel shows the identical four cell probabilities. The data are
+constructed so that there is no condition-by-group product term on the
+chance-corrected logit scale, the scale on which the task has a \(0.50\)
+chance floor. Yet the implied interaction coefficient depends entirely
+on the scale used to define it: it is positive on the standard logit
+scale, negative on the raw probability scale, and exactly zero on the
+chance-corrected logit scale that generated the data. The same four
+cells can therefore appear to support a positive interaction, a negative
+interaction, or none at all, depending only on which scale defines the
+no-interaction baseline (\citeproc{ref-cox1984}{Cox, 1984};
+\citeproc{ref-domingue2024}{Domingue et al., 2024};
+\citeproc{ref-loftus1978}{Loftus, 1978};
+\citeproc{ref-mccabe2022}{McCabe et al., 2022}).
+
+\begin{figure}
+
+\caption{\label{fig-motivating-example}Same cells, different
+interaction. A minimal \(2 \times 2\) design crosses a condition
+(x-axis) with a group (color), shown on three scales. The four cell
+probabilities are identical in every panel; only the scale on which the
+product term is evaluated changes. The data were generated with no
+condition-by-group interaction on the chance-corrected logit scale,
+which has a \(0.50\) chance floor, so the interaction coefficient is
+exactly zero on that scale (\(B = 0.000\)). The same cells imply a
+positive interaction on the standard logit scale (\(B = +0.513\)) and a
+negative interaction on the raw probability scale (\(B = -0.103\)), a
+sign reversal produced entirely by the choice of scale. Light horizontal
+lines are equally spaced on each panel's own link scale, so equal steps
+on that scale map to unequal steps on the probability axis. The question
+is which scale defines the scientific null hypothesis of no moderation.}
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{../figs/motivating-example.pdf}}
+
+}
+
+\end{figure}%
+
+Some interactions remain stable across scale choices, especially
+crossover interactions, whose order reversal survives any monotone
+rescaling (\citeproc{ref-cox1984}{Cox, 1984}; e.g.,
+\citeproc{ref-loftus1978}{Loftus, 1978};
+\citeproc{ref-wagenmakers2012}{Wagenmakers et al., 2012}). The removable
+versus nonremovable distinction is clearest and easiest to apply in the
+\(2 \times 2\) case, where it coincides with the absence or presence of
+a crossover. For multi-level, higher-order, or continuous designs, the
+classification is less clear-cut: order can be preserved while no single
+monotone transformation removes the interaction. Classification may also
+depend on which lower-order contrasts, conditional slices, or regions of
+the predictor space define the target claim. An apparent reversal under
+a linear fit can also be produced by functional-form assumptions near a
+bound, without implying a process-level crossover. Removability is one
+well-defined special case within the broader scale problem. This paper
+therefore focuses on the scale of additivity that a model assumes when
+testing an interaction. Many quantitative interaction claims remain
+underspecified when researchers leave implicit the scale of additivity,
+the distinction between linear-predictor and observed-response scales,
+or the robustness of the conclusion across plausible links. In this
+sense, link choice becomes part of the scientific claim.
+
+The paper proceeds in four steps. First, the preregistered review
+describes current reporting practice: how often interaction tests are
+used, how often family and link choices are explicit, and how often
+outcomes have formal constraints that make identity-link additivity a
+modeling assumption requiring justification. Second, the framework
+separates outcome family, link function, and target metric, with special
+attention to cases in which the family is plausible but the link still
+sets the wrong additivity scale. Third, the applied sections develop
+three psychology-relevant cases: forced-choice accuracy with a non-zero
+chance floor, sum scores, and within-family link choice. Fourth, the
+simulations quantify when link or metric choices can generate
+pseudo-interactions, and the diagnostic example asks what standard
+checks can and cannot detect. The practical starting points in
+Table~\ref{tbl-link-aware-workflow} are one intended output of this
+framework; the sections that follow give the rationale.
+
+\section{Current Practice in Psychological Interaction Testing: A
+Preregistered
+Review}\label{current-practice-in-psychological-interaction-testing-a-preregistered-review}
+
+\subsection{Why This Review Matters}\label{why-this-review-matters}
+
+The review examines whether the scale-dependence problem identified
+above is visible in current reporting practice. We operationalized this
+through four questions: how often do empirical articles test
+interactions, how often do interaction-testing articles use non-identity
+links, how often is the link function explicitly reported, and which
+response-variable types appear in interaction analyses. The review uses
+a descriptive coding scheme based on information that readers can
+usually observe in published reports. Article-level classification of
+interactions as removable or nonremovable requires more information and
+a more specific target claim. This classification is clearest in the
+\(2 \times 2\) case, where it can often be read from the presence or
+absence of a crossover. In multi-level, higher-order, or continuous
+designs, it can depend on the admissible transformations, on the
+functional form, and on which conditional contrasts or regions of the
+predictor space carry the substantive claim. Published reports rarely
+provide all the information needed for this judgment, such as complete
+coefficients, interaction plots, and the assumed measurement scale. The
+review therefore documents whether the family, link function, and scale
+of additivity are made explicit enough for readers to understand which
+interaction claim was tested (\citeproc{ref-cox1984}{Cox, 1984};
+\citeproc{ref-loftus1978}{Loftus, 1978};
+\citeproc{ref-mustillo2018}{Mustillo et al., 2018};
+\citeproc{ref-wagenmakers2012}{Wagenmakers et al., 2012}).
+
+\subsection{Review Method}\label{review-method}
+
+The review protocol was preregistered before the records were screened,
+at: https://osf.io/bdu73/ We specified a descriptive review of recently
+published psychological research articles, with four primary goals:
+estimating how often empirical articles test interactions, how often
+interaction-testing articles use non-identity links, how often the link
+function is explicitly reported, and which response-variable types are
+used in interaction analyses. The protocol defined a descriptive review
+of current practice across major areas of psychology, not a census of
+all journals or publication years.
+
+Sampled articles were recent publications, all from 2024, in five
+pre-specified reference journals across major areas of psychology:
+\emph{Psychological Science}, \emph{Journal of Experimental Psychology:
+General}, \emph{Journal of Personality and Social Psychology},
+\emph{Developmental Science}, and \emph{Psychological Medicine}. These
+journals were chosen to cover general, experimental, social,
+developmental, and clinical psychology. The sampling design was targeted
+and descriptive. It was not intended as a random or stratified sample of
+all psychology journals. Its purpose was to characterize reporting
+practice in outlets whose standards and reach make them broadly
+influential beyond the sampled year. Eligible articles were empirical
+articles presenting original psychological research. Reviews,
+meta-analyses, editorials, theoretical articles without empirical data,
+qualitative-only articles, replication studies, and psychometric
+validation studies were excluded. The preregistered coding scheme
+targeted observed-outcome analyses and excluded articles in which the
+relevant tests were conducted only at the latent-variable level, or in
+which the empirical analyses relied only on structural equation models
+(SEM). This scope decision kept the review focused on observed outcomes
+analyzed with regression, ANOVA, or GLM-like models. The screening-flow
+table records 12 SEM or latent-variable-only exclusions, so this
+decision affected only a small part of the screened set. SEM is relevant
+to the broader issue because it can make the measurement model explicit.
+It also places the link-function problem on a different level, involving
+thresholds, loadings, and latent-response metrics. Evaluating such
+models with the observed-outcome coding scheme would have required
+additional preregistered coding rules. SEM therefore falls outside the
+scope of this review and would benefit from a dedicated preregistered
+protocol. Articles were then coded in detail if they tested at least one
+interaction effect, either through statistical modeling or analysis of
+variance.
+
+For each interaction-testing article, coders recorded whether at least
+one tested interaction used a non-identity link function, whether the
+link function was explicitly reported, whether at least one interaction
+involved a formally incorrect identity-link analysis of a constrained
+observed outcome, whether at least one such interaction was
+statistically significant or interpreted analogously, and which
+response-variable types were analyzed. We use the term formally
+incorrect identity-link analysis of a constrained observed outcome for
+cases in which an interaction was analyzed with an identity link
+although the reported outcome had formal constraints, such as bounds,
+discreteness, positivity, or a known chance level. In these cases, the
+identity link is formally mismatched as a generative model for the
+observed outcome, unless it is explicitly justified, for example because
+the target estimand is deliberately defined on the observed-score scale.
+We use this label as a screening flag for a mismatch between the
+observed outcome constraints and the identity-link generative model. It
+does not imply that an observed-score estimand is invalid, or that the
+substantive conclusion is false. The category groups heterogeneous
+cases, from mild observed-scale approximations far from the bounds to
+analyses where the outcome constraints make identity-link additivity
+much harder to defend. The coding therefore documents the potential
+scale of the reporting problem, while the worked examples and
+simulations show mechanisms by which such choices can matter. The
+protocol specified descriptive summaries, including proportions and
+Wilson 95\% confidence intervals for Boolean variables. Double-coded
+records with complete coder pairs showed high agreement, and the same
+information is reported together with Cohen's kappa: 92.0\% agreement,
+kappa = 0.81 for non-identity link use, 88.9\% agreement, kappa = 0.66
+for explicit link reporting, 88.3\% agreement, kappa = 0.71 for formally
+incorrect identity-link analyses of constrained observed outcomes, and
+91.5\% agreement, kappa = 0.68 for significant interactions among these
+cases. We report raw agreement and kappa together because several coded
+variables had imbalanced marginal distributions. The coder-1/coder-2 yes
+rates were 28.1\% / 30.2\% for non-identity link use, 20.6\% / 20.6\%
+for explicit link reporting, 71.6\% / 72.1\% for formally incorrect
+identity-link analyses, and 86.5\% / 82.3\% for significant interactions
+among these cases. These marginal rates document why kappa can be
+conservative in this setting, while still allowing readers to evaluate
+the agreement pattern directly. The full review protocol, coding
+definitions, and extended descriptive tables are reported in the
+Supplement.
+
+\subsection{Review Findings}\label{review-findings}
+
+Three descriptive results organize the review findings. First,
+interaction testing was common. The review identified 331 eligible
+empirical articles, and 200 of these articles tested at least one
+interaction, corresponding to 60.4\%, 95\% CI {[}55.1, 65.5{]}. This
+confirms that interaction testing is a routine part of empirical
+reporting in the sampled journals.
+
+Second, model-scale reporting was uncommon. Among the 200
+interaction-testing articles, 58 used at least one non-identity link
+function, 29\%, 95\% CI {[}23.2, 35.6{]}, and only 46 explicitly
+reported the link function, 23\%, 95\% CI {[}17.7, 29.3{]}. Thus, in
+about 77.0\% of interaction-testing articles, the link function was not
+explicitly stated. This is the main reporting problem documented by the
+review: the scale on which no interaction is assumed is often left
+implicit.
+
+Third, constrained outcomes were often analyzed with identity-link
+models. Among the 200 articles testing interactions, 144 included at
+least one identity-link analysis in which the reported outcome had
+formal constraints that make identity-link additivity formally incorrect
+as a generative model unless explicitly justified as an approximation or
+as the target observed-score metric, 72\%, 95\% CI {[}65.4, 77.8{]}.
+This proportion is a conservative screening count. It is not an estimate
+of false substantive conclusions, and it is not a severity rating. The
+category uses transparent screening and avoids retrospective
+case-by-case severity judgments that published reports often could not
+support. Cases were flagged only when the formal constraint was
+identifiable from the published report. When the available report did
+not allow us to establish this mismatch, the case was not counted. The
+review result shows that many published reports did not make the family,
+link, and scale-of-additivity choices explicit enough for readers to
+evaluate the interaction claim. This is the same broad concern raised by
+work on outcome-model mismatch and metric assumptions in interaction
+testing (\citeproc{ref-domingue2024}{Domingue et al., 2024};
+\citeproc{ref-liddellkruschke2018}{Liddell \& Kruschke, 2018}). Among
+these 144 cases, 124 reported at least one statistically significant
+interaction, 86.1\%, 95\% CI {[}79.5, 90.8{]}. In absolute terms, this
+corresponds to 124 of the 200 interaction-testing articles, or 62.0\%.
+This last number should not be read as a false-positive estimate. It
+records how often formally incorrect identity-link analyses appeared in
+reports where statistically significant interaction claims could matter
+for interpretation. Table~\ref{tbl-current-practice} summarizes these
+descriptive results.
+
+\begin{table}
+
+{\caption{{Descriptive summary of the preregistered review. Formally
+incorrect identity-link analyses of constrained observed outcomes are
+cases where the reported outcome had formal constraints that make
+identity-link additivity formally incorrect as a generative model unless
+explicitly justified as an approximation or as the target observed-score
+metric.}{\label{tbl-current-practice}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.7622}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.0280}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.0490}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.0490}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1119}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Quantity
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+n
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Denom.
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+\%
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+95\% CI
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Eligible empirical articles & 331 & 331 & 100.0\% & {[}98.9\%,
+100.0\%{]} \\
+Eligible empirical articles testing at least one interaction & 200 & 331
+& 60.4\% & {[}55.1\%, 65.5\%{]} \\
+Interaction-testing articles using at least one non-identity link & 58 &
+200 & 29.0\% & {[}23.2\%, 35.6\%{]} \\
+Interaction-testing articles explicitly reporting the link function & 46
+& 200 & 23.0\% & {[}17.7\%, 29.3\%{]} \\
+Interaction-testing articles with formally incorrect identity-link
+analyses of constrained observed outcomes & 144 & 200 & 72.0\% &
+{[}65.4\%, 77.8\%{]} \\
+Formally incorrect identity-link cases with at least one significant
+interaction & 124 & 144 & 86.1\% & {[}79.5\%, 90.8\%{]} \\
+Eligible empirical articles not testing interactions & 131 & 331 &
+39.6\% & {[}34.5\%, 44.9\%{]} \\
+\end{longtable}
+
+\end{table}
+
+The pattern was present across the sampled journals. In the
+supplementary by-journal table, the proportion of formally incorrect
+identity-link analyses of constrained observed outcomes among
+interaction-testing articles ranged from 40.0\% in Psychological
+Medicine to 95.0\% in Psychological Science. In this sample,
+Psychological Medicine had the lowest screening proportion and the
+highest non-identity-link proportion (40.0\%). This journal, which uses
+many outcomes for which non-identity links are standard, contributed the
+fewest formally incorrect identity-link cases. This pattern also shows
+that the overall estimate was not driven by the clinically oriented
+journal, where non-identity links were more common.
+
+The outcomes used in interaction analyses were heterogeneous. The most
+common broad, non-exclusive categories were binary, accuracy, or
+proportion outcomes (84 articles), sum scores or composites (66
+articles), ordinal, Likert, or rating outcomes (36 articles), response
+times or durations (30 articles), neural or physiological measures (23
+articles), difference or distance scores (17 articles), counts or error
+counts (9 articles), and correlations or associations (8 articles). This
+heterogeneity matters because the identity link has different
+implications across outcome types. It also shows why the worked examples
+focus on bounded, binomial, ordinal, and aggregated responses. Many
+observed psychological variables are built from binary or ordered
+response events, then reported as proportions, ratings, averages,
+totals, or composites. For some approximately continuous outcomes,
+additivity on the observed scale may be a defensible target. For
+bounded, discrete, ordinal, chance-constrained, or heavily transformed
+outcomes, however, additivity on the observed scale is an assumption
+that should usually be stated and examined. This is especially clear for
+ordinal and Likert-type outcomes, where treating ordered categories as
+metric can affect estimates, error rates, and interaction conclusions
+(\citeproc{ref-burknervuorre2019}{Bürkner \& Vuorre, 2019};
+\citeproc{ref-liddellkruschke2018}{Liddell \& Kruschke, 2018}).
+
+\begin{table}
+
+{\caption{{Broad response-variable categories in interaction-testing
+articles. Categories are non-exclusive, so one article can contribute to
+more than one row.}{\label{tbl-review-outcome-types}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}lrrr@{}}
+\toprule\noalign{}
+Outcome type & n & Denominator & Percent \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Binary / accuracy / proportions & 84 & 200 & 42.0\% \\
+Sum scores / composites & 66 & 200 & 33.0\% \\
+Ordinal / Likert / ratings & 36 & 200 & 18.0\% \\
+Response times / durations & 30 & 200 & 15.0\% \\
+Counts / error counts & 9 & 200 & 4.5\% \\
+Neural / physiological measures & 23 & 200 & 11.5\% \\
+Correlations / associations & 8 & 200 & 4.0\% \\
+Difference / distance scores & 17 & 200 & 8.5\% \\
+\end{longtable}
+
+\end{table}
+
+\subsection{What the Review Shows, and What It Does Not
+Show}\label{what-the-review-shows-and-what-it-does-not-show}
+
+The review documents a reporting gap in interaction analyses with
+constrained outcomes. Identity-link analyses may be defensible as
+approximations or direct observed-scale tests, especially when the
+target estimand is the observed score. This justification should be
+explicit when the outcome has known constraints. We use removability as
+a conceptual lens inherited from the scale-dependence literature
+(\citeproc{ref-cox1984}{Cox, 1984}; \citeproc{ref-loftus1978}{Loftus,
+1978}; \citeproc{ref-wagenmakers2012}{Wagenmakers et al., 2012}). The
+coded outcome was more directly observable: whether published reports
+made the family, link, and scale of additivity explicit enough for
+readers to know which interaction claim was tested. The review shows
+that, in leading psychology journals, interaction testing is common,
+while the scale on which no interaction is assumed is often left
+implicit.
+
+The next section formalizes why this matters. We distinguish the outcome
+family from the link function, show why choosing the family is not
+enough for interaction testing, and separate interactions on the
+linear-predictor scale from interactions on the observed response scale.
+
+\section{The Link Function Problem}\label{the-link-function-problem}
+
+The review described a reporting problem: interaction tests are often
+presented without an explicit statement of the outcome family, link
+function, or scale of additivity. We now make the mechanism explicit. In
+GLMs, the link function defines the model scale on which effects are
+assumed to add. This matters especially when psychological data are
+indirect observations of a target process, because a task or scoring
+rule can remap that process onto a constrained scale.
+
+In a generalized linear model (GLM), the expected outcome for
+observation \(i\), denoted \(\mu_i = E(Y_i)\), is related to a linear
+predictor through a link function
+(\citeproc{ref-mccullaghnelder1989}{McCullagh \& Nelder, 1989};
+\citeproc{ref-nelderwedderburn1972}{Nelder \& Wedderburn, 1972}):
+
+\[
+g(\mu_i) = \eta_i.
+\]
+
+With two predictors, \(X_i\) and \(Z_i\), and their product term, the
+linear predictor is written as
+
+\[
+\eta_i = \beta_0 + \beta_1 X_i + \beta_2 Z_i + \beta_3 X_i Z_i.
+\] The first equation contains the link function, \(g(\cdot)\). This is
+the function that maps the conditional mean of the outcome, \(\mu_i\),
+onto the linear predictor, \(\eta_i\). The second equation then
+specifies what is additive on that linear-predictor scale: the
+intercept, the two main effects, and, if included, the product term.
+
+This separation is important because a GLM involves two related but
+different choices. First, the analyst chooses a family, that is, a model
+for the kind of outcome being analyzed. This choice defines the possible
+values of the response and its sampling process, for example Gaussian
+scores, binomial successes, Poisson counts, or positive continuous
+outcomes. Second, the analyst chooses a link function, that is, the
+function \(g(\cdot)\) that defines the scale on which the predictors are
+combined additively.
+
+This second choice is crucial for interaction testing. In a model
+without the product term, \(X_i\) and \(Z_i\) are additive on the
+\(\eta_i\) scale, not necessarily on the observed outcome scale. The
+link function defines how this additive structure is translated back to
+the response scale. For this reason, choosing a plausible family is
+necessary but not sufficient. The family can keep predictions within the
+right range, but the link still defines the scale on which the product
+term is interpreted as a departure from additivity.
+
+\begin{tcolorbox}[enhanced jigsaw, toprule=.15mm, colbacktitle=quarto-callout-note-color!10!white, title={What the link function does}, bottomtitle=1mm, rightrule=.15mm, colback=white, toptitle=1mm, breakable, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, titlerule=0mm, arc=.35mm, opacityback=0, colframe=quarto-callout-note-color-frame, leftrule=.75mm, left=2mm]
+
+The linear predictor, \(\eta\), is the model's additive scale.
+Intercepts, main effects, product terms, covariates, and random effects
+are combined before the inverse link is applied. Many psychological
+outcomes, however, are not direct readings of the psychological
+continuum of interest. They are observed through constrained measurement
+scales. Counts cannot be negative. Probabilities must lie between 0 and
+1. Forced-choice accuracy may have a theoretical floor above 0, for
+example .50 in a true/false task. Response times are positive and often
+right-skewed. Sum scores have lower and upper bounds, and are often
+discrete.
+
+The inverse link, \(g^{-1}(\eta)\), maps the additive model back to the
+expected response. This mapping is not neutral for interactions: the
+link function defines what ``no interaction'' means in the fitted model.
+
+\end{tcolorbox}
+
+The distinction is hidden in ordinary linear models because the identity
+link makes the two scales coincide. If \(g(\mu) = \mu\), then additivity
+on the linear predictor scale is also additivity on the response scale.
+For any other link function, this equivalence disappears. A logit link
+defines additivity in log odds. A probit link defines additivity on a
+latent-normal scale. A log link defines additivity in log means (which
+corresponds to multiplicative change on the response scale). The same
+general point applies within a family. As noted in the introduction, a
+Gamma model for response times may use an identity, log, or inverse (the
+canonical) link: the family is the same, but the implied no-interaction
+baseline is different across link choices.
+
+The same logic applies directly to interaction coefficients. The
+coefficient \(\beta_3\) is a product-term interaction on the link scale,
+\(g(\mu)\). When \(\beta_3 = 0\), the fitted model assumes additivity on
+that scale. It does not necessarily assume additivity on the observed
+response scale. A response-scale interaction can instead be defined as a
+difference between expected differences. For two binary predictors, one
+such quantity is
+
+\[
+\{E(Y \mid X = 1, Z = 1) - E(Y \mid X = 0, Z = 1)\}
+-
+\{E(Y \mid X = 1, Z = 0) - E(Y \mid X = 0, Z = 0)\}.
+\]
+
+In a nonlinear GLM, this quantity depends on the inverse link,
+\(g^{-1}(\eta)\). It can be nonzero when the product-term coefficient is
+zero, and it can differ in size or sign from the product-term
+coefficient when the product term is nonzero. This is why product-term
+coefficients in GLMs should not be treated as automatic answers to
+response-scale moderation questions (\citeproc{ref-ainorton2003}{Ai \&
+Norton, 2003}; \citeproc{ref-mccabe2022}{McCabe et al., 2022};
+\citeproc{ref-mize2019}{Mize, 2019}).
+
+One way to see the mechanism is to write it in terms of curvature.
+Suppose that the model is additive on the link scale,
+
+\[
+\eta = \alpha + \beta X + \gamma Z,
+\qquad
+\mu = h(\eta),
+\]
+
+where \(h = g^{-1}\) is the inverse link. There is no product term on
+the link scale. With continuous predictors, however, the response-scale
+cross-partial derivative is
+
+\[
+\frac{\partial^2 \mu}{\partial X \partial Z}
+=
+h''(\eta)\beta\gamma.
+\]
+
+Thus, an additive model on the link scale can imply a response-scale
+interaction whenever the inverse link is locally curved, as in the count
+example of Figure~\ref{fig-simple-count-example}. In a \(2 \times 2\)
+design, the same point appears as a difference between differences, the
+quantity that changes sign across scales in
+Figure~\ref{fig-motivating-example}:
+
+\[
+h(\eta+a+b)-h(\eta+a)-h(\eta+b)+h(\eta)
+\approx
+h''(\eta)ab.
+\]
+
+The size of the induced response-scale interaction therefore depends on
+the local curvature of the inverse link and on the size of the two main
+effects. It is most visible when expected values fall in regions where
+the inverse link compresses response-scale change differently across
+groups or conditions, for example when one condition is close to a
+floor, ceiling, chance level, or tail, while another lies closer to the
+middle of the scale.
+
+The link-function problem is therefore a scale-of-additivity problem. An
+interaction claim is always relative to a scale: it says that the effect
+of \(X\) is not constant across levels of \(Z\) when effects are
+expressed on that scale. An identity-link model evaluates this claim on
+the expected observed mean. A binomial-logit model evaluates it in log
+odds. A binomial-probit model evaluates it on a probit scale. A
+chance-corrected binomial link evaluates it on a scale that maps the
+linear predictor onto the interval from chance performance to perfect
+performance. These are related statistical models, but they do not
+express the same scientific null.
+
+This point helps separate three analytic choices that are often mixed
+together. The first choice is the outcome family: does the model respect
+the support and sampling process of the observed outcome? The second
+choice is the link, which defines the scale on which effects are
+additive when the product term is zero. The third choice is the target
+metric: is the observed score itself the scale on which the theoretical
+interaction claim is meant to hold? These choices can overlap in
+practice, but they are conceptually distinct. The focus of this paper is
+the second choice, especially cases in which the family is broadly
+plausible but the scale of additivity remains underjustified.
+
+\begin{table}
+
+{\caption{{Three analytic choices that determine the scale of an
+interaction claim. The choices are conceptually distinct, but they can
+overlap in applied analyses.}{\label{tbl-family-link-metric}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Analytic choice
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Key question
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Psychological example
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Risk for interaction claims
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Outcome family & Does the model respect the support and sampling process
+of the observed outcome? & Counts, proportions, or trial accuracies
+modeled as unbounded Gaussian observations. & Constraints, discreteness,
+or the mean-variance relation may be absorbed by a product term. \\
+Link / additivity scale & Given a plausible family, on which scale
+should effects add if there is no interaction? & Forced-choice accuracy
+modeled with a standard binomial logit, although the task has a known
+chance floor such as .50. & The model may test additivity on the wrong
+scale, so a pseudo-interaction can arise even when the target link-scale
+model has only main effects. \\
+Target metric / measurement mapping & Is the observed score the scale on
+which the theoretical interaction claim is meant to hold? & A Likert
+item or sum score treated as if raw-score units directly represented
+units of the target construct. & A product term may reflect thresholds,
+bounds, or scale compression rather than moderation of the underlying
+construct. \\
+\end{longtable}
+
+\end{table}
+
+The three rows in Table~\ref{tbl-family-link-metric} should not be read
+as mutually exclusive error types. They are analytic decisions that can
+be separated for clarity, but they often co-occur in real analyses. Sum
+scores are the clearest boundary case: the manifest score is already a
+measurement mapping from item responses, and any model fitted to that
+score also chooses a link or additivity scale. The distinction is useful
+because it asks which part of the analysis carries the scale assumption:
+the sampling model, the link used for a given response, or the decision
+to treat the manifest score as the target metric.
+
+Our paper focuses mainly on the link/additivity-scale choice, while
+keeping family and target-metric choices visible. This focus is narrower
+than the general warning that linear models can be inappropriate for
+non-Gaussian outcomes. Researchers may choose a broadly appropriate
+family and still leave the scientific scale of additivity unspecified.
+For instance, a binomial family may correctly represent successes out of
+trials, but it does not choose among logit, probit, complementary
+log-log, flexible generalized links, or a chance-corrected link with a
+lower asymptote (\citeproc{ref-aranda-ordaz1981}{Aranda-Ordaz, 1981};
+\citeproc{ref-stukel1988}{Stukel, 1988}). Link misspecification can
+affect inference in binary GLMs and GLMMs, and diagnostic evidence may
+not identify a unique correct link
+(\citeproc{ref-czadosantner1992}{Czado \& Santner, 1992};
+\citeproc{ref-yuhuang2019}{Yu \& Huang, 2019}). A separate target-metric
+choice concerns whether the claim is about the manifest score, such as
+raw sum-score units, or about an underlying construct scale that
+requires an explicit measurement model.
+
+The worked examples use the three choices in different ways. The
+forced-choice case holds the binomial family fixed and asks whether the
+link should encode the task-implied chance floor. The logit-probit case
+holds both the binary family and the 0-to-1 bounds fixed, then asks
+whether two plausible links define the same no-interaction baseline for
+the interaction claim. The sum-score case places the target metric in
+the foreground, because the manifest total score is already a
+measurement mapping from item responses to a bounded scale. The three
+cases are complementary. Together, they cover the main routes through
+which scale assumptions enter interaction tests in psychological
+research.
+
+A link-aware interaction analysis therefore begins with four questions.
+First, what is the estimand: a link-scale coefficient, a probability
+difference, a marginal effect, a risk ratio, a count difference, or
+another response-scale contrast? Second, what constraints does the
+outcome impose, such as bounds, discreteness, ordinal categories, skew,
+ceilings, floors, or chance performance? Third, which scale of
+additivity is scientifically plausible for the process under study?
+Fourth, does the substantive conclusion survive plausible alternative
+links? These questions do not make interaction testing automatic, but
+they make the assumptions visible enough to evaluate.
+
+This framework also clarifies the role of the simulations that follow.
+The simulations ask whether an interaction can be generated, removed, or
+distorted when the fitted model assumes additivity on a different scale
+from the data-generating process. This matters because the examples
+below are common routes from psychological processes to observed data.
+Accuracy, forced-choice responses, Likert ratings, item endorsements,
+symptom counts, and many sum scores are generated by bounded, binary,
+ordinal, or aggregated response formats. Response times and
+physiological or neuroimaging measures raise other link questions,
+especially because they are positive, skewed, or constrained. The next
+sections therefore focus on forced-choice accuracy with chance
+performance, sum scores, and within-family link choices for binary or
+binomial responses.
+
+\subsection{Box 1. Prediction, Explanation, and the Scale of
+Interaction}\label{box-1.-prediction-explanation-and-the-scale-of-interaction}
+
+The importance of link choice depends on the goal of the analysis. For
+purely predictive purposes, the primary criteria may be predictive
+accuracy, calibration, generalizability, and decision usefulness. A
+model can be useful if it predicts future observations well, even if its
+coefficients do not provide a faithful description of the psychological
+process that generated the data.
+
+Scientific interaction claims require a different standard. When
+researchers claim that an effect is moderated, they usually claim more
+than that one model predicts slightly better than another. They claim
+that the effect of one variable changes across levels of another
+variable in a way that is meaningful for theory. That claim requires an
+estimand. It also requires a scale. A treatment effect might be larger
+in absolute probability points, larger in odds ratios, larger on a
+latent response scale, or larger only after a transformation. These are
+different claims, and they can lead to different conclusions.
+
+This distinction is consistent with estimand-centered workflows that
+treat models as tools for generating clear target quantities rather than
+as collections of coefficients to be interpreted mechanically
+(\citeproc{ref-rohrer2026}{Rohrer \& Arel-Bundock, 2026}). For
+interaction testing, the relevant target quantity should be stated
+before the product term is interpreted. If the target is a
+response-scale difference-in-differences, the analyst should compute and
+report that quantity. If the target is additivity on a latent or link
+scale, the link function should be justified as part of the scientific
+model.
+
+Prediction and explanation remain connected in practice: predictive
+checks, calibration, and out-of-sample performance can all inform
+scientific modeling. Good predictive fit does not specify the scale on
+which a moderation claim is made. For scientific inference about
+interactions, the link function is part of the theoretical
+specification, not only a computational convenience
+(\citeproc{ref-rohrer2026}{Rohrer \& Arel-Bundock, 2026}).
+
+\section{Forced-Choice Accuracy and the Non-Zero Chance
+Floor}\label{forced-choice-accuracy-and-the-non-zero-chance-floor}
+
+Forced-choice accuracy is a useful case because it separates the outcome
+family from the link scale. If a participant completes \(k_i\) trials
+and answers \(Y_i\) trials correctly, the binomial sampling model is
+often the natural starting point:
+
+\[
+Y_i \sim \mathrm{Binomial}(k_i, p_i),
+\]
+
+where \(p_i\) is the expected probability of a correct response. This
+choice concerns the sampling process. It does not, by itself, decide the
+lower bound that is meaningful for the psychological task. In a
+2-alternative forced-choice task, or in a true/false task when random
+responding between two alternatives is the relevant chance process,
+guessing implies an expected accuracy of .50. More generally, in an
+\(m\)-alternative forced-choice task, the chance level is \(c = 1/m\).
+For these tasks, the expected performance curve may have a lower
+asymptote at chance, rather than at 0, when the target claim concerns
+performance above guessing.
+
+This distinction gives three increasingly specific specifications. The
+weakest is a Gaussian identity model fitted to proportions. It ignores
+the binomial trial process and treats accuracy as an approximately
+continuous outcome. It also assumes additivity directly in
+percentage-correct units and can generate fitted values outside the
+admissible 0-to-1 range. This model may sometimes be useful as a rough
+descriptive approximation, especially far from the boundaries, but it
+does not encode either the trial structure or the task-implied lower
+bound.
+
+A standard binomial logit or probit model improves on this by respecting
+the binomial sampling process and constraining fitted probabilities to
+the interval from 0 to 1:
+
+\[
+p_i = F(\eta_i),
+\]
+
+where \(F\) is the logistic cumulative distribution function for a logit
+link, or the standard normal cumulative distribution function for a
+probit link. This model is right about the binomial structure of the
+data. However, in a forced-choice task with a known chance level, it
+still defines the lower asymptote as 0. A standard binomial model can
+respect the sampling process while encoding a lower asymptote that is
+not aligned with the task-based interpretation of performance above
+chance.
+
+A chance-corrected binomial link keeps the binomial sampling model but
+maps the linear predictor to the interval from chance to 1:
+
+\[
+p_i = c + (1 - c)F(\eta_i).
+\]
+
+For a 2-AFC or true/false task with chance level .50, this becomes
+
+\[
+p_i = .50 + .50F(\eta_i).
+\]
+
+Equivalently, the link is applied to the above-chance quantity
+\((p_i - c)/(1 - c)\) rather than to the raw probability \(p_i\). The
+no-interaction baseline is therefore different. A product term in a
+standard binomial-logit or binomial-probit model tests additivity on a
+scale defined over the full 0-to-1 probability range. A product term in
+a chance-corrected binomial model tests additivity on a latent
+performance-above-chance scale that already encodes the task-implied
+lower asymptote. These are different modeling claims, even though both
+use a binomial family.
+
+The forced-choice case is a direct example of this curvature problem.
+The difference is easiest to see when one group, condition, or region of
+the predictor space lies close to chance. Suppose that age has the same
+effect in two groups on the latent performance-above-chance scale, with
+no true age-by-group product term on that scale. On the observed
+accuracy scale, the lower-performing group can still show stronger
+compression near .50, because the chance-corrected curve has less
+response-scale room close to its lower asymptote. A standard logit or
+probit link places this compression near 0 rather than near .50. The
+fitted model can then use an age-by-group product term to absorb the
+curvature created by the misplaced lower bound. The issue extends beyond
+obvious floor effects: it arises whenever candidate links allocate
+different response-scale room to the same link-scale change across the
+predictor range. The resulting interaction is therefore not merely
+random Type I error. It is a pseudo-interaction produced by a mismatch
+between the scale used by the model and the scale implied by the task.
+This is consistent with broader work showing that outcome-model
+misspecification can create false discoveries in interaction analyses
+(\citeproc{ref-domingue2024}{Domingue et al., 2024}), with work showing
+that product-term coefficients in nonlinear probability models are not
+automatically response-scale interaction effects
+(\citeproc{ref-ainorton2003}{Ai \& Norton, 2003};
+\citeproc{ref-mccabe2022}{McCabe et al., 2022};
+\citeproc{ref-mize2019}{Mize, 2019}), and with evidence that binary-link
+misspecification can affect likelihood-based inference
+(\citeproc{ref-czadosantner1992}{Czado \& Santner, 1992};
+\citeproc{ref-yuhuang2019}{Yu \& Huang, 2019}).
+
+Standard binomial models remain useful for many accuracy analyses. The
+chance-corrected link is most defensible when the chance level is known
+from the task design, guessing is a plausible lower-bound process, and
+below-chance performance is not substantively meaningful for the target
+claim. In the simplest case, the chance level can be fixed by design,
+for example \(c = 0.50\) in a 2-AFC task. In other cases, analysts may
+estimate the lower asymptote or report sensitivity analyses over
+plausible values of \(c\), although estimating it requires enough
+information and stronger assumptions. When a chance-corrected model is
+unstable or fails to converge, the practical response is to simplify the
+specification and report the identification problem transparently.
+Analysts can fix \(c\) from the task design, remove unsupported random
+slopes, or fit a simpler trial-level or aggregate model. They can then
+compare standard and chance-corrected predicted curves and report
+response-scale contrasts for the target interaction. If the design does
+not identify the lower asymptote well enough, the result should be
+presented as link-conditional, without forcing the chance-corrected
+model to deliver a single answer. Richer models may also be needed if
+there are lapses, response biases, item heterogeneity, learning across
+trials, systematic below-chance performance, or participant-specific
+guessing strategies. The practical question is whether the link used for
+the interaction test encodes the scale on which no interaction is
+scientifically meaningful.
+
+The chance-corrected GLM link is closely related to
+psychometric-function models, where lower asymptotes, guessing, lapses,
+and goodness-of-fit checks are part of the response model, and to item
+response models that include a lower asymptote
+(\citeproc{ref-knoblauch2012}{Knoblauch \& Maloney, 2012};
+\citeproc{ref-wichmann2001}{Wichmann \& Hill, 2001}). For example, the
+3-parameter logistic IRT model includes a guessing parameter at the item
+level, rather than treating the chance floor as a single aggregate
+constraint. When item-level or trial-level data are available, and when
+the target claim concerns latent performance rather than an aggregated
+accuracy proportion, such measurement models or trial-level GLMMs may be
+more appropriate than a single aggregate GLM
+(\citeproc{ref-moscatelli2012}{Moscatelli et al., 2012}). The
+chance-corrected link used here should therefore be understood as a
+GLM-level representation of a design constraint. It is not a replacement
+for item-level measurement models when the data and the scientific
+question call for them.
+
+The same dataset can also be analyzed for different purposes. If the
+goal is prediction, standard and chance-corrected binomial models can be
+compared by predictive accuracy, calibration, and generalizability. If
+the substantive estimand is an observed-scale quantity, such as a
+difference in percentage correct or a difference between such
+differences, that quantity should be reported directly as a
+response-scale contrast. If the claim concerns latent performance above
+chance, ability, sensitivity, or propensity to answer correctly beyond
+guessing, a chance-corrected link is often closer to the scientific
+claim. Thus, for interaction claims, the key question is not only
+whether accuracy is binomial. It is whether the model defines additivity
+on the scale required by the task and by the claim
+(\citeproc{ref-loftus1978}{Loftus, 1978};
+\citeproc{ref-mccabe2022}{McCabe et al., 2022};
+\citeproc{ref-wichmann2001}{Wichmann \& Hill, 2001}).
+
+\section{Sum Scores as Bounded and Discrete
+Outcomes}\label{sum-scores-as-bounded-and-discrete-outcomes}
+
+Sum scores often combine a link-scale issue with a target-metric issue.
+They may be analyzed as Gaussian identity outcomes, transformed bounded
+scores, ordinal summaries, or item-level response models, depending on
+the scientific target and on the information available. We include them
+because many sum scores aggregate binary or ordinal response processes.
+For interaction claims, the risk is the same: the chosen metric or link
+defines the scale on which additivity is tested.
+
+Sum scores make the link-function problem inseparable from measurement.
+Many psychological outcomes are reported as totals or averages across
+questionnaire items, task items, symptoms, errors, or ratings. Recent
+debates on sum scores make the same point from a psychometric angle: a
+total score can be useful and transparent, but it also encodes
+assumptions about how item responses represent the target construct
+(\citeproc{ref-mcneish2023}{McNeish, 2023};
+\citeproc{ref-mcneish2020}{McNeish \& Wolf, 2020};
+\citeproc{ref-widaman2023}{Widaman \& Revelle, 2023}). These scores are
+often treated as if they were direct observations of an approximately
+continuous psychological dimension. But the latent construct and the
+observed score are different objects. The construct may be conceived as
+a continuous dimension, and may sometimes be reasonably approximated as
+smooth or roughly normal. The sum score is instead produced by a finite
+set of item responses through thresholds, endorsement probabilities,
+success probabilities, category labels, and scoring rules. It is
+therefore a remapped version of the target continuum, not the continuum
+itself.
+
+This point matters even when the construct is otherwise well behaved. A
+normally distributed latent variable can still generate a bounded,
+discrete, skewed, or non-interval observed score. A total based on
+binary or ordinal items has only a limited number of possible values. It
+has a lower and upper bound. It can be skewed when items are too easy,
+too hard, rarely endorsed, or almost always endorsed. It can be
+compressed near floor or ceiling, but compression is not restricted to
+the endpoints. Adjacent raw-score values may correspond to different
+distances on the latent scale at different regions of the score range.
+These features are common in psychological variables
+(\citeproc{ref-micceri1989}{Micceri, 1989}), and they are central to why
+treating ordinal responses as metric can produce false alarms, missed
+effects, reversals, and misleading interactions
+(\citeproc{ref-liddellkruschke2018}{Liddell \& Kruschke, 2018}).
+
+Sum scores can be useful, transparent, reliable enough for many
+purposes, comparable across studies, and pragmatically tied to how
+instruments are scored in applied settings
+(\citeproc{ref-widaman2023}{Widaman \& Revelle, 2023}). A Gaussian
+identity model for a sum score still makes a scale claim. It assumes
+that effects are additive in raw-score units on the observed score
+scale. In an interaction model, the no-interaction baseline is that the
+expected raw-score effect of one predictor is constant across levels of
+the other predictor. Sometimes raw-score units are the target estimand.
+For example, a clinician, teacher, or researcher may care about a
+two-point difference on the reported score because decisions and
+interpretations are made on that metric.
+
+Gaussian identity models are more defensible when the score has many
+possible values, the distribution is not strongly skewed, observations
+are not concentrated near floor or ceiling, residual patterns are not
+strongly tied to fitted values, and the substantive claim is explicitly
+about raw-score differences. They are less defensible when the score has
+few levels, is built from ordinal item responses with unclear spacing,
+shows floor or ceiling concentration, or is interpreted as evidence
+about moderation on a latent construct scale.
+
+The problem becomes sharper when the verbal claim moves from the
+manifest score to the underlying construct. A group near the upper bound
+may show a smaller observed treatment effect not because the treatment
+is less effective on the construct, but because the score has less room
+to increase. A group located near a dense region of thresholds may show
+a larger raw-score change because the instrument is more sensitive
+there. The product term can then partly reflect the target metric rather
+than genuine moderation in the psychological process. A closely related
+problem has been shown in item-level work on genotype-by-environment
+interactions, where summed item scores can mask genuine interactions or
+generate spurious ones through scale properties of the observed score
+(\citeproc{ref-molenaar2014}{Molenaar \& Dolan, 2014}). This is the
+sum-score version of outcome-model misspecification and target-metric
+mismatch (\citeproc{ref-domingue2024}{Domingue et al., 2024}).
+
+Several pragmatic alternatives can make the scale assumption more
+explicit. For a manifest sum score, a Gaussian identity model can be a
+defensible approximation when the claim is explicitly about raw-score
+units, the score has many levels, predicted values remain in range, and
+floor or ceiling compression is limited. When the claim is closer to an
+underlying construct, the better solution is an explicit measurement
+model, such as item-level ordinal, IRT-inspired, or SEM models. A
+bounded-score probit model can be used only as a sensitivity analysis on
+the manifest total. It is not a substitute for a measurement model. This
+point is also consistent with the sum-score debate: replacing a total
+score with a latent-score or item-level model changes the assumptions,
+rather than removing them (\citeproc{ref-mcneish2023}{McNeish, 2023};
+\citeproc{ref-mcneish2020}{McNeish \& Wolf, 2020};
+\citeproc{ref-widaman2023}{Widaman \& Revelle, 2023}). The role of the
+alternatives considered here is not to establish the true scale, but to
+test whether the interaction conclusion depends on the manifest
+sum-score metric (\citeproc{ref-burknervuorre2019}{Bürkner \& Vuorre,
+2019}; \citeproc{ref-domingue2024}{Domingue et al., 2024};
+\citeproc{ref-liddellkruschke2018}{Liddell \& Kruschke, 2018}).
+
+The recommendation is to make the assumed scale visible. Researchers can
+inspect the score distribution, plot predicted values near the bounds,
+report response-scale contrasts, and compare Gaussian identity results
+with bounded-score probit, ordinal, bounded-count, or item-level
+alternatives when these are plausible. Stable interactions across these
+specifications are easier to defend. Interactions that appear only on
+the manifest sum-score metric can still be informative, but they should
+be framed as properties of that score and interpreted as construct-level
+moderation only with supporting measurement assumptions.
+
+\section{Within-Family Link Choice}\label{within-family-link-choice}
+
+The link-function problem also arises within the same outcome family.
+For binary, binomial, ordinal, count, or positive continuous outcomes,
+the family can be broadly appropriate while the link remains
+underjustified. This is easy to miss because many default links are
+reasonable in many datasets. Logit and probit links, for example, often
+produce very similar fitted probabilities in the middle of the response
+range, especially after the usual approximate rescaling of coefficients.
+That practical similarity is real. It explains why many applied
+conclusions are unchanged by switching between the two links. However,
+it is not a general guarantee, especially when the claim depends on
+interaction, curvature, floor effects, ceiling effects, or tail
+behavior. Link misspecification can affect likelihood-based inference in
+binary GLMs and GLMMs (\citeproc{ref-czadosantner1992}{Czado \& Santner,
+1992}; \citeproc{ref-yuhuang2019}{Yu \& Huang, 2019}).
+
+The choice between logit and probit involves more than coefficient
+rescaling. A logit link is natural when the substantive interpretation
+is in odds or odds ratios. In that case, additivity on the linear
+predictor scale means additivity in log odds, and exponentiated
+coefficients have a direct odds-ratio interpretation. A probit link is
+natural when the response can be represented as threshold crossing on an
+approximately normal latent variable, such as ability, signal strength,
+response tendency, propensity, or latent correctness. The two links
+encode different stories about the scale on which effects combine.
+
+For interaction claims, this distinction is more consequential than it
+may appear from main effects alone. Two links can give nearly
+overlapping fitted probabilities in the central range but imply
+different distances on the link scale near the floor, ceiling, chance
+level, or distributional tails. A product term in a logit model asks
+whether effects depart from additivity in log odds. A product term in a
+probit model asks whether they depart from additivity on a latent-normal
+threshold scale. These null hypotheses are often similar, but they are
+not identical. Moreover, when the substantive claim concerns observed
+probabilities, accuracy, endorsement, or risk, the product-term
+coefficient is not itself the response-scale interaction. The
+response-scale interaction must be stated as a contrast, marginal
+effect, or difference between predicted probabilities
+(\citeproc{ref-ainorton2003}{Ai \& Norton, 2003};
+\citeproc{ref-mccabe2022}{McCabe et al., 2022};
+\citeproc{ref-mize2019}{Mize, 2019}).
+
+\begin{figure}
+
+\caption{\label{fig-logit-probit-fitted-example}Fitted logit and probit
+models on one simulated binary dataset. The data were generated from a
+logistic curve, and both a binomial-logit and a binomial-probit GLM were
+fitted to the same responses. Panel A shows binned observed proportions
+together with the two fitted probability curves. Panel B shows the
+pointwise difference between the fitted probabilities, computed as logit
+minus probit. The curves can look nearly interchangeable while still
+implying a structured discrepancy across the predictor range. For
+interaction claims, this matters when the relevant comparison depends on
+regions where the two fitted links allocate different response-scale
+room for an effect.}
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{../figs/logit-probit-fitted-example.pdf}}
+
+}
+
+\end{figure}%
+
+This fitted-data example is deliberately simple. Logit and probit often
+lead to similar conclusions. Small differences in link curvature can be
+hard to see in the fitted probability curves, yet remain structured
+rather than random. If a moderation claim depends on the part of the
+predictor range where this discrepancy is largest, especially near a
+floor, ceiling, chance level, or tail, link choice can become
+inferentially consequential.
+
+Logit-versus-probit sensitivity is therefore more than a cosmetic
+robustness check. A moderation claim that appears only under one
+plausible link, changes sign under another, or depends on predictions
+near a boundary should be reported as conditional on the chosen link.
+Stable response-scale conclusions across logit, probit, and other
+theoretically defensible links are easier to defend. Logit and probit
+often agree; their differences matter when the interaction claim depends
+on the baseline scale.
+
+The same logic applies beyond the logit-probit pair. A binomial family
+specifies a sampling model for successes out of trials, but it does not
+decide whether additivity is most plausible on a logit, probit,
+complementary log-log, flexible generalized-logistic, or
+chance-corrected scale. Classical work on binary-response links already
+treated alternative links as alternative scales for additivity,
+including symmetric and asymmetric departures from the logistic link
+(\citeproc{ref-aranda-ordaz1981}{Aranda-Ordaz, 1981};
+\citeproc{ref-stukel1988}{Stukel, 1988}). In forced-choice tasks, the
+link question includes whether the lower asymptote should be 0, as in a
+standard binomial link, or the theoretical chance level of the task. An
+ordinal family does not decide which cumulative link is appropriate, and
+applied ordinal-regression work explicitly treats logit, probit,
+complementary log-log, negative log-log, and cauchit links as different
+modeling choices (\citeproc{ref-smith2020}{Smith et al., 2020}). A Gamma
+family does not decide whether the mean should be additive on the
+identity, log, or inverse scale. For interaction testing, these choices
+are not merely alternative parameterizations. They define different
+scales on which no interaction is assumed.
+
+\subsection{When link choice may matter
+less}\label{when-link-choice-may-matter-less}
+
+Link choice will not change every substantive conclusion. In many
+applications, plausible links lead to nearly identical fitted values and
+similar response-scale summaries. The risk is smaller when predicted
+probabilities remain far from floor and ceiling, effects are modest, the
+relevant predictor range is well observed, and candidate links produce
+almost overlapping curves in that range. Crossover or qualitative
+interactions are also less vulnerable to monotone rescaling in the
+classical sense, so the present framework is most relevant for
+quantitative, non-crossover interaction claims
+(\citeproc{ref-cox1984}{Cox, 1984}; \citeproc{ref-loftus1978}{Loftus,
+1978}; \citeproc{ref-wagenmakers2012}{Wagenmakers et al., 2012}). As
+Figure~\ref{fig-logit-probit-fitted-example} illustrates, the relevant
+issue is whether the pointwise discrepancy between two fitted curves
+overlaps with the region that drives the interaction claim. Link choice
+is also less threatening when the interaction is reported as a
+response-scale quantity, such as a marginal effect or contrast, and when
+that quantity is robust across theoretically defensible links
+(\citeproc{ref-ainorton2003}{Ai \& Norton, 2003};
+\citeproc{ref-mccabe2022}{McCabe et al., 2022};
+\citeproc{ref-mize2019}{Mize, 2019}). Some theories concern average
+differences in a central range, away from saturation, guessing, floors,
+or ceilings; in those cases, link sensitivity may be small. Sensitivity
+analyses let readers see whether the interaction claim is tied to a
+narrow modeling convention or survives plausible alternatives.
+
+\section{Diagnostics Are Necessary but Not
+Sufficient}\label{diagnostics-are-necessary-but-not-sufficient}
+
+Diagnostics should be part of link-aware modeling, but they cannot
+settle the link-function question by themselves. The problem is not
+uniform diagnostic failure. It is diagnostic misalignment: a wrong link
+can generate a pseudo-interaction that becomes statistically detectable,
+while the checks used to diagnose the model may remain quiet, have
+limited power, or flag only broad misfit. In that situation, the
+interaction test can become sensitive to the wrong scale before the
+diagnostic evidence becomes specific enough to identify its source.
+
+Pregibon-style link tests are useful because they target link adequacy
+more directly than generic residual plots
+(\citeproc{ref-pregibon1980}{Pregibon, 1980}). They expand the fitted
+GLM by adding terms derived from the fitted link, then ask whether the
+expanded model improves the fit. A significant added-term test suggests
+that the assumed link may be inadequate, but it does not identify the
+correct link. The signal may also reflect a missing nonlinear predictor,
+an omitted covariate, an omitted interaction, or another problem in the
+systematic component. A non-significant result is also limited. It means
+that this diagnostic, in this sample, did not detect this particular
+departure.
+
+Simulation-based residual diagnostics provide a broader check. DHARMa
+implements randomized quantile residuals by simulating new responses
+from the fitted model and comparing the observed response with the
+fitted predictive distribution (\citeproc{ref-dunnsmyth1996}{Dunn \&
+Smyth, 1996}; \citeproc{ref-hartig2024}{Hartig, 2024}). These residuals
+are easier to interpret across GLMs and GLMMs than raw, Pearson, or
+deviance residuals. In the diagnostic simulation below, we use four
+DHARMa checks: residual uniformity, dispersion, residual quantile
+patterns over fitted values, and residual structure over the focal
+predictor, implemented as a quantile check for continuous predictors and
+as a design-cell comparison for the categorical \(2 \times 2\) case.
+These checks can detect broad misfit, dispersion problems, and
+structured residual patterns. But they do not by themselves distinguish
+link misspecification from family misspecification, a missing
+nonlinearity, a missing interaction, or a target-metric mismatch.
+
+Model comparison tools, such as AIC, BIC, WAIC, or LOO, add another
+source of evidence, but only within a clear candidate set. For link
+diagnostics, their cleanest use is to compare candidate links while
+holding fixed the observed outcome, likelihood family or support, and
+structural formula. In that use, AIC can compare Poisson-log and
+Poisson-identity fits to the same counts, binomial-logit and
+binomial-probit fits to the same successes and trials, or Gamma-log and
+Gamma-inverse fits to the same positive outcome. It can also compare a
+standard binomial link with a chance-corrected binomial link when both
+define likelihoods for the same binomial data. It is less direct when
+the comparison changes the outcome, the likelihood support, or the
+measurement metric, which is why we do not treat sum-score alternatives
+as a simple AIC contest among links. More importantly, information
+criteria compare predictive fit among the models supplied by the
+analyst. They do not decide which scale defines the scientific
+no-interaction claim. A wrong or incomplete link may even be favored
+when the product term absorbs part of the curvature created by the
+misspecification. Thus, a lower AIC is evidence about relative fit in
+the candidate set, not proof of link adequacy.
+
+For interaction claims, diagnostics should therefore be used as part of
+the argument, not as a final answer. A useful order is: first identify
+constraints from the task, scoring rule, and measurement process; then
+define a small set of plausible outcome families, links, and target
+metrics; then use residual diagnostics, link checks, calibration, and
+information criteria as supporting evidence; finally, report whether the
+interaction conclusion is stable across the plausible specifications. A
+quiet diagnostic result should not end the assessment when the outcome
+has known constraints. For example, in a forced-choice task with a known
+chance level, a standard binomial logit can fit many aspects of the data
+while still encoding the wrong lower asymptote for the scientific claim.
+If the claim concerns response-scale moderation, researchers should
+report response-scale contrasts or marginal effects and examine whether
+those quantities are stable across plausible links
+(\citeproc{ref-mccabe2022}{McCabe et al., 2022};
+\citeproc{ref-mize2019}{Mize, 2019}; \citeproc{ref-rohrer2026}{Rohrer \&
+Arel-Bundock, 2026}). If the claim concerns additivity on a latent or
+linear-predictor scale, the chosen link needs a substantive
+justification.
+
+\section{Simulation Studies}\label{simulation-studies}
+
+The previous sections established the conceptual problem. The
+simulations ask how it translates into inferential risk when the true
+data-generating process is known. They are mechanism demonstrations, not
+prevalence estimates. Each scenario isolates a specific scale problem
+under controlled conditions: a chance floor, a bounded and discrete sum
+score, a within-family link choice, or a diagnostic comparison between
+the wrong-link interaction signal and model checks. Across simulations,
+the true product-term interaction is set to zero on the generating
+scale. We then fit models that impose different scales of additivity and
+record how often they detect a statistically significant interaction.
+The target is controlled quantification of link- or metric-induced
+pseudo-interactions rather than an estimate of how often such cases
+occur in the literature (\citeproc{ref-domingue2024}{Domingue et al.,
+2024}; \citeproc{ref-rimpler2026}{Rimpler et al., 2026}).
+
+The scenarios are illustrative. They were selected because they are
+common enough in psychological research, formally interpretable, and
+tied to constraints that can be stated before seeing the data. They also
+reflect a common interaction-testing setting in psychology: researchers
+begin from effects that are already known, such as group differences,
+treatment-control contrasts, developmental trends, and condition
+effects, and ask whether such effects are heterogeneous across a second
+predictor that also carries an established main effect. In this setting,
+two main effects jointly move observations across a curved link
+function. Curvature is therefore most able to create apparent
+heterogeneity when both main effects are present, which is the regime
+targeted here. The purpose is to show when a zero product term on one
+scale can become a detectable product term on another scale. They do not
+estimate prevalence, and they do not imply that the same false-positive
+rates should be expected for all bounded, discrete, ordinal, or positive
+outcomes.
+
+\begin{tcolorbox}[enhanced jigsaw, toprule=.15mm, colbacktitle=quarto-callout-note-color!10!white, title={Pseudo-interactions as power against the wrong null}, bottomtitle=1mm, rightrule=.15mm, colback=white, toptitle=1mm, breakable, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, titlerule=0mm, arc=.35mm, opacityback=0, colframe=quarto-callout-note-color-frame, leftrule=.75mm, left=2mm]
+
+A link-induced false-positive interaction is not only a sampling
+accident. Under the correctly specified GLM link, the no-interaction
+null states that effects are additive on the scale defined by that link.
+Under a wrong link, the same expected means may imply a nonzero
+interaction on the fitted link scale. A significant product term can
+therefore be understood as power to detect a pseudo-interaction created
+by the mismatch between the generating link and the fitted link.
+
+This idea extends the classic scale-dependence argument for interactions
+(\citeproc{ref-cox1984}{Cox, 1984}; \citeproc{ref-loftus1978}{Loftus,
+1978}; \citeproc{ref-wagenmakers2012}{Wagenmakers et al., 2012}) and
+connects it to work on GLM and outcome-model misspecification
+(\citeproc{ref-domingue2024}{Domingue et al., 2024}). It also
+complements work showing that product-term coefficients in nonlinear
+GLMs do not automatically equal interaction effects on the response
+scale (\citeproc{ref-ainorton2003}{Ai \& Norton, 2003};
+\citeproc{ref-mccabe2022}{McCabe et al., 2022};
+\citeproc{ref-mize2019}{Mize, 2019}).
+
+In a simple \(2 \times 2\) design, let
+\(\mu_{00}, \mu_{10}, \mu_{01}, \mu_{11}\) be the four expected response
+means generated with no product-term interaction on the target link
+scale. If the fitted model uses link \(g\), the induced interaction on
+that fitted scale is
+
+\[
+\Delta_g =
+g(\mu_{11}) - g(\mu_{10}) - g(\mu_{01}) + g(\mu_{00}).
+\]
+
+When \(g\) is the target link, \(\Delta_g = 0\). When \(g\) is not the
+target link, \(\Delta_g\) can differ from zero even though the
+generating model contains no product term. This is the finite-difference
+version of the curvature argument introduced above. The risk depends on
+the size of this pseudo-effect relative to its standard error. This is
+why link misspecification is often small in central ranges where
+plausible links are nearly equivalent, but larger when the relevant
+comparisons involve floors, ceilings, chance levels, or distributional
+tails.
+
+\end{tcolorbox}
+
+The box summarizes the logic behind the simulation estimand. The
+reported detection rates are misspecification-induced detection rates.
+They are not estimates of ordinary Type I error under a correctly
+specified GLM, and they are not prevalence estimates for the
+psychological literature.
+
+The simulations quantify two quantities. First, for each substantive
+scenario, we estimate the probability of detecting an interaction when
+the generating model contains no product term on the relevant scale.
+Second, in the diagnostic simulation, we estimate how often residual
+checks, a Pregibon-style link check, and same-formula AIC comparisons
+across candidate links flag the same misspecification that produced the
+pseudo-interaction. This comparison matters because link-oriented tests,
+simulation-based residual diagnostics, and information criteria can be
+useful, but they do not guarantee that the fitted link is adequate for
+the interaction claim being tested (\citeproc{ref-dunnsmyth1996}{Dunn \&
+Smyth, 1996}; \citeproc{ref-hartig2024}{Hartig, 2024};
+\citeproc{ref-pregibon1980}{Pregibon, 1980}).
+
+The repository reports the full data-generating processes, scripts, and
+extended output. The main text reports compact summaries.
+
+\subsection{Simulation 1: Forced-Choice
+Accuracy}\label{simulation-1-forced-choice-accuracy}
+
+Simulation 1 quantifies the forced-choice problem under controlled
+conditions. We generated binomial accuracy data with a .50 chance floor
+and no age-by-group product term on the chance-corrected logit scale. We
+then fit four models: a Gaussian identity model for proportions,
+standard binomial-logit and binomial-probit models, and a
+chance-corrected binomial-logit model. The outcome of interest was the
+false-positive rate for the age-by-group product term, that is, how
+often each fitted model detected an interaction that was absent on the
+generating scale.
+
+\begin{table}
+
+{\caption{{Simulation 1: false-positive interaction rates and median
+model-implied observed-scale changes in the group gap for forced-choice
+accuracy data. CI = Wilson 95\% confidence
+interval.}{\label{tbl-forced-choice-simulation}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1681}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2832}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.0442}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.0354}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1770}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1327}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1593}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Scenario
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Model
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Fits
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Sig
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+False-positive rate
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+95\% CI
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Median gap change
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Lower performance & Gaussian identity & 300 & 137 & 0.457 & {[}0.401,
+0.513{]} & -1.779 \\
+Lower performance & Standard binomial logit & 300 & 191 & 0.637 &
+{[}0.581, 0.689{]} & -1.769 \\
+Lower performance & Standard binomial probit & 300 & 183 & 0.610 &
+{[}0.554, 0.663{]} & -1.781 \\
+Lower performance & Chance-corrected binomial logit & 179 & 13 & 0.073 &
+{[}0.043, 0.120{]} & -1.233 \\
+Middle performance & Gaussian identity & 300 & 40 & 0.133 & {[}0.099,
+0.176{]} & -0.865 \\
+Middle performance & Standard binomial logit & 300 & 169 & 0.563 &
+{[}0.507, 0.618{]} & -0.862 \\
+Middle performance & Standard binomial probit & 300 & 148 & 0.493 &
+{[}0.437, 0.550{]} & -0.866 \\
+Middle performance & Chance-corrected binomial logit & 300 & 18 & 0.060
+& {[}0.038, 0.093{]} & -0.707 \\
+Higher performance & Gaussian identity & 300 & 36 & 0.120 & {[}0.088,
+0.162{]} & 0.654 \\
+Higher performance & Standard binomial logit & 300 & 103 & 0.343 &
+{[}0.292, 0.399{]} & 0.555 \\
+Higher performance & Standard binomial probit & 300 & 59 & 0.197 &
+{[}0.156, 0.245{]} & 0.617 \\
+Higher performance & Chance-corrected binomial logit & 300 & 14 & 0.047
+& {[}0.028, 0.077{]} & 0.526 \\
+\end{longtable}
+
+\end{table}
+
+\emph{Note.} Successful fits are the number of replications in which the
+model converged and returned an interaction test. Estimates for models
+with failed fits are summarized over successful replications only.
+
+\begin{figure}
+
+\caption{\label{fig-forced-choice-simulation}Simulation 1: forced-choice
+accuracy with a task-implied chance floor. Panel A shows the
+deterministic scenario curves generated by the chance-corrected logit
+model. The grey region marks values below the .50 chance floor, and the
+dashed horizontal line marks chance performance. Panel B shows the
+false-positive rate for the age-by-group product term across repeated
+simulations. Data are generated with no age-by-group interaction on the
+chance-corrected scale.}
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{../figs/forced-choice-simulation.pdf}}
+
+}
+
+\end{figure}%
+
+The results match the mechanism described above. The chance-corrected
+model remains near nominal alpha across scenarios, because it matches
+the generating scale. The standard binomial and Gaussian identity models
+show elevated false-positive rates that are largest when one group's
+performance is close to the .50 floor, exactly where the misplaced lower
+asymptote creates the strongest curvature mismatch.
+
+The chance-corrected link can be numerically demanding. When observed
+performance is close to the chance floor, the likelihood may contain
+little information about changes on the above-chance scale, and
+frequentist fits can become unstable or fail to converge. This
+instability is information about the design and the data: the task may
+provide limited evidence about individual or group differences above
+guessing in that region. In applied work, analysts should report
+convergence problems, inspect predicted probabilities near the floor,
+and treat the chance-corrected fit as part of a small sensitivity
+analysis over plausible links. Bayesian implementations with weakly
+informative priors, or item-level psychometric or IRT-inspired models,
+may stabilize estimation in some settings, but they also add assumptions
+that should be stated and checked.
+
+The Gaussian identity model and the standard binomial links can show
+elevated false-positive rates, especially when the scenario places one
+group closer to the chance floor. Standard binomial models do not always
+produce false interactions. When the theoretical floor is .50 but the
+fitted link treats 0 as the lower asymptote, however, the product term
+may become a way to repair a wrong no-interaction baseline.
+
+\subsection{Simulation 2: Sum Scores}\label{simulation-2-sum-scores}
+
+Simulation 2 makes the measurement-scale problem concrete. We generated
+data on a latent continuous scale with a continuous predictor, a group
+effect, and no true x-by-group product term. We then converted the
+latent variable into ordinal item responses, with each item scored from
+0 to 3, and summed the items. This setup represents a common
+psychometric scoring situation in which a bounded manifest score
+summarizes an underlying response process. The interaction was therefore
+absent on the latent generating scale, but the observed score was
+bounded, discrete, and differentially compressed near the floor and
+ceiling.
+
+The simulation compares three analyses, but only to separate the
+relevant scales: Observed sum-score identity, Gaussian-probit bounded
+score, and Latent generating scale. The observed sum-score identity
+model is the familiar Gaussian identity analysis of the manifest total.
+The Gaussian-probit bounded-score model treats the rescaled total as a
+bounded outcome and asks whether changing the scale of additivity
+changes the interaction conclusion. The latent generating scale is an
+idealized benchmark available only in the simulation, because the true
+latent theta is known. It is included to show what the interaction test
+would target if the generating construct scale were directly observed.
+
+The Gaussian-probit bounded-score model is included as a sensitivity
+model, not as a recommended measurement model. It fits a
+continuity-corrected score proportion with a Gaussian likelihood and a
+probit link, then rescales predictions to the sum-score metric. The
+probit link is more interpretable here than a logit link because its
+linear predictor is on a standard-normal, z-like scale. In the idealized
+threshold-normal setting used in the simulation, this makes the
+coefficient scale closer to standardized latent differences. This
+interpretation remains conditional on the measurement assumptions and
+should not be read as a literal Cohen's d for the target construct.
+
+\begin{table}
+
+{\caption{{Simulation 2: false-positive interaction rates and median
+model-implied observed-scale changes in the group gap for sum-score
+data. Data were generated with no x-by-group product term on the latent
+scale. The latent generating scale is an idealized benchmark available
+only because theta is known in the simulation. CI = Wilson 95\%
+confidence interval.}{\label{tbl-sum-score-simulation}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1322}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.2479}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1074}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.0413}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.0331}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1653}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1240}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1488}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Scenario
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Model
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Scale
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Fits
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Sig
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+False-positive rate
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+95\% CI
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Median gap change
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Middle of scale & Gaussian-probit bounded score & sum score & 300 & 14 &
+0.047 & {[}0.028, 0.077{]} & -0.568 \\
+Middle of scale & Latent generating scale & latent theta & 300 & 16 &
+0.053 & {[}0.033, 0.085{]} & 0.018 \\
+Middle of scale & Observed sum-score identity & sum score & 300 & 29 &
+0.097 & {[}0.068, 0.135{]} & -0.547 \\
+Near ceiling & Gaussian-probit bounded score & sum score & 300 & 15 &
+0.050 & {[}0.031, 0.081{]} & 1.413 \\
+Near ceiling & Latent generating scale & latent theta & 300 & 16 & 0.053
+& {[}0.033, 0.085{]} & 0.003 \\
+Near ceiling & Observed sum-score identity & sum score & 300 & 112 &
+0.373 & {[}0.321, 0.429{]} & 1.328 \\
+Near floor & Gaussian-probit bounded score & sum score & 300 & 26 &
+0.087 & {[}0.060, 0.124{]} & -1.847 \\
+Near floor & Latent generating scale & latent theta & 300 & 18 & 0.060 &
+{[}0.038, 0.093{]} & 0.011 \\
+Near floor & Observed sum-score identity & sum score & 300 & 216 & 0.720
+& {[}0.667, 0.768{]} & -1.762 \\
+\end{longtable}
+
+\end{table}
+
+\begin{figure}
+
+\caption{\label{fig-sum-score-simulation}Simulation 2: sum scores as
+bounded and discrete outcomes. Panel A shows how a latent additive
+data-generating model, with no x-by-group product term, is mapped onto
+the observed sum-score scale under middle, floor, and ceiling scenarios.
+Panel B shows false-positive interaction rates across repeated
+simulations. The latent generating scale is an idealized benchmark
+available only because theta is known in the simulation, not a model
+available in ordinary applied data analysis.}
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{../figs/sum-score-simulation.pdf}}
+
+}
+
+\end{figure}%
+
+The results are conditional on the region of the score range. When the
+manifest score is approximately linear over the observed range, far from
+its bounds, and the claim is about raw-score units, the Gaussian
+identity analysis closely approximates the latent-scale result. When the
+score compresses the latent scale unevenly, the raw-score no-interaction
+baseline can diverge from the latent no-interaction baseline. A
+bounded-score probit model can be useful as a sensitivity analysis
+because it asks whether the conclusion changes when the expected score
+proportion is mapped through a standard-normal link. It is still a model
+of the manifest total, not a measurement model for the construct. When
+the claim concerns an interaction between latent constructs, the more
+direct solution is to model the measurement structure explicitly, for
+example with SEM, item-level ordinal models, IRT-inspired models, or
+other explicit measurement models. These models still require
+assumptions about thresholds, links, loadings, and latent-response
+metrics, so they do not remove the scale problem. They make the
+measurement part of the interaction claim explicit.
+
+\subsection{Simulation 3: Within-Family Link
+Choice}\label{simulation-3-within-family-link-choice}
+
+Simulation 3 moves from the fitted-data illustration in
+Figure~\ref{fig-logit-probit-fitted-example} to a repeated-sampling
+question: can within-family link choice inflate false-positive
+interaction rates when the outcome family, experimental design, and
+random-effect structure are held fixed? We generated repeated binary
+responses in a two-group, two-condition design, with 15 trials per
+participant-condition cell and a subject random intercept. The true
+condition-by-group product term was zero on the generating link scale.
+We then crossed the generating link and fitted link, using logit and
+probit in both roles, and fitted all models as random-intercept GLMMs.
+
+The only misspecification in this simulation is within-family link
+choice: the outcome family, the experimental design, and the
+random-effect structure are held fixed. Under the wrong fitted link, the
+same cell probabilities imply a small but deterministic nonzero product
+term on the fitted link scale, which becomes detectable with enough
+information.
+
+Simulation 3 is a boundary-sensitive stress test. Logit and probit often
+lead to similar conclusions, especially when probabilities sit in the
+middle of the response range, and in many datasets switching between
+them leaves the conclusion unchanged. The contribution of this
+simulation is to show that the link problem extends beyond obvious
+misspecification, such as treating a .50 floor as 0 or using a
+continuous model for binary data. It can appear even among links that
+share the same family, the same bounds, and nearly overlapping fitted
+curves in the middle of the probability range. Relative to the
+forced-choice case, the observed false-positive rates are smaller. In
+inferential terms, they remain large: about 13\% to 15\% compared with
+the 5\% nominal target, or roughly a tripling of the nominal error rate
+in a setting many applied researchers would treat as harmless.
+Simulation 3 quantifies this risk, and
+Figure~\ref{fig-logit-probit-fitted-example} shows why visually similar
+fitted curves do not guarantee interaction robustness.
+
+\begin{table}
+
+{\caption{{Simulation 3: false-positive interaction rates for the
+condition-by-group product term in repeated-trial random-intercept
+GLMMs. CI = Wilson 95\% confidence
+interval.}{\label{tbl-within-family-simulation}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.1345}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.1008}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.1092}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.0420}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.0336}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.1681}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.1261}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.2017}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.0840}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Generating link
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Fitted link
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Link status
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Fits
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Sig
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+False-positive rate
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+95\% CI
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Median beta interaction
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Median SE
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+logit & logit & Matched link & 300 & 16 & 0.053 & {[}0.033, 0.085{]} &
+-0.001 & 0.075 \\
+logit & probit & Wrong link & 300 & 45 & 0.150 & {[}0.114, 0.195{]} &
+-0.041 & 0.042 \\
+probit & logit & Wrong link & 300 & 41 & 0.137 & {[}0.102, 0.180{]} &
+0.071 & 0.076 \\
+probit & probit & Matched link & 300 & 15 & 0.050 & {[}0.031, 0.081{]} &
+-0.003 & 0.043 \\
+\end{longtable}
+
+\end{table}
+
+\begin{figure}
+
+\caption{\label{fig-within-family-links}Simulation 3: within-family link
+choice in repeated-trial random-intercept GLMMs. Panel A shows the
+deterministic cell probabilities generated by additive logit or probit
+models at random intercept 0. Panel B shows the false-positive rate for
+the condition-by-group product term when the generating and fitted links
+are crossed. Error bars are Wilson 95\% confidence intervals, and the
+dashed line marks nominal alpha.}
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{../figs/within-family-links.pdf}}
+
+}
+
+\end{figure}%
+
+The table reports false-positive rates relative to the generating-link
+null. The median product-term coefficient and its standard error are on
+the fitted link scale, so they should not be read as response-scale
+changes in probability. Figure~\ref{fig-within-family-links} makes the
+Monte Carlo result explicit: even with the same binary outcome family,
+logit and probit define slightly different no-interaction baselines, and
+this difference can become inferentially visible in repeated samples. A
+result that is stable across both links is easier to defend. A result
+that appears only under one link should be reported as link-conditional,
+or translated into a response-scale estimand and checked across
+plausible links.
+
+\subsection{Diagnostic Simulation}\label{diagnostic-simulation}
+
+Finally, we examined whether common diagnostics would flag the same link
+problems that produced pseudo-interactions. This simulation is not a
+general benchmark of all possible checks. It asks whether diagnostic
+evidence appears before, after, or at the same time as the false
+interaction.
+
+We used five scenarios, each tied to a previous example or matched
+counterpart in the paper. The first is tied to the simple count example
+in Figure~\ref{fig-simple-count-example}. Data are generated from a
+Poisson-log model in which expected errors decline with age, with no
+age-by-group product term on the log-count scale. The diagnostic
+scenario uses the same qualitative structure as the figure, with
+coefficients recorded in the generated scenario table: intercept 2.20,
+age effect -0.55 per year after age 6, and group effect 0.45. The fitted
+model keeps the Poisson family and the interaction formula, but uses an
+identity link. This makes the comparison a same-family link comparison,
+not a comparison between Poisson and Gaussian models.
+
+The second scenario is the lower-performance forced-choice scenario from
+Simulation 1. Data are generated with a .50 chance floor, 20 trials per
+participant, intercept -0.80, age effect 0.60, group effect -0.90, and
+no age-by-group product term on the chance-corrected logit scale. The
+fitted model is a standard binomial-logit interaction model, which
+respects the binomial trial structure but places the lower asymptote at
+0 rather than at chance.
+
+The third scenario mirrors the probit-generated, logit-fitted case in
+Simulation 3. Data are repeated binary trials with a subject random
+intercept, 15 trials per condition cell, and latent ICC .30. The fixed
+effects are the probit reference values used in Simulation 3: intercept
+1.50, group effect -1.00, condition effect -1.00, and no
+group-by-condition product term. The fitted model is the corresponding
+random-intercept logit GLMM with the same interaction formula.
+
+The fourth scenario is a continuous-predictor counterpart to the
+previous binary repeated-trials case. It keeps the probit
+data-generating link, the logit fitted link, the group effect, the
+focal-predictor effect, the subject random intercept, and the latent
+ICC, but replaces the two-level condition with a continuous predictor
+sampled from 0 to 1. This scenario asks whether the same
+logit-versus-probit issue is visible when the focal predictor has enough
+unique values for continuous-predictor residual checks to be better
+identified.
+
+The fifth scenario connects to the Gamma example in
+Figure~\ref{fig-family-link-distinction}. Data are generated from a
+Gamma model with a log link, shape 8, baseline mean 400 when x = 0 and
+group = 0, x effect 0.25 on the log-mean scale, group effect 0.25, and
+no x-by-group product term. The fitted model keeps the Gamma family and
+the interaction formula, but uses the inverse link.
+
+In each replication, diagnostics were applied to the misspecified
+interaction model, because this is the model an analyst would usually
+inspect after finding the interaction. This design targets a realistic
+post-estimation question: does the same fitted model that produced the
+product-term finding also show enough diagnostic evidence to warn the
+analyst about the link problem? The choice is demanding because the
+product term can absorb part of the curvature created by the wrong link.
+A diagnostic workflow applied to an additive model before adding the
+product term would answer a different question. The present simulation
+asks whether ordinary checks protect the interaction conclusion once the
+misspecified interaction model has been fitted.
+
+The residual workflow used four DHARMa checks: residual uniformity,
+dispersion, residual quantile patterns over fitted values, and residual
+structure over the focal predictor, using a quantile check for
+continuous predictors and a design-cell comparison for the categorical
+\(2 \times 2\) case (\citeproc{ref-dunnsmyth1996}{Dunn \& Smyth, 1996};
+\citeproc{ref-hartig2024}{Hartig, 2024}). We also used a Pregibon-style
+added-term link check as a more link-oriented diagnostic
+(\citeproc{ref-pregibon1980}{Pregibon, 1980}).
+
+Finally, we used AIC only for relative comparisons among prespecified
+candidate mean models fitted to the same response data with the same
+interaction formula. In the count and Gamma scenarios, the response
+family is held fixed and only the link changes. In the binary scenarios,
+the binomial sampling model is held fixed. The chance-floor scenario
+compares two binomial mean mappings: a standard logit model and a
+chance-corrected logit model with a design-implied lower asymptote.
+Thus, AIC varies the candidate mean-link mapping, not the presence or
+absence of the product term. We report the proportion of replications in
+which the lower AIC favored the target model. Because no inconclusive
+ΔAIC category is used, the complement favors the misspecified model when
+both AIC values are available. These values should be read as relative
+fit within a limited candidate set, not as evidence that AIC can
+identify the scientifically correct scale of additivity.
+
+\begin{table}
+
+{\caption{{Diagnostic simulation across five link-misspecification
+scenarios. FP interaction reports how often the misspecified interaction
+model detected a product term absent on the generating link scale.
+DHARMa gives the range across prespecified residual checks, not an
+omnibus diagnostic. Pregibon reports the added-term link check. AIC
+favors target reports the proportion of replications in which the lower
+AIC favored the target interaction model over the misspecified
+interaction model, with the structural formula held fixed. The
+complementary proportion favors the misspecified model when both AIC
+values are available. CI = Wilson 95\% confidence
+interval.}{\label{tbl-diagnostic-scenarios}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1892}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2162}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1622}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1419}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1081}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.0608}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1216}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Case
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Target model
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Misspecified model
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+FP interaction
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+DHARMa
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Pregibon
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+AIC favors target
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Count errors & Poisson log & Poisson identity & 0.942 {[}0.908, 0.964{]}
+& 0.007-0.906 (4) & 0.996 & 0.996 \\
+Chance-floor accuracy & chance-corrected binomial logit & standard
+binomial logit & 0.617 {[}0.561, 0.670{]} & 0.000-0.070 (4) & 0.303 &
+0.000 \\
+Binary repeated trials & binomial probit GLMM & binomial logit GLMM &
+0.080 {[}0.054, 0.116{]} & 0.000-0.020 (4) & 1.000 & 0.923 \\
+Binary continuous predictor & binomial probit GLMM & binomial logit GLMM
+& 0.060 {[}0.038, 0.093{]} & 0.000-0.007 (4) & 1.000 & 0.960 \\
+Gamma mean response time & Gamma log & Gamma inverse & 0.287 {[}0.238,
+0.340{]} & 0.000-0.043 (4) & 0.303 & 0.777 \\
+\end{longtable}
+
+\end{table}
+
+Table~\ref{tbl-diagnostic-scenarios} documents diagnostic misalignment:
+the same misspecification that generates a pseudo-interaction often does
+not produce a clear diagnostic signal. In several same-family scenarios,
+AIC or the Pregibon-style check favored the target model, but protection
+was uneven and depended on which candidate models were compared. The
+starkest result is the chance-floor scenario: a psychologically common
+link problem produced a large pseudo-interaction rate while all four
+DHARMa checks remained near nominal levels and AIC favored the
+misspecified model.
+
+\section{Practical Starting Points for Link-Aware Interaction
+Testing}\label{practical-starting-points-for-link-aware-interaction-testing}
+
+The applied output of the framework is a small set of outcome-specific
+starting points. These starting points are prompts for the choices that
+should be visible in a report: what family respects the observed
+response, what link defines the no-interaction baseline, what target
+metric answers the substantive question, and what sensitivity check is
+feasible for the design. Table~\ref{tbl-link-aware-workflow} summarizes
+these choices for common psychological outcomes.
+
+The link choice and the robustness check answer different questions. The
+preferred link should be justified from theory, task structure, or
+measurement whenever possible. When these considerations do not uniquely
+determine the link, the interaction should be probed through a planned
+link-sensitivity analysis. Researchers should fit a set of theoretically
+defensible alternative specifications, compute the same target
+response-scale contrast across them, and state whether the interaction
+conclusion is stable or link-conditional. This shows which part of the
+conclusion depends on modeling conventions and which part does not.
+
+\begin{table}
+
+{\caption{{Practical starting points for link-aware interaction testing
+across common psychological outcomes.}{\label{tbl-link-aware-workflow}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.1333}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.4386}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.4281}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Outcome type
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Plausible starting point
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Minimal sensitivity check
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Forced-choice accuracy & Binomial logit/probit; chance-corrected link
+when the task floor is part of the estimand. & Compare standard
+logit/probit and chance-corrected links; report convergence and
+response-scale contrasts. \\
+Binary/proportion outcome & Binomial logit/probit; consider cloglog for
+asymmetric processes. & Compare logit/probit; inspect calibration and
+contrasts near bounds or rare-event regions. \\
+Likert/ordinal item & Ordinal logit/probit; metric model only with a
+clear observed-scale target. & Compare ordinal and metric summaries;
+report category probabilities or response-scale contrasts. \\
+Sum score/composite & Gaussian identity when many levels stay far from
+bounds; otherwise consider item-level, ordinal, or bounded-score models.
+& Inspect bounds, skew, and score concentration; compare with item-level
+or bounded-score sensitivity models when feasible. \\
+Counts/error counts & Poisson or negative binomial, usually with log
+link; identity only with an observed-count target. & Check
+overdispersion and zero inflation; compare count contrasts across
+plausible count models. \\
+Response time/skewed positive outcome & Lognormal, Gamma log/inverse, or
+transformed Gaussian, matched to absolute, proportional, reciprocal, or
+transformed change. & Compare raw-, log-, and response-scale summaries;
+inspect tail fit and predicted values. \\
+\end{longtable}
+
+\end{table}
+
+These entries are starting points; theory, design, and data quality
+still decide the final model, including whether the design is
+informative enough for the interaction claim
+(\citeproc{ref-baranger2023}{Baranger et al., 2023};
+\citeproc{ref-castillo2026}{Castillo et al., 2026}). A link-scale
+coefficient can be useful when the scientific claim concerns that model
+scale. A response-scale contrast or marginal effect is often closer to
+the claim made in words (\citeproc{ref-mccabe2022}{McCabe et al., 2022};
+\citeproc{ref-mize2019}{Mize, 2019}; \citeproc{ref-rohrer2026}{Rohrer \&
+Arel-Bundock, 2026}). Marginal effects clarify the estimand, but they
+remain conditional on the fitted model and on the point or distribution
+at which they are evaluated.
+
+Diagnostics, predictive checks, and information criteria can warn about
+misspecification or relative fit, but they provide secondary evidence
+for an interaction claim (\citeproc{ref-dunnsmyth1996}{Dunn \& Smyth,
+1996}; \citeproc{ref-hartig2024}{Hartig, 2024};
+\citeproc{ref-pregibon1980}{Pregibon, 1980}). The central robustness
+question is whether the target estimand remains substantively stable
+across a small, theory-limited set of plausible links or measurement
+models. This is related to the logic of multiverse analysis, although
+the recommendation here is narrower: a targeted sensitivity analysis
+defined by the outcome, the task, and the scientific estimand. Stable
+conclusions across plausible specifications are easier to defend.
+Unstable conclusions should be reported as conditional on the modeling
+choice. This extends a basic reporting principle: choices that affect
+the claim should be visible, justified, and interpretable
+(\citeproc{ref-mustillo2018}{Mustillo et al., 2018}).
+
+\section{Discussion}\label{discussion}
+
+Whether an interaction claim survives plausible link alternatives is a
+question that existing reporting practice rarely answers. Some claims
+will be stable across reasonable links, scales, and response-scale
+summaries; others are conditional on a modeling choice that is currently
+left implicit. The scale problem is well known
+(\citeproc{ref-cox1984}{Cox, 1984}; \citeproc{ref-loftus1978}{Loftus,
+1978}; \citeproc{ref-wagenmakers2012}{Wagenmakers et al., 2012}). In
+GLMs, it takes the practical form developed above. The same issue can
+also extend beyond interactions to nonlinear effects, because many
+psychological analyses search for curvature, thresholds, and changing
+slopes without first specifying the scale on which these patterns are
+expected (\citeproc{ref-domingue2024}{Domingue et al., 2024};
+\citeproc{ref-mccabe2022}{McCabe et al., 2022};
+\citeproc{ref-rohrer2021}{Rohrer \& Arslan, 2021}).
+
+The preregistered review showed why this matters for current practice.
+Interaction tests were common, link functions were often implicit, and
+many interaction-testing articles included identity-link analyses with
+outcomes for which observed-scale additivity was not self-evident. The
+review documents this as a reporting gap: readers cannot evaluate which
+scale of additivity was assumed from the information provided.
+
+The three worked examples show how family, link, and target metric can
+each carry the scale assumption behind an interaction test.
+Forced-choice accuracy is the clearest case: the binomial family is
+correct, but a standard link misplaces the lower asymptote. The
+logit-probit comparison shows that the problem persists even within a
+family, between links that look similar in the central range. Sum scores
+extend the problem to the target-metric level, where the manifest score
+is already a measurement mapping from item responses. One implication
+that goes beyond the specific examples is that target-metric problems
+can overlap with measurement non-invariance: when the mapping from
+latent response tendency to observed score differs across groups,
+conditions, or cultures, group differences in floor or ceiling exposure
+produce apparent interactions that reflect measurement rather than
+moderation. Ordinary floor and ceiling effects are therefore the visible
+extreme of a broader remapping problem that applies whenever the
+observed metric is not the theoretical metric.
+
+The simulations were designed to quantify pseudo-interactions, not to
+estimate the prevalence of false interactions in the literature. They
+complement work showing that interaction estimates are often difficult
+to estimate precisely even when the model form is appropriate
+(\citeproc{ref-baranger2023}{Baranger et al., 2023};
+\citeproc{ref-castillo2026}{Castillo et al., 2026}). They show how link
+and metric choices can generate significant product terms even when the
+true interaction is zero on the generating scale. The diagnostic
+simulation adds a practical caution: residual checks, Pregibon-style
+tests, and information criteria can be informative, but their protection
+was uneven and depended on the candidate set. The chance-floor scenario
+is the clearest psychologically relevant failure case: a wrong link
+generated a large pseudo-interaction while residual checks remained
+quiet and AIC favored the simpler standard link. This is diagnostic
+misalignment, not uniform diagnostic failure. Diagnostics should
+therefore be treated as evidence about model fit within a candidate set,
+not as proof that an interaction claim is robust to link choice
+(\citeproc{ref-dunnsmyth1996}{Dunn \& Smyth, 1996};
+\citeproc{ref-hartig2024}{Hartig, 2024};
+\citeproc{ref-pregibon1980}{Pregibon, 1980}).
+
+The problem extends beyond interaction testing in GLMs: unmodeled
+nonlinearity can be mistaken for substantive structure. For example, a
+related pattern has been highlighted in regression mixture models, where
+the usual assumption of normally distributed errors within latent
+classes can make distributional misspecification look like population
+heterogeneity (\citeproc{ref-vanhorn2012}{Van Horn et al., 2012}). When
+within-class normality is violated, even modest departures from
+normality may produce additional classes that reflect skewness,
+boundedness, scale compression, or other unmodeled distributional
+features. These are pseudo-clusters, in the same descriptive sense in
+which the product terms examined in this paper are pseudo-interactions.
+Similar results have been shown in psychological clustering
+applications, where even modestly skewed indicators can inflate the
+number of recovered clusters, especially as sample size increases
+(\citeproc{ref-toffalini2024clusters}{Toffalini et al., 2024}). The
+analogy is useful because both cases show how restrictive metric or
+distributional assumptions can transform continuous nonlinear structure
+into apparent substantive structure: extra classes in mixture models,
+product-term interactions in our setting. Therefore, scale-boundary
+artifacts should be treated as a general modeling risk, not only as a
+special case of removable interactions.
+
+Five limitations bound the scope of the conclusions. First, the review
+was descriptive and targeted to five reference journals across major
+areas of psychology. The numerical estimates should therefore be read as
+estimates of reporting practice in high-standard outlets during the
+sampled year, not as a census of all psychology journals or all
+publication years. A broader mapping across journals, years, and
+subfields could, in the future, provide the basis for reporting guidance
+on interaction tests when constrained outcomes are used. Second, the
+review coded directly observable reporting features instead of
+article-level removability. This distinction is most straightforward in
+simple \(2 \times 2\) cases; beyond them, classification can depend on
+admissible transformations, functional form, higher-order structure, and
+the target contrast or region of the predictor space. Published reports
+also rarely provide enough information for this judgment. We therefore
+use removability as a conceptual lens and keep the review focused on
+family, link, and scale-of-additivity reporting. Third, the simulations
+are mechanism demonstrations targeted at a specific regime: two
+established main effects that jointly expose observations to
+link-function curvature. They isolate scale problems under known
+data-generating processes and do not estimate prevalence or cover all
+realistic complications, such as item heterogeneity, lapses, response
+bias, nonlinear predictors, and missing data. Fourth, chance-corrected
+links are appropriate only when a chance floor is theoretically
+justified. They are not a universal replacement for standard binomial
+models. In forced-choice tasks, the chance floor may be fixed by design,
+estimated under stronger assumptions, or varied in sensitivity analyses.
+Finally, logit and probit links often lead to very similar conclusions,
+especially away from boundaries; our claim is that link choice can
+matter for interaction claims, not that it always does.
+
+The main contribution is practical. Link-aware interaction testing gives
+researchers a common language for four judgments that are often
+separated in practice: what outcome family is plausible, what link
+defines the no-interaction baseline, what response-scale quantity
+answers the substantive question, and whether the conclusion survives
+plausible alternatives. This workflow complements existing guidance on
+nonlinear interactions, marginal effects, and prediction-based
+interpretation (\citeproc{ref-mccabe2022}{McCabe et al., 2022};
+\citeproc{ref-mize2019}{Mize, 2019}; \citeproc{ref-rohrer2026}{Rohrer \&
+Arel-Bundock, 2026}). Stable conclusions across the specifications in
+Table~\ref{tbl-link-aware-workflow} strengthen the interaction claim.
+Unstable conclusions remain informative when reported as conditional on
+the modeling choice. The contribution is therefore operational: in GLMs,
+choosing the link is choosing the scale of the no-interaction claim.
+
+\section{References}\label{references}
+
+\phantomsection\label{refs}
+\begin{CSLReferences}{1}{0}
+\bibitem[\citeproctext]{ref-ainorton2003}
+Ai, C., \& Norton, E. C. (2003). Interaction terms in logit and probit
+models. \emph{Economics Letters}, \emph{80}(1), 123--129.
+\url{https://doi.org/10.1016/S0165-1765(03)00032-6}
+
+\bibitem[\citeproctext]{ref-aranda-ordaz1981}
+Aranda-Ordaz, F. J. (1981). On two families of transformations to
+additivity for binary response data. \emph{Biometrika}, \emph{68}(2),
+357--363. \url{https://doi.org/10.1093/biomet/68.2.357}
+
+\bibitem[\citeproctext]{ref-baranger2023}
+Baranger, D. A. A., Finsaas, M. C., Goldstein, B. L., Vize, C. E.,
+Lynam, D. R., \& Olino, T. M. (2023). Tutorial: Power analyses for
+interaction effects in cross-sectional regressions. \emph{Advances in
+Methods and Practices in Psychological Science}, \emph{6}(3),
+10.1177/25152459231187531.
+\url{https://doi.org/10.1177/25152459231187531}
+
+\bibitem[\citeproctext]{ref-burknervuorre2019}
+Bürkner, P.-C., \& Vuorre, M. (2019). Ordinal regression models in
+psychology: A tutorial. \emph{Advances in Methods and Practices in
+Psychological Science}, \emph{2}(1), 77--101.
+\url{https://doi.org/10.1177/2515245918823199}
+
+\bibitem[\citeproctext]{ref-busemeyer1983}
+Busemeyer, J. R., \& Jones, L. E. (1983). Analysis of multiplicative
+combination rules when the causal variables are measured with error.
+\emph{Psychological Bulletin}, \emph{93}(3), 549--562.
+\url{https://doi.org/10.1037/0033-2909.93.3.549}
+
+\bibitem[\citeproctext]{ref-castillo2026}
+Castillo, A., Miller, J. D., Vize, C., Baranger, D. A. A., \& Lynam, D.
+R. (2026). When do interaction/moderation effects stabilize in linear
+regression? \emph{Advances in Methods and Practices in Psychological
+Science}, \emph{9}(1), 10.1177/25152459251407860.
+\url{https://doi.org/10.1177/25152459251407860}
+
+\bibitem[\citeproctext]{ref-cox1984}
+Cox, D. R. (1984). Interaction. \emph{International Statistical Review /
+Revue Internationale de Statistique}, \emph{52}(1), 1--24.
+\url{https://doi.org/10.2307/1403235}
+
+\bibitem[\citeproctext]{ref-czadosantner1992}
+Czado, C., \& Santner, T. J. (1992). The effect of link misspecification
+on binary regression inference. \emph{Journal of Statistical Planning
+and Inference}, \emph{33}(2), 213--231.
+\url{https://doi.org/10.1016/0378-3758(92)90069-5}
+
+\bibitem[\citeproctext]{ref-domingue2024}
+Domingue, B. W., Kanopka, K., Trejo, S., Rhemtulla, M., \& Tucker-Drob,
+E. M. (2024). Ubiquitous bias and false discovery due to model
+misspecification in analysis of statistical interactions: The role of
+the outcome{'}s distribution and metric properties. \emph{Psychological
+Methods}, \emph{29}(6), 1164--1179.
+\url{https://doi.org/10.1037/met0000532}
+
+\bibitem[\citeproctext]{ref-dunnsmyth1996}
+Dunn, P. K., \& Smyth, G. K. (1996). Randomized quantile residuals.
+\emph{Journal of Computational and Graphical Statistics}, \emph{5}(3),
+236--244. \url{https://doi.org/10.1080/10618600.1996.10474708}
+
+\bibitem[\citeproctext]{ref-hainmueller2019}
+Hainmueller, J., Mummolo, J., \& Xu, Y. (2019). How Much Should We Trust
+Estimates from Multiplicative Interaction Models? Simple Tools to
+Improve Empirical Practice. \emph{Political Analysis}, \emph{27}(2),
+163--192. \url{https://doi.org/10.1017/pan.2018.46}
+
+\bibitem[\citeproctext]{ref-hartig2024}
+Hartig, F. (2024). \emph{{DHARMa}: Residual diagnostics for hierarchical
+(multi-level / mixed) regression models}.
+\url{https://doi.org/10.32614/CRAN.package.DHARMa}
+
+\bibitem[\citeproctext]{ref-knoblauch2012}
+Knoblauch, K., \& Maloney, L. T. (2012). \emph{Modeling Psychophysical
+Data in R}. Springer. \url{https://doi.org/10.1007/978-1-4614-4475-6}
+
+\bibitem[\citeproctext]{ref-liddellkruschke2018}
+Liddell, T. M., \& Kruschke, J. K. (2018). Analyzing ordinal data with
+metric models: What could possibly go wrong? \emph{Journal of
+Experimental Social Psychology}, \emph{79}, 328--348.
+\url{https://doi.org/10.1016/j.jesp.2018.08.009}
+
+\bibitem[\citeproctext]{ref-loftus1978}
+Loftus, G. R. (1978). On interpretation of interactions. \emph{Memory \&
+Cognition}, \emph{6}(3), 312--319.
+\url{https://doi.org/10.3758/BF03197461}
+
+\bibitem[\citeproctext]{ref-lubinski1990}
+Lubinski, D., \& Humphreys, L. G. (1990). Assessing spurious
+{"}moderator effects{"}: Illustrated substantively with the hypothesized
+({"}synergistic{"}) relation between spatial and mathematical ability.
+\emph{Psychological Bulletin}, \emph{107}(3), 385--393.
+\url{https://doi.org/10.1037/0033-2909.107.3.385}
+
+\bibitem[\citeproctext]{ref-mccabe2022}
+McCabe, C. J., Halvorson, M. A., King, K. M., Cao, X., \& Kim, D. S.
+(2022). Interpreting interaction effects in generalized linear models of
+nonlinear probabilities and counts. \emph{Multivariate Behavioral
+Research}, \emph{57}(2-3), 243--263.
+\url{https://doi.org/10.1080/00273171.2020.1868966}
+
+\bibitem[\citeproctext]{ref-mccullaghnelder1989}
+McCullagh, P., \& Nelder, J. A. (1989). \emph{Generalized linear models}
+(2nd ed.). Chapman; Hall.
+
+\bibitem[\citeproctext]{ref-mcneish2023}
+McNeish, D. (2023). Psychometric properties of sum scores and factor
+scores differ even when their correlation is 0.98: A response to Widaman
+and Revelle. \emph{Behavior Research Methods}, \emph{55}(8), 4269--4290.
+\url{https://doi.org/10.3758/s13428-022-02016-x}
+
+\bibitem[\citeproctext]{ref-mcneish2020}
+McNeish, D., \& Wolf, M. G. (2020). Thinking twice about sum scores.
+\emph{Behavior Research Methods}, \emph{52}(6), 2287--2305.
+\url{https://doi.org/10.3758/s13428-020-01398-0}
+
+\bibitem[\citeproctext]{ref-micceri1989}
+Micceri, T. (1989). The unicorn, the normal curve, and other improbable
+creatures. \emph{Psychological Bulletin}, \emph{105}(1), 156--166.
+
+\bibitem[\citeproctext]{ref-mize2019}
+Mize, T. D. (2019). Best practices for estimating, interpreting, and
+presenting nonlinear interaction effects. \emph{Sociological Science},
+\emph{6}, 81--117. \url{https://doi.org/10.15195/v6.a4}
+
+\bibitem[\citeproctext]{ref-molenaar2014}
+Molenaar, D., \& Dolan, C. V. (2014). Testing systematic genotype by
+environment interactions using item level data. \emph{Behavior
+Genetics}, \emph{44}(3), 212--231.
+\url{https://doi.org/10.1007/s10519-014-9647-9}
+
+\bibitem[\citeproctext]{ref-moscatelli2012}
+Moscatelli, A., Mezzetti, M., \& Lacquaniti, F. (2012). Modeling
+psychophysical data at the population-level: The generalized linear
+mixed model. \emph{Journal of Vision}, \emph{12}(11), 26.
+\url{https://doi.org/10.1167/12.11.26}
+
+\bibitem[\citeproctext]{ref-mustillo2018}
+Mustillo, S. A., Lizardo, O. A., \& McVeigh, R. M. (2018). Editors{'}
+Comment: A Few Guidelines for Quantitative Submissions. \emph{American
+Sociological Review}, \emph{83}(6), 1281--1283.
+\url{https://doi.org/10.1177/0003122418806282}
+
+\bibitem[\citeproctext]{ref-nelderwedderburn1972}
+Nelder, J. A., \& Wedderburn, R. W. M. (1972). Generalized linear
+models. \emph{Journal of the Royal Statistical Society: Series A
+(General)}, \emph{135}(3), 370--384.
+\url{https://doi.org/10.2307/2344614}
+
+\bibitem[\citeproctext]{ref-pregibon1980}
+Pregibon, D. (1980). Goodness of link tests for generalized linear
+models. \emph{Journal of the Royal Statistical Society Series C: Applied
+Statistics}, \emph{29}(1), 15--24. \url{https://doi.org/10.2307/2346405}
+
+\bibitem[\citeproctext]{ref-rimpler2026}
+Rimpler, A., Kiers, H. A. L., \& Ravenzwaaij, D. van. (2026). Anything
+Goes: Statistical Interactions Without Substantive Theory.
+\emph{Computational Brain \& Behavior}.
+\url{https://doi.org/10.1007/s42113-026-00305-8}
+
+\bibitem[\citeproctext]{ref-rohrer2026}
+Rohrer, J. M., \& Arel-Bundock, V. (2026). Models as Prediction
+Machines: How to Convert Confusing Coefficients Into Clear Quantities.
+\emph{Advances in Methods and Practices in Psychological Science},
+\emph{9}(2), 25152459261424825.
+\url{https://doi.org/10.1177/25152459261424825}
+
+\bibitem[\citeproctext]{ref-rohrer2021}
+Rohrer, J. M., \& Arslan, R. C. (2021). Precise Answers to Vague
+Questions: Issues With Interactions. \emph{Advances in Methods and
+Practices in Psychological Science}, \emph{4}(2), 25152459211007368.
+\url{https://doi.org/10.1177/25152459211007368}
+
+\bibitem[\citeproctext]{ref-smith2020}
+Smith, T., Walker, D., \& McKenna, C. (2020). An exploration of link
+functions used in ordinal regression. \emph{Journal of Modern Applied
+Statistical Methods}, \emph{18}(1).
+\url{https://doi.org/10.22237/jmasm/1556669640}
+
+\bibitem[\citeproctext]{ref-stukel1988}
+Stukel, T. A. (1988). Generalized logistic models. \emph{Journal of the
+American Statistical Association}, \emph{83}(402), 426--431.
+\url{https://doi.org/10.1080/01621459.1988.10478613}
+
+\bibitem[\citeproctext]{ref-toffalini2024clusters}
+Toffalini, E., Gambarota, F., Perugini, A., Girardi, P., Tobia, V.,
+Altoè, G., Giofrè, D., Psicostat Core Team, \& Feraco, T. (2024).
+Clusters that are not there: An {R} tutorial and a {S}hiny app to
+quantify a priori inferential risks when using clustering methods.
+\emph{International Journal of Psychology}.
+\url{https://doi.org/10.1002/ijop.13246}
+
+\bibitem[\citeproctext]{ref-vanhorn2012}
+Van Horn, M. L., Smith, J., Fagan, A. A., Jaki, T., Feaster, D. J.,
+Masyn, K., Hawkins, J. D., \& Howe, G. (2012). Not quite normal:
+Consequences of violating the assumption of normality in regression
+mixture models. \emph{Structural Equation Modeling: A Multidisciplinary
+Journal}, \emph{19}(2), 227--249.
+\url{https://doi.org/10.1080/10705511.2012.659622}
+
+\bibitem[\citeproctext]{ref-wagenmakers2012}
+Wagenmakers, E.-J., Krypotos, A.-M., Criss, A. H., \& Iverson, G.
+(2012). On the interpretation of removable interactions: A survey of the
+field 33~years after Loftus. \emph{Memory \& Cognition}, \emph{40}(2),
+145--160. \url{https://doi.org/10.3758/s13421-011-0158-0}
+
+\bibitem[\citeproctext]{ref-wichmann2001}
+Wichmann, F. A., \& Hill, N. J. (2001). The psychometric function: I.
+Fitting, sampling, and goodness of fit. \emph{Perception \&
+Psychophysics}, \emph{63}(8), 1293--1313.
+\url{https://doi.org/10.3758/BF03194544}
+
+\bibitem[\citeproctext]{ref-widaman2023}
+Widaman, K. F., \& Revelle, W. (2023). Thinking thrice about sum scores,
+and then some more about measurement and analysis. \emph{Behavior
+Research Methods}, \emph{55}(2), 788--806.
+\url{https://doi.org/10.3758/s13428-022-01849-w}
+
+\bibitem[\citeproctext]{ref-yuhuang2019}
+Yu, S., \& Huang, X. (2019). Link misspecification in generalized linear
+mixed models with a random intercept for binary responses. \emph{TEST},
+\emph{28}(3), 827--843. \url{https://doi.org/10.1007/s11749-018-0602-6}
+
+\end{CSLReferences}
+
+
+
+
+
+
+\end{document}

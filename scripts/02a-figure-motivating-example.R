@@ -12,7 +12,33 @@ library(ggplot2)
 
 source("R/project-settings.R")
 source("R/utils-link-functions.R")
-source("R/utils-plots.R")
+
+
+link_theme <- function(base_size = 10, base_family = "") {
+  ggplot2::theme_classic(base_size = base_size, base_family = base_family) +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(
+        face = "bold",
+        size = base_size + 1,
+        margin = ggplot2::margin(b = 3)
+      ),
+      plot.subtitle = ggplot2::element_text(
+        size = base_size - 1,
+        color = "grey25",
+        margin = ggplot2::margin(b = 6)
+      ),
+      axis.title = ggplot2::element_text(size = base_size),
+      axis.text = ggplot2::element_text(size = base_size - 1, color = "grey20"),
+      strip.text = ggplot2::element_text(face = "bold", size = base_size - 1),
+      legend.position = "bottom",
+      legend.title = ggplot2::element_text(size = base_size - 1),
+      legend.text = ggplot2::element_text(size = base_size - 1),
+      legend.key.width = grid::unit(1.25, "lines"),
+      panel.grid.major = ggplot2::element_blank(),
+      panel.spacing = grid::unit(0.9, "lines"),
+      plot.margin = ggplot2::margin(6, 8, 6, 8)
+    )
+}
 
 dir.create("figs", showWarnings = FALSE, recursive = TRUE)
 
@@ -173,11 +199,7 @@ p <- ggplot(
   link_scale_linetype_discrete(name = "Group") +
   link_scale_shape_discrete(name = "Group") +
   link_theme(base_size = 10.5) +
-  theme(
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    strip.text = element_text(size = 9.5, face = "bold")
-  )
+  link_theme()
 
 # SAVE OUTPUT #
 
