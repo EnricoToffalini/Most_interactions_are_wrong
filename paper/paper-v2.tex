@@ -370,29 +370,26 @@ age; on the log scale it does not.}
 
 \end{figure}%
 
-On the observed count scale, the answer appears to be yes, as the group
-effect clearly shrinks as age increases. But both groups share the same
-age effect on the log scale, so their fitted lines are parallel there,
-and parallel lines, once mapped back to raw counts, must converge. What
-looks like an interaction is just how an additive log-scale model
-appears when expressed in counts.
-
-This convergence is merely the mathematical consequence of projecting a
-multiplicative effect onto a metric bounded at zero. Whether these data
-represent an interaction depends entirely on a choice that usually
-remains implicit: the scale of additivity. This choice dictates the
-metric on which effects combine linearly. On the raw count scale, the
-group difference changes with age; on the log scale, it remains
-constant.
+Because an interaction is a difference between differences, the question
+is whether the group difference itself changes with age. On the observed
+count scale, the group effect does appear to shrink as age increases, so
+it looks like an interaction. But looking at the log-scale
+(Figure~\ref{fig-simple-count-example}, right panel), both groups have
+the same age slope, meaning their fitted lines are parallel. A constant
+difference on the log scale corresponds to a constant ratio on the count
+scale, so the absolute gap between groups is proportional to the
+baseline and shrinks as errors decline with age. So whether we call this
+an interaction is not a fact about the data. It depends on which scale
+we assume effects add up linearly on. Additive on the log scale means
+multiplicative (and non-parallel) on the count scale, and vice versa.
 
 This ambiguity extends far beyond this single illustration, as
 interaction claims are central to psychological theory. Whenever
 researchers ask whether an effect is moderated, or whether it holds only
 under certain boundary conditions, they are asserting that the impact of
-one variable depends on another. Because an interaction is fundamentally
-a ``difference between differences'', this count example demonstrates
-that the reality of such a claim can shift entirely based on the scale
-on which those differences are computed.
+one variable depends on another. This count example therefore
+demonstrates that the reality of such a claim can shift entirely based
+on the scale on which those differences are computed.
 
 In psychology, this scale dependence has a characteristic source in
 measurement. Researchers routinely conceptualize constructs such as
@@ -409,7 +406,7 @@ conflate: the outcome family, which describes the response, and the link
 function, which sets the scale on which effects combine. Box 1 defines
 both.
 
-\begin{tcolorbox}[enhanced jigsaw, rightrule=.15mm, opacitybacktitle=0.6, leftrule=.75mm, bottomrule=.15mm, opacityback=0, coltitle=black, colback=white, colframe=quarto-callout-note-color-frame, bottomtitle=1mm, toptitle=1mm, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, breakable, toprule=.15mm, left=2mm, arc=.35mm, title={Box 1: Generalized linear models: outcome family and link function}]
+\begin{tcolorbox}[enhanced jigsaw, toptitle=1mm, colback=white, titlerule=0mm, coltitle=black, bottomrule=.15mm, colframe=quarto-callout-note-color-frame, leftrule=.75mm, opacityback=0, title={Box 1: Generalized linear models: outcome family and link function}, arc=.35mm, rightrule=.15mm, bottomtitle=1mm, opacitybacktitle=0.6, breakable, left=2mm, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm]
 
 A generalized linear model (GLM) involves two distinct choices
 (\citeproc{ref-mccullaghnelder1989}{McCullagh \& Nelder, 1989};
@@ -417,9 +414,7 @@ A generalized linear model (GLM) involves two distinct choices
 
 The \emph{outcome family} is the distribution assumed for the response.
 It defines which values the outcome can take and how observations vary
-around their expectation: Gaussian for continuous unbounded variables,
-binomial for successes out of a number of trials, Poisson for counts,
-Gamma for positive right-skewed outcomes such as response times.
+around their expectation.
 
 The \emph{link function}, \(g(\cdot)\), maps the expected outcome,
 \(\mu_i = E(Y_i)\), onto the linear predictor, \(\eta_i\), the scale on
@@ -451,25 +446,22 @@ size or sign from \(\beta_3\) when this term is nonzero
 \citeproc{ref-mccabe2022}{McCabe et al., 2022};
 \citeproc{ref-mize2019}{Mize, 2019}).
 
-Each family has a canonical link, the mathematically natural default
-adopted by most software, and other links are legitimate. The families
-and links covered in this paper are:
+Each family has a canonical link, but other links are legitimate. The
+families and links covered in this paper are:
 
 \begin{itemize}
 \tightlist
 \item
   \emph{Gaussian} (continuous scores, sum scores): canonical link
-  identity; also used here, probit for bounded score proportions.
+  identity;
 \item
   \emph{Binomial} (accuracy, choices, proportions of successes):
-  canonical link logit; also probit, complementary log-log, and the
-  chance-corrected logit for tasks with a known guessing floor.
+  canonical link logit;
 \item
-  \emph{Poisson} (counts, error counts): canonical link log; also
-  identity.
+  \emph{Poisson} (counts, error counts): canonical link log;
 \item
   \emph{Gamma} (response times and other positive skewed outcomes):
-  canonical link inverse; also log.
+  canonical link inverse.
 \end{itemize}
 
 A Gaussian linear model is the special case that combines a Gaussian
@@ -478,68 +470,14 @@ scale coincide and the scale question is invisible.
 
 In this language, the model behind Figure~\ref{fig-simple-count-example}
 is a Poisson family with a log link. The family respects that errors are
-non-negative counts, and the link places additivity on the log scale,
-which is why the parallel lines in log space become converging curves in
-count space.
+non-negative counts, and the link places additivity on the log scale.
 
 \end{tcolorbox}
 
-Choosing the family settles only one of the two choices. Two models can
-share a family and still place additivity on different scales. For
-example, a Gamma family suits reaction times data; within that family, a
-log link makes effects additive in log milliseconds, a proportional
-change, and the canonical inverse link makes them additive in reciprocal
-means, a change in speed. A binomial family fits
-correct-versus-incorrect responses and leaves the link open among logit,
-probit, and chance-corrected forms. Crucially, the choice of scale can
-change not only the magnitude of an estimated interaction but even
-reverse its direction (Figure~\ref{fig-motivating-example}).
-
-\begin{figure}[h]
-
-\caption{\label{fig-motivating-example}Same cells, different
-interaction. A minimal \(2 \times 2\) design crosses a condition
-(x-axis) with a group (color), shown on three scales; the four cell
-probabilities are identical in every panel, and only the scale changes.
-The data were generated with no interaction on the chance-corrected
-logit scale, which respects the \(0.50\) chance floor, so the
-coefficient there is exactly zero. The same cells imply a positive
-interaction on the standard logit scale and a negative one on the raw
-probability scale, a sign reversal caused entirely by the choice of
-scale. The light horizontal lines are equally spaced on each panel's own
-link scale, so equal steps there map to unequal steps on the probability
-axis.}
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{../figs/motivating-example.pdf}}
-
-}
-
-\end{figure}%
-
-A difference-in-differences that is exactly zero on one link scale will
-systematically deviate from zero on another. Consequently, a nonzero
-product term on an alternative scale is not a false positive in a strict
-statistical sense; rather, it reflects a genuine mathematical property
-of that metric, arising because the interaction is evaluated on a scale
-different from the one implied by the generative model
-(\citeproc{ref-cox1984}{Cox, 1984}; \citeproc{ref-domingue2024}{Domingue
-et al., 2024}; \citeproc{ref-loftus1978}{Loftus, 1978};
-\citeproc{ref-mccabe2022}{McCabe et al., 2022}). Certain interactions
-remain invariant across scales, such as crossover interactions, which
-survive any monotonic rescaling of the response variable
-(\citeproc{ref-cox1984}{Cox, 1984}; \citeproc{ref-loftus1978}{Loftus,
-1978}; \citeproc{ref-wagenmakers2012}{Wagenmakers et al., 2012}).
-
-Setting the stable crossover case aside, scale-dependent interactions
-dominate applied research, which is precisely why the link function
-requires explicit attention. Often, the outcome family is chosen with
-care while the link function is left at its software default. In doing
-so, the scale of additivity is fixed without deliberation. Separating
-these two decisions---the outcome family and the link function---returns
-control over this structural assumption to the analyst as a deliberate
-choice (Table~\ref{tbl-family-link-metric}).
+Often the outcome family is chosen with care while the link function is
+left at its software default, fixing the scale of additivity without
+deliberation. But the family settles only one of the two choices
+(Table~\ref{tbl-family-link-metric}).
 
 \begin{table}
 
@@ -581,53 +519,81 @@ model has only main effects. \\
 
 \end{table}
 
-These two decisions carry consequences that a growing literature has
-documented. Model estimates depend heavily on them
+Two models can share a family and still place additivity on different
+scales. For example, a Gamma family suits reaction times data; within
+that family, a log link makes effects additive in log milliseconds, a
+proportional change, and the canonical inverse link makes them additive
+in reciprocal means, a change in speed. A binomial family fits
+correct-versus-incorrect responses and leaves the link open among logit,
+probit, and chance-corrected forms. Crucially, the choice of scale can
+change not only the magnitude of an estimated interaction but even
+reverse its direction (Figure~\ref{fig-motivating-example}).
+
+\begin{figure}[h]
+
+\caption{\label{fig-motivating-example}Same cells, different
+interaction. A minimal \(2 \times 2\) design crosses a condition
+(x-axis) with a group (color), shown on three scales; the four cell
+probabilities are identical in every panel, and only the scale changes.
+The data were generated with no interaction on the chance-corrected
+logit scale, which respects the \(0.50\) chance floor, so the
+coefficient there is exactly zero. The same cells imply a positive
+interaction on the standard logit scale and a negative one on the raw
+probability scale, a sign reversal caused entirely by the choice of
+scale. The light horizontal lines are equally spaced on each panel's own
+link scale, so equal steps there map to unequal steps on the probability
+axis.}
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{../figs/motivating-example.pdf}}
+
+}
+
+\end{figure}%
+
+An interaction on a scale other than the one implied by the generative
+model is not a false positive in a strict statistical sense; it is a
+genuine mathematical property of that scale (\citeproc{ref-cox1984}{Cox,
+1984}; \citeproc{ref-domingue2024}{Domingue et al., 2024};
+\citeproc{ref-loftus1978}{Loftus, 1978};
+\citeproc{ref-mccabe2022}{McCabe et al., 2022}). Some interactions are
+invariant to scale; crossover interactions, for instance, survive any
+monotonic rescaling of the response variable
+(\citeproc{ref-cox1984}{Cox, 1984}; \citeproc{ref-loftus1978}{Loftus,
+1978}; \citeproc{ref-wagenmakers2012}{Wagenmakers et al., 2012}).
+
+While the family restricts the set of admissible links, it is the link
+that sets the scale, and model estimates depend heavily on both choices
 (\citeproc{ref-hainmueller2019}{Hainmueller et al., 2019};
-\citeproc{ref-rimpler2026}{Rimpler et al., 2026}): in models for
-probabilities and counts, product-term coefficients do not by themselves
-capture the interaction on the observed response scale, which must be
-read from marginal effects or response-scale contrasts
+\citeproc{ref-rimpler2026}{Rimpler et al., 2026}). Indeed, when the
+outcome distribution or the functional form is misspecified, additive
+structure can appear as a spurious interaction
 (\citeproc{ref-ainorton2003}{Ai \& Norton, 2003};
-\citeproc{ref-mccabe2022}{McCabe et al., 2022};
-\citeproc{ref-mize2019}{Mize, 2019}). When the outcome distribution or
-the functional form is misspecified, additive structure can surface as a
-spurious interaction (\citeproc{ref-busemeyer1983}{Busemeyer \& Jones,
-1983}; \citeproc{ref-czadosantner1992}{Czado \& Santner, 1992};
+\citeproc{ref-busemeyer1983}{Busemeyer \& Jones, 1983};
+\citeproc{ref-czadosantner1992}{Czado \& Santner, 1992};
 \citeproc{ref-domingue2024}{Domingue et al., 2024};
 \citeproc{ref-liddellkruschke2018}{Liddell \& Kruschke, 2018};
 \citeproc{ref-lubinski1990}{Lubinski \& Humphreys, 1990};
-\citeproc{ref-yuhuang2019}{Yu \& Huang, 2019}), and measurement error
-and low power make the estimate harder still to pin down
+\citeproc{ref-mccabe2022}{McCabe et al., 2022};
+\citeproc{ref-mize2019}{Mize, 2019}; \citeproc{ref-yuhuang2019}{Yu \&
+Huang, 2019}), and measurement error and low power compound the problem
 (\citeproc{ref-baranger2023}{Baranger et al., 2023};
-\citeproc{ref-castillo2026}{Castillo et al., 2026}). Rohrer and Arslan
-(\citeproc{ref-rohrer2021}{2021}) state the common thread directly: when
-the target estimand, including its scale and meaning, is left
-unspecified, a precise statistical test answers only a vague theoretical
-question.
+\citeproc{ref-castillo2026}{Castillo et al., 2026}).
 
-How much the scale of additivity matters depends on the goal of the
-analysis. For prediction, the link is largely a computational
-convenience: what counts is forecast accuracy and staying within
-admissible bounds, such as probabilities between 0 and 1. For testing a
-scientific theory, the link carries the hypothesis itself, since the
-model exists to generate a substantively meaningful estimand
-(\citeproc{ref-rohrer2026}{Rohrer \& Arel-Bundock, 2026}).
-
-This article addresses these issues in two parts. The first part is a
+This article addresses these issues in two parts. The first is a
 preregistered descriptive review of recent empirical articles in five
-prominent psychology journals, quantifying current practice: how often
-interactions are tested, how often the outcome family and link function
-are made explicit, and which response formats predominate. The second
-part develops the link function problem in three common response
-formats, namely forced-choice accuracy with a chance floor, sum scores,
-and within-family link choices such as logit versus probit, and uses
-simulations to quantify the inferential consequences: how often an
-inadequate link turns a purely additive structure on one scale into a
-statistically significant interaction on another, and whether standard
-diagnostics detect the misspecification. Finally,
-Table~\ref{tbl-link-aware-workflow} distills these insights into a
-practical workflow for applied research.
+prominent psychology journals, quantifying how often interactions are
+tested, how often the outcome family and link function are made
+explicit, and which response formats predominate. The second develops
+the link function problem in three common response formats:
+forced-choice accuracy with a chance floor, sum scores, and
+within-family link choices such as logit versus probit. Using
+simulations, it quantifies how often an inadequate link turns a purely
+additive structure into a statistically significant interaction, and
+whether standard diagnostics detect the misspecification.
+Table~\ref{tbl-link-aware-workflow} then summarizes these insights into
+a practical workflow for applied research.
 
 \section{Current Practice in Psychological Interaction Testing: A
 Preregistered
@@ -2118,6 +2084,16 @@ the claim should be visible, justified, and interpretable
 (\citeproc{ref-mustillo2018}{Mustillo et al., 2018}).
 
 \section{Discussion}\label{discussion}
+
+\begin{quote}
+For prediction, the link is largely a computational convenience, and
+what matters is forecast accuracy and staying within admissible bounds,
+such as probabilities between 0 and 1. For testing a scientific theory,
+the link carries the hypothesis itself, since the model exists to
+generate a substantively meaningful estimand
+(\citeproc{ref-rohrer2026}{Rohrer \& Arel-Bundock, 2026}). dll'intro
+nella discussione?
+\end{quote}
 
 Whether an interaction claim survives plausible link alternatives is a
 question that existing reporting practice rarely answers. Some claims

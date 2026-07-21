@@ -167,7 +167,8 @@ if (!exists("link_theme")) {
 ggplot2::theme_set(link_theme())
 ```
 
-Suppose two groups of children differ in their overall error rates on a task, and errors decrease with age. @fig-simple-count-example shows simulated data from such a scenario. In the left panel, errors decline with age in both groups, and the difference between groups is large at age six and nearly closed at age ten. Is there an age-by-group interaction here? 
+
+Suppose two groups of children differ in their overall error rates on a task, and errors decrease with age. @fig-simple-count-example shows simulated data from such a scenario. In the left panel, errors decline with age in both groups, and the difference between groups is large at age six and nearly closed at age ten. Is there an age-by-group interaction here?
 
 ```{r}
 #| label: fig-simple-count-example
@@ -236,11 +237,10 @@ ggplot(points_two, aes(age, y, color = condition, shape = condition)) +
   theme(legend.position = "top")
 ```
 
-On the observed count scale, the answer appears to be yes, as the group effect clearly shrinks as age increases. But both groups share the same age effect on the log scale, so their fitted lines are parallel there, and parallel lines, once mapped back to raw counts, must converge. What looks like an interaction is just how an additive log-scale model appears when expressed in counts.
+Because an interaction is a difference between differences, the question is whether the group difference itself changes with age. On the observed count scale, the group effect does appear to shrink as age increases, so it looks like an interaction. But looking at the log-scale (@fig-simple-count-example, right panel), both groups have the same age slope, meaning their fitted lines are parallel. A constant difference on the log scale corresponds to a constant ratio on the count scale, so the absolute gap between groups is proportional to the baseline and shrinks as errors decline with age. 
+So whether we call this an interaction is not a fact about the data. It depends on which scale we assume effects add up linearly on. Additive on the log scale means multiplicative (and non-parallel) on the count scale, and vice versa.
 
-This convergence is merely the mathematical consequence of projecting a multiplicative effect onto a metric bounded at zero. Whether these data represent an interaction depends entirely on a choice that usually remains implicit: the scale of additivity. This choice dictates the metric on which effects combine linearly. On the raw count scale, the group difference changes with age; on the log scale, it remains constant.
-
-This ambiguity extends far beyond this single illustration, as interaction claims are central to psychological theory. Whenever researchers ask whether an effect is moderated, or whether it holds only under certain boundary conditions, they are asserting that the impact of one variable depends on another. Because an interaction is fundamentally a "difference between differences", this count example demonstrates that the reality of such a claim can shift entirely based on the scale on which those differences are computed.
+This ambiguity extends far beyond this single illustration, as interaction claims are central to psychological theory. Whenever researchers ask whether an effect is moderated, or whether it holds only under certain boundary conditions, they are asserting that the impact of one variable depends on another. This count example therefore demonstrates that the reality of such a claim can shift entirely based on the scale on which those differences are computed.
 
 In psychology, this scale dependence has a characteristic source in measurement. Researchers routinely conceptualize constructs such as cognitive ability or symptom severity as continuous latent dimensions. Those dimensions are rarely observed directly; what reaches the data are bounded, discrete quantities, such as counts, ratings, and accuracy scores that carry floors, ceilings, and chance levels. Each measurement scale imposes its own mapping from the latent dimension to the observed response, and that mapping fixes the scale on which effects add.
 
@@ -249,7 +249,7 @@ Generalized linear models (GLMs) make this mapping explicit and give it a standa
 ::: {.callout-note title="Box 1: Generalized linear models: outcome family and link function" icon="false"}
 A generalized linear model (GLM) involves two distinct choices [@nelderwedderburn1972; @mccullaghnelder1989].
 
-The *outcome family* is the distribution assumed for the response. It defines which values the outcome can take and how observations vary around their expectation: Gaussian for continuous unbounded variables, binomial for successes out of a number of trials, Poisson for counts, Gamma for positive right-skewed outcomes such as response times.
+The *outcome family* is the distribution assumed for the response. It defines which values the outcome can take and how observations vary around their expectation.
 
 The *link function*, $g(\cdot)$, maps the expected outcome, $\mu_i = E(Y_i)$, onto the linear predictor, $\eta_i$, the scale on which the model is additive. With two predictors and their product term,
 
@@ -263,19 +263,30 @@ The inverse link, $g^{-1}(\cdot)$, maps this additive structure back onto the ex
 
 The product-term coefficient $\beta_3$ is therefore an interaction on the link scale. A response-scale interaction is a different quantity: a difference between expected differences on the observed outcome, for example, whether the group difference in expected errors changes with age in @fig-simple-count-example. Unless the link is the identity, the two quantities can disagree. The response-scale interaction can be nonzero when $\beta_3 = 0$, and it can differ in size or sign from $\beta_3$ when this term is nonzero [@ainorton2003; @mccabe2022; @mize2019].
 
-Each family has a canonical link, the mathematically natural default adopted by most software, and other links are legitimate. The families and links covered in this paper are:
+Each family has a canonical link, but other links are legitimate. The families and links covered in this paper are:
 
-- *Gaussian* (continuous scores, sum scores): canonical link identity; also used here, probit for bounded score proportions.
-- *Binomial* (accuracy, choices, proportions of successes): canonical link logit; also probit, complementary log-log, and the chance-corrected logit for tasks with a known guessing floor.
-- *Poisson* (counts, error counts): canonical link log; also identity.
-- *Gamma* (response times and other positive skewed outcomes): canonical link inverse; also log.
+- *Gaussian* (continuous scores, sum scores): canonical link identity;
+- *Binomial* (accuracy, choices, proportions of successes): canonical link logit;
+- *Poisson* (counts, error counts): canonical link log; 
+- *Gamma* (response times and other positive skewed outcomes): canonical link inverse.
 
 A Gaussian linear model is the special case that combines a Gaussian family with an identity link, so the additive scale and the response scale coincide and the scale question is invisible.
 
-In this language, the model behind @fig-simple-count-example is a Poisson family with a log link. The family respects that errors are non-negative counts, and the link places additivity on the log scale, which is why the parallel lines in log space become converging curves in count space.
+In this language, the model behind @fig-simple-count-example is a Poisson family with a log link. The family respects that errors are non-negative counts, and the link places additivity on the log scale.
 :::
 
-Choosing the family settles only one of the two choices. Two models can share a family and still place additivity on different scales. For example, a Gamma family suits reaction times data; within that family, a log link makes effects additive in log milliseconds, a proportional change, and the canonical inverse link makes them additive in reciprocal means, a change in speed. A binomial family fits correct-versus-incorrect responses and leaves the link open among logit, probit, and chance-corrected forms. Crucially, the choice of scale can change not only the magnitude of an estimated interaction but even reverse its direction (@fig-motivating-example). 
+Often the outcome family is chosen with care while the link function is left at its software default, fixing the scale of additivity without deliberation. But the family settles only one of the two choices (@tbl-family-link-metric). 
+
+
+| Analytic choice | Key question | Psychological example | Risk for interaction claims |
+|------------------|------------------|------------------|------------------|
+| Outcome family | Does the model respect the support and sampling process of the observed outcome? | Counts, proportions, or trial accuracies modeled as unbounded Gaussian observations. | Constraints, discreteness, or the mean-variance relation may be absorbed by a product term. |
+| Link / additivity scale | Given a plausible family, on which scale should effects add if there is no interaction? | Forced-choice accuracy modeled with a standard binomial logit, although the task has a known chance floor such as .50. | The model may test additivity on the wrong scale, so a pseudo-interaction can arise even when the target link-scale model has only main effects. |
+
+: Analytic choices that determine the scale of an interaction claim. The choices are conceptually distinct, and in applied analyses they often overlap. {#tbl-family-link-metric}
+
+
+Two models can share a family and still place additivity on different scales. For example, a Gamma family suits reaction times data; within that family, a log link makes effects additive in log milliseconds, a proportional change, and the canonical inverse link makes them additive in reciprocal means, a change in speed. A binomial family fits correct-versus-incorrect responses and leaves the link open among logit, probit, and chance-corrected forms. Crucially, the choice of scale can change not only the magnitude of an estimated interaction but even reverse its direction (@fig-motivating-example). 
 
 ![Same cells, different interaction. A minimal $2 \times 2$ design crosses a condition
 (x-axis) with a group (color), shown on three scales; the four cell probabilities are
@@ -288,23 +299,11 @@ The light horizontal lines are equally spaced on each panel's own link scale, so
 there map to unequal steps on the probability axis.](../figs/motivating-example.pdf){#fig-motivating-example}
 
 
-A difference-in-differences that is exactly zero on one link scale will systematically deviate from zero on another. Consequently, a nonzero product term on an alternative scale is not a false positive in a strict statistical sense; rather, it reflects a genuine mathematical property of that metric, arising because the interaction is evaluated on a scale different from the one implied by the generative model [@loftus1978; @cox1984; @domingue2024; @mccabe2022]. Certain interactions remain invariant across scales, such as crossover interactions, which survive any monotonic rescaling of the response variable [@loftus1978; @cox1984; @wagenmakers2012].
+An interaction on a scale other than the one implied by the generative model is not a false positive in a strict statistical sense; it is a genuine mathematical property of that scale [@loftus1978; @cox1984; @domingue2024; @mccabe2022]. Some interactions are invariant to scale; crossover interactions, for instance, survive any monotonic rescaling of the response variable [@loftus1978; @cox1984; @wagenmakers2012].
 
-Setting the stable crossover case aside, scale-dependent interactions dominate applied research, which is precisely why the link function requires explicit attention. Often, the outcome family is chosen with care while the link function is left at its software default. In doing so, the scale of additivity is fixed without deliberation. Separating these two decisions—the outcome family and the link function—returns control over this structural assumption to the analyst as a deliberate choice (@tbl-family-link-metric).
+While the family restricts the set of admissible links, it is the link that sets the scale, and model estimates depend heavily on both choices [@hainmueller2019; @rimpler2026]. Indeed, when the outcome distribution or the functional form is misspecified, additive structure can appear as a spurious interaction [@busemeyer1983; @lubinski1990; @czadosantner1992; @yuhuang2019; @liddellkruschke2018; @domingue2024; @ainorton2003; @mccabe2022; @mize2019], and measurement error and low power compound the problem [@baranger2023; @castillo2026].
 
-| Analytic choice | Key question | Psychological example | Risk for interaction claims |
-|------------------|------------------|------------------|------------------|
-| Outcome family | Does the model respect the support and sampling process of the observed outcome? | Counts, proportions, or trial accuracies modeled as unbounded Gaussian observations. | Constraints, discreteness, or the mean-variance relation may be absorbed by a product term. |
-| Link / additivity scale | Given a plausible family, on which scale should effects add if there is no interaction? | Forced-choice accuracy modeled with a standard binomial logit, although the task has a known chance floor such as .50. | The model may test additivity on the wrong scale, so a pseudo-interaction can arise even when the target link-scale model has only main effects. |
-
-: Analytic choices that determine the scale of an interaction claim. The choices are conceptually distinct, and in applied analyses they often overlap. {#tbl-family-link-metric}
-
-
-These two decisions carry consequences that a growing literature has documented. Model estimates depend heavily on them [@hainmueller2019; @rimpler2026]: in models for probabilities and counts, product-term coefficients do not by themselves capture the interaction on the observed response scale, which must be read from marginal effects or response-scale contrasts [@ainorton2003; @mccabe2022; @mize2019]. When the outcome distribution or the functional form is misspecified, additive structure can surface as a spurious interaction [@busemeyer1983; @lubinski1990; @czadosantner1992; @yuhuang2019; @liddellkruschke2018; @domingue2024], and measurement error and low power make the estimate harder still to pin down [@baranger2023; @castillo2026]. @rohrer2021 state the common thread directly: when the target estimand, including its scale and meaning, is left unspecified, a precise statistical test answers only a vague theoretical question.
-
-How much the scale of additivity matters depends on the goal of the analysis. For prediction, the link is largely a computational convenience: what counts is forecast accuracy and staying within admissible bounds, such as probabilities between 0 and 1. For testing a scientific theory, the link carries the hypothesis itself, since the model exists to generate a substantively meaningful estimand [@rohrer2026].
-
-This article addresses these issues in two parts. The first part is a preregistered descriptive review of recent empirical articles in five prominent psychology journals, quantifying current practice: how often interactions are tested, how often the outcome family and link function are made explicit, and which response formats predominate. The second part develops the link function problem in three common response formats, namely forced-choice accuracy with a chance floor, sum scores, and within-family link choices such as logit versus probit, and uses simulations to quantify the inferential consequences: how often an inadequate link turns a purely additive structure on one scale into a statistically significant interaction on another, and whether standard diagnostics detect the misspecification. Finally, @tbl-link-aware-workflow distills these insights into a practical workflow for applied research.
+This article addresses these issues in two parts. The first is a preregistered descriptive review of recent empirical articles in five prominent psychology journals, quantifying how often interactions are tested, how often the outcome family and link function are made explicit, and which response formats predominate. The second develops the link function problem in three common response formats: forced-choice accuracy with a chance floor, sum scores, and within-family link choices such as logit versus probit. Using simulations, it quantifies how often an inadequate link turns a purely additive structure into a statistically significant interaction, and whether standard diagnostics detect the misspecification. @tbl-link-aware-workflow then summarizes these insights into a practical workflow for applied research.
 
 # Current Practice in Psychological Interaction Testing: A Preregistered Review
 
@@ -1106,6 +1105,8 @@ These entries are starting points; theory, design, and data quality still decide
 Diagnostics, predictive checks, and information criteria can warn about misspecification or relative fit, but they provide secondary evidence for an interaction claim [@dunnsmyth1996; @hartig2024; @pregibon1980]. The central robustness question is whether the target estimand remains substantively stable across a small, theory-limited set of plausible links or measurement models. This is related to the logic of multiverse analysis, although the recommendation here is narrower: a targeted sensitivity analysis defined by the outcome, the task, and the scientific estimand. Stable conclusions across plausible specifications are easier to defend. Unstable conclusions should be reported as conditional on the modeling choice. This extends a basic reporting principle: choices that affect the claim should be visible, justified, and interpretable [@mustillo2018].
 
 # Discussion
+
+> For prediction, the link is largely a computational convenience, and what matters is forecast accuracy and staying within admissible bounds, such as probabilities between 0 and 1. For testing a scientific theory, the link carries the hypothesis itself, since the model exists to generate a substantively meaningful estimand [@rohrer2026]. dll'intro nella discussione? 
 
 Whether an interaction claim survives plausible link alternatives is a question that existing reporting practice rarely answers. Some claims will be stable across reasonable links, scales, and response-scale summaries; others are conditional on a modeling choice that is currently left implicit. The scale problem is well known [@cox1984; @loftus1978; @wagenmakers2012]. In GLMs, it takes the practical form developed above. The same issue can also extend beyond interactions to nonlinear effects, because many psychological analyses search for curvature, thresholds, and changing slopes without first specifying the scale on which these patterns are expected [@domingue2024; @mccabe2022; @rohrer2021].
 
