@@ -74,7 +74,7 @@ percent_labels <- function(accuracy = 1) {
 }
 
 link_theme <- function(base_size = 10, base_family = "") {
-  ggplot2::theme_classic(base_size = base_size, base_family = base_family) +
+  ggplot2::theme_minimal(base_size = base_size, base_family = base_family) +
     ggplot2::theme(
       plot.title = ggplot2::element_text(
         face = "bold",
@@ -93,6 +93,7 @@ link_theme <- function(base_size = 10, base_family = "") {
       legend.title = ggplot2::element_text(size = base_size - 1),
       legend.text = ggplot2::element_text(size = base_size - 1),
       legend.key.width = grid::unit(1.25, "lines"),
+      panel.grid.minor = ggplot2::element_blank(),
       panel.grid.major = ggplot2::element_line(linewidth = 0.25, color = "grey88"),
       panel.spacing = grid::unit(0.9, "lines"),
       plot.margin = ggplot2::margin(6, 8, 6, 8)
