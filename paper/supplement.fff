@@ -1,0 +1,14 @@
+\begin{figure*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+\caption{\label{fig-within-family-inspection}Deterministic
+pseudo-interaction induced on the wrong link scale in Simulation 2.}
+
+\centering{
+
+\includegraphics[width=7.2in,height=\textheight,keepaspectratio]{../outputs/inspection/within-family-link-pseudo-interaction.png}
+
+}
+
+\end{figure*}

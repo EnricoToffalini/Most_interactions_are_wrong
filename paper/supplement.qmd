@@ -196,7 +196,7 @@ print_table_if_exists(
 )
 ```
 
-Each interaction-testing article was independently coded by two researchers. Discrepancies were resolved through discussion or, if needed, by consulting the other coauthors. The preregistered variable definitions are reproduced below.
+Each interaction-testing article was independently coded by two researchers. Discrepancies were resolved through discussion or, if needed, by consulting the other coauthors. Generative AI tools were used only as an optional aid to locate relevant passages within an article; all coding used in the review is human. As a separate, preregistered exploration, a parallel AI-only coding of the same variables was run through a language-model API using differently worded prompts. This AI-only coding is not part of the reported results and is retained only to explore the accuracy of automated extraction of methodological information. The preregistered variable definitions are reproduced below.
 
 | Variable | Definition (preregistered) | Type |
 |---|-------------|---|
@@ -209,9 +209,21 @@ Each interaction-testing article was independently coded by two researchers. Dis
 
 : Coded variables and their preregistered definitions. {#tbl-variables}
 
+Beyond these definitions, the coders applied a small set of operational rules for the recurring borderline decisions. @tbl-coding-rules records the ones that most affect the reported counts.
+
+| Variable | Coded "Yes" when | Decisions that most affect the count |
+|---|------------|------------|
+| Non-identity link used | at least one tested interaction is fitted with a model implying a non-identity link, that is, any GLM or GLMM beyond the Gaussian-identity default (ANOVA, ordinary regression, linear mixed model). | A model named "logistic", "probit", "Poisson", "negative binomial", "ordinal"/"cumulative", or "Gamma" regression implies a non-identity link. |
+| Explicit link function | the link is identifiable from the report, either stated in words or named through a link-specific model. | "Logistic regression" (logit), "probit regression" (probit), and "Poisson" or "log-linear" (log) count as explicit. Naming only a family, a "generalized linear model", or a "GLMM" does not. |
+| Formally incorrect identity-link analysis | an interaction is tested with an identity-link model (ANOVA, ordinary regression, linear mixed model, or a test on cell means) applied to an outcome with formal constraints: bounded, discrete, positive-only, or with a known chance level. | Flagged only when the constraint is clear from the report. Not flagged when the analysis is explicitly justified as an observed-score estimand, or when the outcome is plausibly continuous and far from any bound. |
+| Significant interaction | at least one interaction already flagged as incorrect identity-link is reported as statistically significant, or is interpreted analogously (for example, a credible interval excluding zero) in a Bayesian analysis. | Restricted to interactions already flagged in the row above. |
+| Response-variable types | — | Non-exclusive: one article can contribute several types (sum score, accuracy or proportion, error count, response time, ordinal/Likert, neural or physiological, difference score, correlation). |
+
+: Operational rules the coders applied for the decisions that most affect the reported counts, condensed from the coding sheet. The preregistered variable definitions are in @tbl-variables. {#tbl-coding-rules}
+
 Two coding notes bound the interpretation of these variables. First, `Incorrect_identity_link_function` is a conservative screening flag for a formal mismatch between the observed-outcome constraints and the identity-link generative model. Cases were flagged only when the constraint was identifiable from the published report; when the report did not allow this judgment, the case was not counted. The flag is not an error rate, not a severity grade, and does not imply that the substantive conclusion is false, since an observed-score estimand can be a deliberate and defensible target. Second, `Response_variable_types` is non-exclusive: one article can contribute to several categories, so the category counts do not sum to the number of articles.
 
-Coding relied only on what a reader can observe in a published report: the analysis described, the outcome described, and any explicit statement of family or link. The review therefore documents reporting practice, not the correctness of substantive conclusions. For the same reason, the review did not classify interactions as removable or nonremovable at the article level, because published reports rarely provide the target contrast, the complete coefficients, and the assumed measurement scale that such a classification requires. Removability is used in the main paper as a conceptual lens inherited from the scale-dependence literature [@loftus1978; @cox1984; @wagenmakers2012], not as a coded outcome.
+Coding relied only on what a reader can observe in a published report: the analysis described, the outcome described, and any explicit statement of family or link. The review therefore documents reporting practice, not the correctness of substantive conclusions. For the same reason, the review did not classify interactions as removable or nonremovable at the article level, because published reports rarely provide the target contrast, the complete coefficients, and the assumed measurement scale that such a classification requires.
 
 ## Interrater agreement
 
@@ -288,7 +300,55 @@ The generating scale is the chance-corrected logit with a fixed floor of $.50$, 
 
 Four candidate models are fitted to each replication with the same `age_c * group` interaction formula: (1) a Gaussian identity model on the accuracy proportion; (2) a standard binomial logit on successes out of trials; (3) a standard binomial probit; and (4) a chance-corrected binomial logit fitted by direct maximum likelihood on the binomial likelihood with mean $p = c + (1-c)\,\mathrm{logistic}(\eta)$ and $c = .50$ fixed by design. For the chance-corrected fit, starting values come from a standard binomial fit, optimization uses BFGS with a numerically computed Hessian, and Wald $p$-values are derived from the inverse Hessian. Replications in which optimization or the Hessian inversion fails are recorded as failed fits and summarized over successful fits only. The chance-corrected model can fail when observed performance sits close to the floor, where the likelihood carries little information about above-chance changes; the main paper treats this as information about the design rather than as a numerical nuisance.
 
-## Simulation 2: sum scores
+```{r}
+#| label: tbl-fp-forced-choice
+#| results: asis
+
+print_table_if_exists(
+  caption = "Simulation 1 (forced-choice accuracy): false-positive interaction rates by performance scenario and fitted model, with the median model-implied change in the group gap (correct-response units). Fits = converged replications; Sig = replications returning a significant interaction; CI = Wilson 95%.",
+  note_if_missing = "Forced-choice simulation summary not available in this build.",
+  "tables", "simulation-summary-forced-choice.csv",
+  transform = function(d) data.frame(
+    Scenario = d$scenario,
+    Model = d$model,
+    Fits = d$n_successful_fits,
+    Sig = d$n_significant,
+    `False-positive rate [95% CI]` = fmt_rate_ci(d$false_positive_rate, d$ci_low, d$ci_high),
+    `Gap change` = fmt_num(d$median_change_in_group_difference_outcome_units, 2),
+    check.names = FALSE
+  )
+)
+```
+
+## Simulation 2: within-family link choice
+
+Repeated binary trials are generated in a two-group, two-condition design with $n = 700$ participants, $k = 15$ trials per participant-condition cell, and a subject random intercept. The reference fixed effects on the probit scale are intercept $1.50$, group $-1.00$, condition $-1.00$, and product term $0$. When the generating link is logit, all fixed effects are multiplied by $1.65$, so that the logit and probit data-generating processes imply similar cell probabilities while preserving a zero product term on the generating link scale. The random-intercept standard deviation is set from a latent-scale ICC of $.30$, using the latent residual variance of the generating link ($\pi^2/3$ for logit, $1$ for probit).
+
+Generating and fitted links are fully crossed (logit and probit in both roles), giving two matched-link and two wrong-link cells. All models are random-intercept GLMMs fitted with `glmmTMB`, using the same `group * condition` fixed-effect formula. A separate single-dataset illustration, used for the fitted logit-versus-probit figure in the main paper, fits a binomial-logit and a binomial-probit GLM to the same $N = 1000$ binary responses generated from a logistic curve with intercept $0.05$ and slope $1.75$; the fitted coefficients are reported in @tbl-fitted-coefs below.
+
+```{r}
+#| label: tbl-fp-within-family
+#| results: asis
+
+print_table_if_exists(
+  caption = "Simulation 2 (within-family link choice): false-positive interaction rates for the condition-by-group term in random-intercept GLMMs, crossing the generating and fitted links. The median coefficient and SE are on the fitted link scale. CI = Wilson 95%.",
+  note_if_missing = "Within-family simulation summary not available in this build.",
+  "tables", "simulation-summary-within-family-links.csv",
+  transform = function(d) data.frame(
+    Generating = d$generating_link,
+    Fitted = d$fitted_link,
+    Status = d$link_match,
+    Fits = d$n_successful_fits,
+    Sig = d$n_significant,
+    `False-positive rate [95% CI]` = fmt_rate_ci(d$false_positive_rate, d$ci_low, d$ci_high),
+    `Median beta` = fmt_num(d$median_interaction_coef, 3),
+    `Median SE` = fmt_num(d$median_interaction_se, 3),
+    check.names = FALSE
+  )
+)
+```
+
+## Simulation 3: sum scores
 
 Each replication samples $N = 600$ participants. A latent trait is generated as
 
@@ -301,11 +361,26 @@ so the x-by-group product term is exactly zero on the latent generating scale. T
 
 Three analyses are fitted with the same `x * group` formula, to separate the relevant scales: (1) an observed sum-score identity model, `lm()` on the manifest total; (2) a Gaussian-probit bounded-score model, a Gaussian GLM with a probit link fitted to the continuity-corrected score proportion $(\text{sum} + 0.5) / (\text{max} + 1)$, included as a sensitivity model on the manifest total rather than a measurement model; and (3) a latent-scale benchmark, `lm()` on the true $\theta$, available only because $\theta$ is known in the simulation.
 
-## Simulation 3: within-family link choice
+```{r}
+#| label: tbl-fp-sum-score
+#| results: asis
 
-Repeated binary trials are generated in a two-group, two-condition design with $n = 700$ participants, $k = 15$ trials per participant-condition cell, and a subject random intercept. The reference fixed effects on the probit scale are intercept $1.50$, group $-1.00$, condition $-1.00$, and product term $0$. When the generating link is logit, all fixed effects are multiplied by $1.65$, so that the logit and probit data-generating processes imply similar cell probabilities while preserving a zero product term on the generating link scale. The random-intercept standard deviation is set from a latent-scale ICC of $.30$, using the latent residual variance of the generating link ($\pi^2/3$ for logit, $1$ for probit).
-
-Generating and fitted links are fully crossed (logit and probit in both roles), giving two matched-link and two wrong-link cells. All models are random-intercept GLMMs fitted with `glmmTMB`, using the same `group * condition` fixed-effect formula. A separate single-dataset illustration, used for the fitted logit-versus-probit figure in the main paper, fits a binomial-logit and a binomial-probit GLM to the same $N = 1000$ binary responses generated from a logistic curve with intercept $0.05$ and slope $1.75$; the fitted coefficients are reported in @tbl-fitted-coefs below.
+print_table_if_exists(
+  caption = "Simulation 3 (sum scores): false-positive interaction rates by scenario and analysis scale, with the median model-implied change in the group gap. The latent generating scale is an idealized benchmark available only because theta is known. CI = Wilson 95%.",
+  note_if_missing = "Sum-score simulation summary not available in this build.",
+  "tables", "simulation-summary-sum-scores.csv",
+  transform = function(d) data.frame(
+    Scenario = d$scenario,
+    Model = d$model,
+    Fits = d$n_successful_fits,
+    Sig = d$n_significant,
+    `False-positive rate [95% CI]` = fmt_rate_ci(d$false_positive_rate, d$ci_low, d$ci_high),
+    `Gap change` = fmt_num(d$median_change_in_group_difference_outcome_units, 2),
+    Units = d$change_in_group_difference_units,
+    check.names = FALSE
+  )
+)
+```
 
 ## Diagnostic simulation: estimation and checks
 
@@ -319,7 +394,7 @@ The diagnostic simulation ties each of five link-misspecification scenarios (def
 
 # S5. Supplementary tables and figures
 
-The tables in this section report quantities at a finer grain than the main paper, or quantities the main paper states only in prose or in a figure. They do not restate the headline false-positive summaries, which appear in the main paper.
+The tables in this section report quantities at a finer grain than the main paper, or quantities the main paper states only in prose or in a figure. The headline false-positive summaries are reported in Section S4, next to each data-generating process.
 
 ## Cell-level values of the motivating example
 
@@ -369,16 +444,16 @@ print_table_if_exists(
 )
 ```
 
-## Deterministic link-scale decomposition, Simulation 3
+## Deterministic link-scale decomposition, Simulation 2
 
-The false-positive rates for Simulation 3 are in the main paper. @tbl-within-family-deterministic instead reports the deterministic quantities behind them: for each generating-by-fitted link combination, the product-term contrast induced by evaluating the generating cell probabilities on the fitted link scale, and the corresponding response-scale difference-in-differences. Under a matched link the induced product term is zero by construction; under a wrong link it is a fixed nonzero value that the Monte Carlo test has power to detect.
+The false-positive rates for Simulation 2 are reported in Section S4. @tbl-within-family-deterministic instead reports the deterministic quantities behind them: for each generating-by-fitted link combination, the product-term contrast induced by evaluating the generating cell probabilities on the fitted link scale, and the corresponding response-scale difference-in-differences. Under a matched link the induced product term is zero by construction; under a wrong link it is a fixed nonzero value that the Monte Carlo test has power to detect.
 
 ```{r}
 #| label: tbl-within-family-deterministic
 #| results: asis
 
 print_table_if_exists(
-  caption = "Deterministic link-scale decomposition for Simulation 3. The induced product term is evaluated on the fitted link scale; the response-scale difference-in-differences is on the probability scale.",
+  caption = "Deterministic link-scale decomposition for Simulation 2. The induced product term is evaluated on the fitted link scale; the response-scale difference-in-differences is on the probability scale.",
   note_if_missing = "Within-family decomposition table not available in this build.",
   "tables", "simulation-summary-within-family-links.csv",
   transform = function(d) {
@@ -450,11 +525,11 @@ if (is.null(diag_long)) {
 
 ## Deterministic pseudo-interaction under the wrong link
 
-@fig-within-family-inspection shows the deterministic pseudo-interaction induced on the wrong link scale in Simulation 3, before any sampling noise. It makes explicit why matched-link cells imply an exactly additive structure while wrong-link cells do not.
+@fig-within-family-inspection shows the deterministic pseudo-interaction induced on the wrong link scale in Simulation 2, before any sampling noise. It makes explicit why matched-link cells imply an exactly additive structure while wrong-link cells do not.
 
 ```{r}
 #| label: fig-within-family-inspection
-#| fig-cap: "Deterministic pseudo-interaction induced on the wrong link scale in Simulation 3."
+#| fig-cap: "Deterministic pseudo-interaction induced on the wrong link scale in Simulation 2."
 #| results: asis
 
 include_graphic_if_exists(

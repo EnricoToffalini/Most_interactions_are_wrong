@@ -1,0 +1,719 @@
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Screening flow for the preregistered review, generated from
+the saved review-descriptives output.}{\label{tbl-screening-flow}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.4048}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.0397}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.5556}}@{}}
+\caption{Screening flow for the preregistered review, generated from the
+saved review-descriptives output.}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Step
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+N
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+basis
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Step
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+N
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+basis
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+records retrieved across journal sheets & 2175 & non-empty rows across
+all screening workbook sheets (one per journal) \\
+eligible empirical articles in final dataset & 331 & Eligible == 1 in
+final review dataset \\
+eligible articles testing at least one interaction & 200 &
+Tests\_interactions == 1 in eligible rows \\
+eligible articles not testing interactions & 131 & eligible minus
+interaction-testing \\
+note-based SEM / latent-variable-only exclusions & 12 & note-based
+keyword search \\
+\end{longtable}
+
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Coded variables and their preregistered
+definitions.}{\label{tbl-variables}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.1579}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.6842}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.1579}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Variable
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Definition (preregistered)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Type
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{Tests\_interactions} & Whether the article tests at least one
+interaction term in a statistical model or using an ANOVA. & Boolean \\
+\texttt{Uses\_non\_identity\_link\_function} & Whether at least one
+tested interaction is presumably analyzed with a non-identity link
+function (for example, because a generalized linear model was used). &
+Boolean \\
+\texttt{Explicit\_link\_function} & Whether the link function is
+explicitly declared for at least one statistical model in the article.
+Indicating only which generalized linear model or family was used is not
+enough. & Boolean \\
+\texttt{Incorrect\_identity\_link\_function} & Whether at least one
+tested interaction is analyzed using an identity link function when
+another, non-identity link function would be more appropriate. &
+Boolean \\
+\texttt{Finds\_significant\_interactions} & Whether at least one
+interaction, among those where the link was coded as incorrectly
+identity, yields a statistically significant result, or is considered
+and discussed analogously in non-frequentist analyses. & Boolean \\
+\texttt{Response\_variable\_types} & Non-exclusive list of
+response-variable types on which interactions are tested (for example,
+sum score, accuracy, error count, response times, ordinal/Likert). &
+Category \\
+\end{longtable}
+
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Operational rules the coders applied for the decisions that
+most affect the reported counts, condensed from the coding sheet. The
+preregistered variable definitions are in
+Table~\ref{tbl-variables}.}{\label{tbl-coding-rules}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.1111}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.4444}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.4444}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Variable
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Coded ``Yes'' when
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Decisions that most affect the count
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Non-identity link used & at least one tested interaction is fitted with
+a model implying a non-identity link, that is, any GLM or GLMM beyond
+the Gaussian-identity default (ANOVA, ordinary regression, linear mixed
+model). & A model named ``logistic'', ``probit'', ``Poisson'',
+``negative binomial'', ``ordinal''/``cumulative'', or ``Gamma''
+regression implies a non-identity link. \\
+Explicit link function & the link is identifiable from the report,
+either stated in words or named through a link-specific model. &
+``Logistic regression'' (logit), ``probit regression'' (probit), and
+``Poisson'' or ``log-linear'' (log) count as explicit. Naming only a
+family, a ``generalized linear model'', or a ``GLMM'' does not. \\
+Formally incorrect identity-link analysis & an interaction is tested
+with an identity-link model (ANOVA, ordinary regression, linear mixed
+model, or a test on cell means) applied to an outcome with formal
+constraints: bounded, discrete, positive-only, or with a known chance
+level. & Flagged only when the constraint is clear from the report. Not
+flagged when the analysis is explicitly justified as an observed-score
+estimand, or when the outcome is plausibly continuous and far from any
+bound. \\
+Significant interaction & at least one interaction already flagged as
+incorrect identity-link is reported as statistically significant, or is
+interpreted analogously (for example, a credible interval excluding
+zero) in a Bayesian analysis. & Restricted to interactions already
+flagged in the row above. \\
+Response-variable types & --- & Non-exclusive: one article can
+contribute several types (sum score, accuracy or proportion, error
+count, response time, ordinal/Likert, neural or physiological,
+difference score, correlation). \\
+\end{longtable}
+
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Interrater agreement for double-coded
+records.}{\label{tbl-agreement}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.4211}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.0526}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1316}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.0789}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1579}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1579}}@{}}
+\caption{Interrater agreement for double-coded records.}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Item
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+N
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Agreement
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Kappa
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Coder 1 yes
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Coder 2 yes
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Item
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+N
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Agreement
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Kappa
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Coder 1 yes
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Coder 2 yes
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Uses non-identity link & 199 & 92.0\% & 0.81 & 28.1\% & 30.2\% \\
+Explicit link reported & 199 & 88.9\% & 0.66 & 20.6\% & 20.6\% \\
+Identity link flagged & 197 & 88.3\% & 0.71 & 71.6\% & 72.1\% \\
+Significant flagged interaction & 141 & 91.5\% & 0.68 & 86.5\% &
+82.3\% \\
+\end{longtable}
+
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{By-journal review descriptives.}{\label{tbl-by-journal}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1983}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.0776}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1034}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1983}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1552}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1207}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1466}}@{}}
+\caption{By-journal review descriptives.}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Journal
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Eligible
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Interaction
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Interaction / eligible
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Non-identity link
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Explicit link
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Identity flagged
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Journal
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Eligible
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Interaction
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Interaction / eligible
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Non-identity link
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Explicit link
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Identity flagged
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Developmental Science & 63 & 40 & 63.5\% & 25.0\% & 17.5\% & 57.5\% \\
+JEP: General & 47 & 40 & 85.1\% & 27.5\% & 27.5\% & 75.0\% \\
+JPSP & 55 & 40 & 72.7\% & 25.0\% & 15.0\% & 92.5\% \\
+Psychological Medicine & 105 & 40 & 38.1\% & 40.0\% & 35.0\% & 40.0\% \\
+Psychological Science & 61 & 40 & 65.6\% & 27.5\% & 20.0\% & 95.0\% \\
+\end{longtable}
+
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Simulation 1 (forced-choice accuracy): false-positive
+interaction rates by performance scenario and fitted model, with the
+median model-implied change in the group gap (correct-response units).
+Fits = converged replications; Sig = replications returning a
+significant interaction; CI = Wilson
+95\%.}{\label{tbl-fp-forced-choice}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1900}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.3200}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.0500}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.0400}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.2900}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1100}}@{}}
+\caption{Simulation 1 (forced-choice accuracy): false-positive
+interaction rates by performance scenario and fitted model, with the
+median model-implied change in the group gap (correct-response units).
+Fits = converged replications; Sig = replications returning a
+significant interaction; CI = Wilson 95\%.}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Scenario
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Model
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Fits
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Sig
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+False-positive rate {[}95\% CI{]}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Gap change
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Scenario
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Model
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Fits
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Sig
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+False-positive rate {[}95\% CI{]}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Gap change
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Lower performance & Gaussian identity & 300 & 137 & 45.7\% {[}40.1,
+51.3{]} & -1.78 \\
+Lower performance & Standard binomial logit & 300 & 191 & 63.7\%
+{[}58.1, 68.9{]} & -1.77 \\
+Lower performance & Standard binomial probit & 300 & 183 & 61.0\%
+{[}55.4, 66.3{]} & -1.78 \\
+Lower performance & Chance-corrected binomial logit & 179 & 13 & 7.3\%
+{[}4.3, 12.0{]} & -1.23 \\
+Middle performance & Gaussian identity & 300 & 40 & 13.3\% {[}9.9,
+17.6{]} & -0.86 \\
+Middle performance & Standard binomial logit & 300 & 169 & 56.3\%
+{[}50.7, 61.8{]} & -0.86 \\
+Middle performance & Standard binomial probit & 300 & 148 & 49.3\%
+{[}43.7, 55.0{]} & -0.87 \\
+Middle performance & Chance-corrected binomial logit & 300 & 18 & 6.0\%
+{[}3.8, 9.3{]} & -0.71 \\
+Higher performance & Gaussian identity & 300 & 36 & 12.0\% {[}8.8,
+16.2{]} & 0.65 \\
+Higher performance & Standard binomial logit & 300 & 103 & 34.3\%
+{[}29.2, 39.9{]} & 0.55 \\
+Higher performance & Standard binomial probit & 300 & 59 & 19.7\%
+{[}15.6, 24.5{]} & 0.62 \\
+Higher performance & Chance-corrected binomial logit & 300 & 14 & 4.7\%
+{[}2.8, 7.7{]} & 0.53 \\
+\end{longtable}
+
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Simulation 2 (within-family link choice): false-positive
+interaction rates for the condition-by-group term in random-intercept
+GLMMs, crossing the generating and fitted links. The median coefficient
+and SE are on the fitted link scale. CI = Wilson
+95\%.}{\label{tbl-fp-within-family}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1209}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.0769}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1429}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.0549}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.0440}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.3187}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1319}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1099}}@{}}
+\caption{Simulation 2 (within-family link choice): false-positive
+interaction rates for the condition-by-group term in random-intercept
+GLMMs, crossing the generating and fitted links. The median coefficient
+and SE are on the fitted link scale. CI = Wilson 95\%.}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Generating
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Fitted
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Status
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Fits
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Sig
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+False-positive rate {[}95\% CI{]}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Median beta
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Median SE
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Generating
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Fitted
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Status
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Fits
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Sig
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+False-positive rate {[}95\% CI{]}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Median beta
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Median SE
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+logit & logit & Matched link & 300 & 16 & 5.3\% {[}3.3, 8.5{]} & -0.001
+& 0.075 \\
+logit & probit & Wrong link & 300 & 45 & 15.0\% {[}11.4, 19.5{]} &
+-0.041 & 0.042 \\
+probit & logit & Wrong link & 300 & 41 & 13.7\% {[}10.2, 18.0{]} & 0.071
+& 0.076 \\
+probit & probit & Matched link & 300 & 15 & 5.0\% {[}3.1, 8.1{]} &
+-0.003 & 0.043 \\
+\end{longtable}
+
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Simulation 3 (sum scores): false-positive interaction rates
+by scenario and analysis scale, with the median model-implied change in
+the group gap. The latent generating scale is an idealized benchmark
+available only because theta is known. CI = Wilson
+95\%.}{\label{tbl-fp-sum-score}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1240}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2326}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.0388}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.0310}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2248}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.0853}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2636}}@{}}
+\caption{Simulation 3 (sum scores): false-positive interaction rates by
+scenario and analysis scale, with the median model-implied change in the
+group gap. The latent generating scale is an idealized benchmark
+available only because theta is known. CI = Wilson 95\%.}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Scenario
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Model
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Fits
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Sig
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+False-positive rate {[}95\% CI{]}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Gap change
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Units
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Scenario
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Model
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Fits
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Sig
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+False-positive rate {[}95\% CI{]}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Gap change
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Units
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Middle of scale & Gaussian-probit bounded score & 300 & 14 & 4.7\%
+{[}2.8, 7.7{]} & -0.57 & sum-score units on the 0-27 scale \\
+Middle of scale & Latent generating scale & 300 & 16 & 5.3\% {[}3.3,
+8.5{]} & 0.02 & latent theta units \\
+Middle of scale & Observed sum-score identity & 300 & 29 & 9.7\% {[}6.8,
+13.5{]} & -0.55 & sum-score units on the 0-27 scale \\
+Near ceiling & Gaussian-probit bounded score & 300 & 15 & 5.0\% {[}3.1,
+8.1{]} & 1.41 & sum-score units on the 0-27 scale \\
+Near ceiling & Latent generating scale & 300 & 16 & 5.3\% {[}3.3, 8.5{]}
+& 0.00 & latent theta units \\
+Near ceiling & Observed sum-score identity & 300 & 112 & 37.3\% {[}32.1,
+42.9{]} & 1.33 & sum-score units on the 0-27 scale \\
+Near floor & Gaussian-probit bounded score & 300 & 26 & 8.7\% {[}6.0,
+12.4{]} & -1.85 & sum-score units on the 0-27 scale \\
+Near floor & Latent generating scale & 300 & 18 & 6.0\% {[}3.8, 9.3{]} &
+0.01 & latent theta units \\
+Near floor & Observed sum-score identity & 300 & 216 & 72.0\% {[}66.7,
+76.8{]} & -1.76 & sum-score units on the 0-27 scale \\
+\end{longtable}
+
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Deterministic cell values of the motivating example,
+generated with no product term on the chance-corrected logit
+scale.}{\label{tbl-motivating-cells}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}rrrr@{}}
+\toprule\noalign{}
+condition & group & eta & p \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+0 & 0 & -1.00 & 0.6345 \\
+1 & 0 & 1.10 & 0.8751 \\
+0 & 1 & 0.70 & 0.8341 \\
+1 & 1 & 2.80 & 0.9713 \\
+\end{longtable}
+
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Fitted logit and probit coefficients for the single-dataset
+illustration.}{\label{tbl-fitted-coefs}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}llll@{}}
+\caption{Fitted logit and probit coefficients for the single-dataset
+illustration.}\tabularnewline
+\toprule\noalign{}
+Model & AIC & Intercept & Slope \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Model & AIC & Intercept & Slope \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+logit & 4315.6 & 0.045 & 1.753 \\
+probit & 4380.4 & 0.024 & 0.990 \\
+\end{longtable}
+
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Deterministic link-scale decomposition for Simulation 2. The
+induced product term is evaluated on the fitted link scale; the
+response-scale difference-in-differences is on the probability
+scale.}{\label{tbl-within-family-deterministic}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1600}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1200}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1300}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.3100}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2800}}@{}}
+\caption{Deterministic link-scale decomposition for Simulation 2. The
+induced product term is evaluated on the fitted link scale; the
+response-scale difference-in-differences is on the probability
+scale.}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Generating link
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Fitted link
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Match
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Induced product (fitted scale)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Response-scale diff-in-diff
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Generating link
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Fitted link
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Match
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Induced product (fitted scale)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Response-scale diff-in-diff
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+logit & logit & Matched link & 0.000 & -0.164 \\
+logit & probit & Wrong link & -0.112 & -0.164 \\
+probit & logit & Wrong link & 0.216 & -0.141 \\
+probit & probit & Matched link & 0.000 & -0.141 \\
+\end{longtable}
+
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\caption{{Per-check detection rates across the five diagnostic
+scenarios. Scenarios: D1 count errors (Poisson log to identity); D2
+chance-floor accuracy (chance-corrected to standard logit); D3 binary
+2x2 GLMM (probit to logit); D4 binary continuous-predictor GLMM (probit
+to logit); D5 Gamma mean response time (log to
+inverse).}{\label{tbl-diagnostic-breakdown}}}
+\vspace{-20pt}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.5769}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.0769}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.0897}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.0897}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.0897}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.0769}}@{}}
+\caption{Per-check detection rates across the five diagnostic scenarios.
+Scenarios: D1 count errors (Poisson log to identity); D2 chance-floor
+accuracy (chance-corrected to standard logit); D3 binary 2x2 GLMM
+(probit to logit); D4 binary continuous-predictor GLMM (probit to
+logit); D5 Gamma mean response time (log to inverse).}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Check
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+D1
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+D2
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+D3
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+D4
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+D5
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Check
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+D1
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+D2
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+D3
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+D4
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+D5
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Pseudo-interaction (anchor, from main paper) & 94.2\% & 61.7\% & 8.0\% &
+6.0\% & 28.7\% \\
+DHARMa: uniformity & 0.7\% & 0.0\% & 2.0\% & 0.3\% & 0.0\% \\
+DHARMa: dispersion & 22.7\% & 1.3\% & 0.0\% & 0.0\% & 0.3\% \\
+DHARMa: quantiles vs fitted & 69.3\% & 0.7\% & 1.3\% & 0.0\% & 1.3\% \\
+DHARMa: quantiles vs predictor & 90.6\% & 7.0\% & -- & 0.7\% & 4.3\% \\
+DHARMa: across design cells & -- & -- & 0.3\% & -- & -- \\
+Pregibon link check & 99.6\% & 30.3\% & 100.0\% & 100.0\% & 30.3\% \\
+AIC favors target link & 99.6\% & 0.0\% & 92.3\% & 96.0\% & 77.7\% \\
+AIC favors misspecified link & 0.4\% & 100.0\% & 7.7\% & 4.0\% &
+22.3\% \\
+\end{longtable}
+
+\end{table*}

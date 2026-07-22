@@ -15,7 +15,7 @@ source("R/utils-link-functions.R")
 
 
 link_theme <- function(base_size = 10, base_family = "") {
-  ggplot2::theme_classic(base_size = base_size, base_family = base_family) +
+  ggplot2::theme_minimal(base_size = base_size, base_family = base_family) +
     ggplot2::theme(
       plot.title = ggplot2::element_text(
         face = "bold",
