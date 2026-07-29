@@ -15,7 +15,7 @@ source("R/utils-plots.R")
 ensure_output_dirs()
 set.seed(20260526)
 
-report_header("Simulation 2: bounded discrete sum scores")
+report_header("Simulation 2: sum scores")
 
 # ---------------------------------------------------------------------
 # 1. User-tunable scenario block
@@ -409,6 +409,11 @@ simulation_summary <- do.call(rbind, lapply(
 ))
 
 simulation_summary <- simulation_summary[order(simulation_summary$scenario, simulation_summary$model), ]
+simulation_summary$rate_type <- ifelse(
+  simulation_summary$model == "Latent generating scale",
+  "Nominal rejection rate",
+  "Pseudo-interaction detection rate"
+)
 simulation_summary$change_in_group_difference_units <- ifelse(
   simulation_summary$model == "Latent generating scale",
   "latent theta units",
@@ -419,6 +424,9 @@ utils::write.csv(simulation_summary, settings$simulation_summary_path, row.names
 
 report_section("Simulation summary")
 print_compact(simulation_summary)
+cat("\nThe generating x-by-group product term is zero on the latent scale.\n")
+cat("The latent generating-scale benchmark supplies nominal rejection rates.\n")
+cat("Observed and bounded-score analyses supply pseudo-interaction detection rates.\n")
 cat("\nInterpretation aid: median_change_in_group_difference_outcome_units is a contrast, not a possible observed score.\n")
 cat("For observed-score models, it is the median model-implied change in the predicted group difference\n")
 cat(
@@ -446,16 +454,16 @@ pA <- ggplot2::ggplot(plot_grid, ggplot2::aes(x, expected_sum_score, color = gro
   ) +
   link_theme()
 
-pB <- ggplot2::ggplot(simulation_summary, ggplot2::aes(x = model, y = false_positive_rate)) +
+pB <- ggplot2::ggplot(simulation_summary, ggplot2::aes(x = model, y = rejection_rate)) +
   ggplot2::geom_hline(yintercept = settings$alpha, linetype = "dashed") +
   ggplot2::geom_pointrange(ggplot2::aes(ymin = ci_low, ymax = ci_high)) +
   ggplot2::coord_flip() +
   ggplot2::facet_wrap(~ scenario) +
   ggplot2::labs(
-    title = "B. False-positive interaction rate",
-    subtitle = "Dashed line is nominal alpha",
+    title = "B. Product-term rejection rate",
+    subtitle = "Latent generating-scale model: nominal rejection; observed-score models: pseudo-interaction detection. Dashed line: nominal alpha",
     x = NULL,
-    y = "Rate"
+    y = "Replications rejecting the x-by-group product term"
   ) +
   link_theme(base_size = 9)
 

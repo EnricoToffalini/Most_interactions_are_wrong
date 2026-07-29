@@ -258,7 +258,7 @@ Often the outcome family is chosen with care while the link function is left at 
 
 The scale dependence of interactions has long been recognized. Loftus showed that interactions involving response probabilities are meaningful only relative to a mapping between observed and theoretical scales [@loftus1978]. Cox formalized interaction as a model-relative concept tied to transformation and interpretation [@cox1984]. Wagenmakers and colleagues distinguished removable from nonremovable interactions, showing that some depend entirely on the measurement scale [@wagenmakers2012]. Busemeyer showed that conclusions about combination rules depend on the measurement model [@busemeyer1983], and Lubinski and Humphreys illustrated how model specification choices can mimic moderator effects [@lubinski1990]. More recently, Rohrer and Arslan argued that interaction tests often provide precise answers to vague questions when the estimand and scale are left unspecified [@rohrer2021], and Rimpler and colleagues showed that product terms in linear models can mismatch the functional form implied by a substantive conditional-effect claim [@rimpler2026]. In GLMs specifically, product-term coefficients are not generally equal to response-scale interactions, so interaction effects should be evaluated as marginal effects or response-scale contrasts [@ainorton2003; @mccabe2022; @mize2019; @rohrer2026]. Domingue and colleagues demonstrated that outcome-model misspecification can produce false interaction findings for binary, count, and censored outcomes [@domingue2024], and Liddell and Kruschke showed that treating ordinal responses as metric can inflate error rates for interactions [@liddellkruschke2018]. Czado and Santner, and later Yu and Huang, studied the inferential consequences of link misspecification in binary GLMs and GLMMs [@czadosantner1992; @yuhuang2019]. Interaction estimates are also fragile for ordinary reasons, including small effects, low reliability, and limited power [@baranger2023; @castillo2026].
 
-These contributions identify adjacent parts of a shared problem. None of them, however, directly addresses link-choice-driven interaction artifacts in GLMs for bounded or chance-limited psychological outcomes, the case in which the outcome family is broadly plausible but the link still sets a disputable no-interaction baseline. An interaction on a scale other than the generating one is not a false positive in a strict statistical sense; it is a genuine mathematical property of that scale [@loftus1978; @cox1984; @domingue2024; @mccabe2022]. We define "pseudo-interaction" an interaction that is non-zero on the fitted link scale, but zero on the generating-data link scale. Some interactions survive any monotonic rescaling, crossover interactions being the classical example [@wagenmakers2012]. Many others do not, and the present paper focuses on these: the incremental contribution is to separate outcome family, link function, and target metric in a single framework for interaction testing, combine this separation with a preregistered review documenting the reporting gap, and quantify the inferential risk through simulations of common psychological response formats.
+These contributions identify adjacent parts of a shared problem. None of them, however, directly addresses link-choice-driven interaction artifacts in GLMs for bounded or chance-limited psychological outcomes, the case in which the outcome family is broadly plausible but the link still sets a disputable no-interaction baseline. An interaction on a scale other than the generating one is not a false positive in a strict statistical sense; it is a genuine mathematical property of that scale [@loftus1978; @cox1984; @domingue2024; @mccabe2022]. We define a pseudo-interaction as an interaction contrast that is zero on the known generating scale but nonzero on another fitted scale because the two scales encode different additivity baselines. This label is available in simulations because the generating process is known. In empirical data, where the generating scale is unknown, we instead describe interaction conclusions as link-sensitive, conditional on the fitted scale, or unstable across plausible links. Some interactions survive any monotonic rescaling, crossover interactions being the classical example [@wagenmakers2012]. Many others do not, and the present paper focuses on these: the incremental contribution is to separate outcome family, link function, and target metric in a single framework for interaction testing, combine this separation with a preregistered review documenting the reporting gap, and quantify the inferential risk through simulations of common psychological response formats.
 
 The present article addresses these issues in two parts. The first is a preregistered descriptive review of recent empirical articles in five prominent psychology journals, quantifying how often interactions are tested, how often the outcome family and link function are made explicit, and which response formats predominate. The second develops the link function problem in three common response formats: forced-choice accuracy with a chance floor, sum scores, and within-family link choices such as logit versus probit. Using simulations, it quantifies how often an inadequate link turns a purely additive structure into a statistically significant interaction, and whether standard diagnostics detect the misspecification. @tbl-link-aware-workflow summarizes these insights into a practical workflow for applied research.
 
@@ -419,13 +419,14 @@ simulation_display_table <- function(dat, effect_col = NULL, include_scale = FAL
   if ("Model" %in% names(dat)) out$Model <- dat$Model
   if ("Fitted link" %in% names(dat)) out$`Fitted link` <- dat$`Fitted link`
   if ("Link status" %in% names(dat)) out$`Link status` <- dat$`Link status`
+  if ("Rate type" %in% names(dat)) out$`Rate type` <- dat$`Rate type`
   if (include_scale && "Units for group-gap change" %in% names(dat)) {
     out$Scale <- ifelse(grepl("latent", dat$`Units for group-gap change`), "latent theta", "sum score")
   }
   if ("Successful fits" %in% names(dat)) out$Fits <- fmt_count(dat$`Successful fits`)
-  if ("Significant tests" %in% names(dat)) out$Sig <- fmt_count(dat$`Significant tests`)
-  if ("False-positive rate" %in% names(dat)) {
-    out$`False-positive rate` <- fmt_num(dat$`False-positive rate`, 3)
+  if ("Rejections" %in% names(dat)) out$Reject <- fmt_count(dat$Rejections)
+  if ("Rejection rate" %in% names(dat)) {
+    out$`Rejection rate` <- fmt_num(dat$`Rejection rate`, 3)
   }
   if (all(c("CI low", "CI high") %in% names(dat))) {
     out$`95% CI` <- fmt_ci_cols(dat$`CI low`, dat$`CI high`, 3)
@@ -524,7 +525,7 @@ To demonstrate the consequences of link misspecification we conduct three simula
 
 Each case develops the conceptual problem and then reports a simulation that quantifies it. The three simulations ask whether a purely additive data-generating process on one scale is detected as a statistically significant interaction when modeled on another scale. A final simulation, reported in the next section, examines whether standard diagnostics reliably identify the misspecified link. The simulation scenarios were chosen to represent plausible psychological data patterns. Each reproduces a common interaction-testing situation: two main effects that are well established and pretty large, for example a group difference combined with a condition effect or a developmental trend, and the question of whether one effect moderates the other. The two main effects were always tuned strong enough to push expected values close to a floor, ceiling, or chance level while keeping them clearly inside the observed range. This is the region where link curvature acts most strongly.
 
-Each simulation applies the same design. Data are generated with no interaction on the generating scale; models assuming additivity on the generating scale and on plausible alternative scales are fitted to the same data; and the proportion of statistically significant interactions across replications shows how often each scale choice produces a pseudo-interaction in that scenario.
+Each simulation applies the same design. Data are generated with no product term on the generating scale, and models assuming additivity on that scale and on plausible alternative scales are fitted to the same data. Every fitted model yields a product-term rejection rate. Rejection under a matched generating-scale model is the nominal rejection rate, whereas rejection under a mismatched-scale model is the pseudo-interaction detection rate.
 
 ```{r simulation-load-results}
 #| include: false
@@ -538,21 +539,19 @@ read_required_table <- function(file, script_hint) {
   dat
 }
 
-keep_existing_columns <- function(dat, cols) {
-  present <- intersect(cols, names(dat))
+select_required_columns <- function(dat, cols) {
   missing <- setdiff(cols, names(dat))
   if (length(missing) > 0) {
-    warning(
-      "The following expected columns were not found and will be omitted: ",
+    stop(
+      "The following required columns were not found: ",
       paste(missing, collapse = ", ")
     )
   }
-  dat[, present, drop = FALSE]
+  dat[, cols, drop = FALSE]
 }
 
-rename_existing_columns <- function(dat, labels) {
-  old <- intersect(names(labels), names(dat))
-  names(dat)[match(old, names(dat))] <- unname(labels[old])
+rename_columns <- function(dat, labels) {
+  names(dat)[match(names(labels), names(dat))] <- unname(labels)
   dat
 }
 
@@ -578,6 +577,123 @@ diagnostic_scenarios_raw <- read_required_table(
   "scripts/04-diagnostic-worked-example.R"
 )
 
+diagnostic_calibration_raw <- read_required_table(
+  "diagnostic-calibration.csv",
+  "scripts/04-diagnostic-worked-example.R"
+)
+
+diagnostic_replications_path <- find_repo_file(
+  "outputs", "diagnostic-simulation-replications.csv"
+)
+diagnostic_replications <- read.csv(
+  diagnostic_replications_path,
+  stringsAsFactors = FALSE,
+  check.names = FALSE
+)
+
+diagnostic_dharma_cols <- c(
+  "dharma_uniformity_p",
+  "dharma_dispersion_p",
+  "dharma_quantile_fitted_p",
+  "dharma_quantile_predictor_p",
+  "dharma_categorical_design_p"
+)
+diagnostic_required_cols <- c(
+  "scenario", "interaction_p", diagnostic_dharma_cols,
+  "aic_fitted_minus_true"
+)
+if (!all(diagnostic_required_cols %in% names(diagnostic_replications))) {
+  stop(
+    "The diagnostic replication file is missing required columns: ",
+    paste(
+      setdiff(diagnostic_required_cols, names(diagnostic_replications)),
+      collapse = ", "
+    )
+  )
+}
+
+chance_floor_replications <- diagnostic_replications[
+  diagnostic_replications$scenario == "Chance-floor accuracy",
+  ,
+  drop = FALSE
+]
+chance_floor_dharma_n <- rowSums(
+  !is.na(chance_floor_replications[diagnostic_dharma_cols])
+)
+chance_floor_any_dharma_flag <- ifelse(
+  chance_floor_dharma_n == 0,
+  NA,
+  rowSums(
+    chance_floor_replications[diagnostic_dharma_cols] < .05,
+    na.rm = TRUE
+  ) > 0
+)
+chance_floor_pseudo <- (
+  !is.na(chance_floor_replications$interaction_p) &
+    chance_floor_replications$interaction_p < .05
+)
+chance_floor_pseudo_with_dharma <- (
+  chance_floor_pseudo & !is.na(chance_floor_any_dharma_flag)
+)
+chance_floor_missed_n <- sum(
+  chance_floor_pseudo_with_dharma & !chance_floor_any_dharma_flag
+)
+chance_floor_missed_denominator <- sum(chance_floor_pseudo_with_dharma)
+chance_floor_missed_percent <- (
+  100 * chance_floor_missed_n / chance_floor_missed_denominator
+)
+
+chance_floor_aic <- chance_floor_replications$aic_fitted_minus_true[
+  is.finite(chance_floor_replications$aic_fitted_minus_true)
+]
+chance_floor_aic_n <- length(chance_floor_aic)
+chance_floor_aic_median <- stats::median(chance_floor_aic)
+chance_floor_aic_within_two_n <- sum(abs(chance_floor_aic) < 2)
+chance_floor_aic_within_two_percent <- (
+  100 * chance_floor_aic_within_two_n / chance_floor_aic_n
+)
+
+diagnostic_calibration_required_cols <- c(
+  "scenario", "diagnostic", "model_specification", "n_attempted",
+  "n_successful", "flagging_rate", "ci_low", "ci_high"
+)
+if (!all(diagnostic_calibration_required_cols %in% names(diagnostic_calibration_raw))) {
+  stop(
+    "The diagnostic calibration table is missing required columns: ",
+    paste(
+      setdiff(
+        diagnostic_calibration_required_cols,
+        names(diagnostic_calibration_raw)
+      ),
+      collapse = ", "
+    )
+  )
+}
+diagnostic_calibration_correct <- diagnostic_calibration_raw[
+  diagnostic_calibration_raw$model_specification == "Correct link" &
+    diagnostic_calibration_raw$n_successful > 0 &
+    is.finite(diagnostic_calibration_raw$flagging_rate),
+  ,
+  drop = FALSE
+]
+diagnostic_calibration_regular <- (
+  nrow(diagnostic_calibration_correct) > 0 &&
+    all(diagnostic_calibration_correct$ci_low <= .05, na.rm = TRUE)
+)
+diagnostic_calibration_result_sentence <- if (diagnostic_calibration_regular) {
+  paste(
+    "Baseline flagging rates under the correct link were generally low",
+    "across diagnostics and scenarios; full calibration results are reported",
+    "in the supplement."
+  )
+} else {
+  paste(
+    "Calibration rates varied across diagnostics or scenarios, so flagging",
+    "rates under misspecification should be read against the baseline rates",
+    "reported in the supplement."
+  )
+}
+
 # Scenario tables are produced by the revised scripts and document the
 # deterministic values implied by each data-generating scenario. They are
 # loaded here so that the manuscript and scripts remain synchronized, but
@@ -600,109 +716,106 @@ diagnostic_scenario <- read_required_table(
   "scripts/04-diagnostic-worked-example.R"
 )
 
-forced_choice_sim <- keep_existing_columns(
+forced_choice_sim <- select_required_columns(
   forced_choice_sim_raw,
   c(
     "scenario",
     "model",
     "n_successful_fits",
-    "n_significant",
-    "false_positive_rate",
+    "n_rejections",
+    "rejection_rate",
+    "rate_type",
     "ci_low",
     "ci_high",
     "median_change_in_group_difference_outcome_units"
   )
 )
-forced_choice_sim <- rename_existing_columns(
+forced_choice_sim <- rename_columns(
   forced_choice_sim,
   c(
     scenario = "Scenario",
     model = "Model",
     n_successful_fits = "Successful fits",
-    n_significant = "Significant tests",
-    false_positive_rate = "False-positive rate",
+    n_rejections = "Rejections",
+    rejection_rate = "Rejection rate",
+    rate_type = "Rate type",
     ci_low = "CI low",
     ci_high = "CI high",
     median_change_in_group_difference_outcome_units = "Median change in group gap, correct-response units"
   )
 )
 
-sum_score_sim <- keep_existing_columns(
+sum_score_sim <- select_required_columns(
   sum_score_sim_raw,
   c(
     "scenario",
     "model",
     "change_in_group_difference_units",
     "n_successful_fits",
-    "n_significant",
-    "false_positive_rate",
+    "n_rejections",
+    "rejection_rate",
+    "rate_type",
     "ci_low",
     "ci_high",
     "median_change_in_group_difference_outcome_units"
   )
 )
-sum_score_sim <- rename_existing_columns(
+sum_score_sim <- rename_columns(
   sum_score_sim,
   c(
     scenario = "Scenario",
     model = "Model",
     change_in_group_difference_units = "Units for group-gap change",
     n_successful_fits = "Successful fits",
-    n_significant = "Significant tests",
-    false_positive_rate = "False-positive rate",
+    n_rejections = "Rejections",
+    rejection_rate = "Rejection rate",
+    rate_type = "Rate type",
     ci_low = "CI low",
     ci_high = "CI high",
     median_change_in_group_difference_outcome_units = "Median change in group gap"
   )
 )
 
-# The current within-family script writes repeated-trial GLMM results.
-# It does not write a scenario column or response-scale gap-change summaries.
-# If the number of significant tests is not stored explicitly, recover it from
-# the reported false-positive rate and the number of successful fits.
-if (!"n_significant" %in% names(within_family_sim_raw) &&
-    all(c("n_successful_fits", "false_positive_rate") %in% names(within_family_sim_raw))) {
-  within_family_sim_raw$n_significant <- round(
-    within_family_sim_raw$n_successful_fits * within_family_sim_raw$false_positive_rate
-  )
-}
-
-within_family_sim <- keep_existing_columns(
+# The within-family script writes repeated-trial GLMM results without a
+# scenario column or response-scale gap-change summaries.
+within_family_sim <- select_required_columns(
   within_family_sim_raw,
   c(
     "generating_link",
     "fitted_link",
     "link_match",
     "n_successful_fits",
-    "n_significant",
-    "false_positive_rate",
+    "n_rejections",
+    "rejection_rate",
+    "rate_type",
     "ci_low",
     "ci_high",
     "median_interaction_coef",
     "median_interaction_se"
   )
 )
-within_family_sim <- rename_existing_columns(
+within_family_sim <- rename_columns(
   within_family_sim,
   c(
     generating_link = "Generating link",
     fitted_link = "Fitted link",
     link_match = "Link status",
     n_successful_fits = "Successful fits",
-    n_significant = "Significant tests",
-    false_positive_rate = "False-positive rate",
+    n_rejections = "Rejections",
+    rejection_rate = "Rejection rate",
+    rate_type = "Rate type",
     ci_low = "CI low",
     ci_high = "CI high",
     median_interaction_coef = "Median interaction coefficient",
     median_interaction_se = "Median interaction SE"
   )
 )
-diagnostic_sim <- keep_existing_columns(
+diagnostic_sim <- select_required_columns(
   diagnostic_sim_raw,
   c("scenario", "quantity", "n_successful_fits", "n_significant", "rate", "ci_low", "ci_high")
 )
 
-diagnostic_sim <- rename_existing_columns(
+diagnostic_sim <- rename_columns(
   diagnostic_sim,
   c(
     scenario = "Scenario",
@@ -715,52 +828,7 @@ diagnostic_sim <- rename_existing_columns(
   )
 )
 
-if (!"true_model_label" %in% names(diagnostic_scenarios_raw)) {
-  diagnostic_scenarios_raw$true_model_label <- diagnostic_scenarios_raw$true_link_function
-  diagnostic_scenarios_raw$fitted_model_label <- diagnostic_scenarios_raw$fitted_link_function
-  
-  diagnostic_scenarios_raw$true_model_label[
-    diagnostic_scenarios_raw$scenario == "Count errors"
-  ] <- "Poisson log"
-  diagnostic_scenarios_raw$fitted_model_label[
-    diagnostic_scenarios_raw$scenario == "Count errors"
-  ] <- "Poisson identity"
-  
-  diagnostic_scenarios_raw$true_model_label[
-    diagnostic_scenarios_raw$scenario == "Chance-floor accuracy"
-  ] <- "chance-corrected binomial logit"
-  diagnostic_scenarios_raw$fitted_model_label[
-    diagnostic_scenarios_raw$scenario == "Chance-floor accuracy"
-  ] <- "standard binomial logit"
-  
-  diagnostic_scenarios_raw$true_model_label[
-    diagnostic_scenarios_raw$scenario == "Binary repeated trials"
-  ] <- "binomial probit GLMM"
-  diagnostic_scenarios_raw$fitted_model_label[
-    diagnostic_scenarios_raw$scenario == "Binary repeated trials"
-  ] <- "binomial logit GLMM"
-  
-  diagnostic_scenarios_raw$true_model_label[
-    diagnostic_scenarios_raw$scenario == "Binary continuous predictor"
-  ] <- "binomial probit GLMM"
-  diagnostic_scenarios_raw$fitted_model_label[
-    diagnostic_scenarios_raw$scenario == "Binary continuous predictor"
-  ] <- "binomial logit GLMM"
-  
-  diagnostic_scenarios_raw$true_model_label[
-    diagnostic_scenarios_raw$scenario == "Gamma mean response time"
-  ] <- "Gamma log"
-  diagnostic_scenarios_raw$fitted_model_label[
-    diagnostic_scenarios_raw$scenario == "Gamma mean response time"
-  ] <- "Gamma inverse"
-}
-
-if (!"aic_favors_target" %in% names(diagnostic_scenarios_raw) &&
-    "aic_favors_true_link" %in% names(diagnostic_scenarios_raw)) {
-  diagnostic_scenarios_raw$aic_favors_target <- diagnostic_scenarios_raw$aic_favors_true_link
-}
-
-diagnostic_scenarios <- keep_existing_columns(
+diagnostic_scenarios <- select_required_columns(
   diagnostic_scenarios_raw,
   c(
     "scenario",
@@ -768,25 +836,20 @@ diagnostic_scenarios <- keep_existing_columns(
     "outcome_family",
     "true_model_label",
     "fitted_model_label",
-    "false_positive_interaction",
-    "false_positive_interaction_ci_low",
-    "false_positive_interaction_ci_high",
-    "dharma_detection_min",
-    "dharma_detection_max",
+    "pseudo_interaction_detection_rate",
+    "pseudo_interaction_detection_ci_low",
+    "pseudo_interaction_detection_ci_high",
+    "dharma_detection_rate_min",
+    "dharma_detection_rate_max",
     "dharma_n_checks_used",
-    "pregibon_detection",
+    "pregibon_detection_rate",
     "aic_favors_target",
-    "n_aic_pairs",
-    "median_aic_fitted_minus_true",
-    "q25_aic_fitted_minus_true",
-    "q75_aic_fitted_minus_true",
-    "aic_difference_within_2",
     "quantitative_description",
     "variability_summary"
   )
 )
 
-diagnostic_scenarios <- rename_existing_columns(
+diagnostic_scenarios <- rename_columns(
   diagnostic_scenarios,
   c(
     scenario = "Case",
@@ -794,19 +857,14 @@ diagnostic_scenarios <- rename_existing_columns(
     outcome_family = "Outcome family",
     true_model_label = "Target model",
     fitted_model_label = "Misspecified model",
-    false_positive_interaction = "False-positive interaction",
-    false_positive_interaction_ci_low = "Interaction CI low",
-    false_positive_interaction_ci_high = "Interaction CI high",
-    dharma_detection_min = "DHARMa min",
-    dharma_detection_max = "DHARMa max",
+    pseudo_interaction_detection_rate = "Pseudo-interaction detection",
+    pseudo_interaction_detection_ci_low = "Pseudo-interaction CI low",
+    pseudo_interaction_detection_ci_high = "Pseudo-interaction CI high",
+    dharma_detection_rate_min = "DHARMa min",
+    dharma_detection_rate_max = "DHARMa max",
     dharma_n_checks_used = "DHARMa n checks",
-    pregibon_detection = "Pregibon check",
+    pregibon_detection_rate = "Pregibon check",
     aic_favors_target = "AIC favors target",
-    n_aic_pairs = "AIC pairs",
-    median_aic_fitted_minus_true = "Median AIC difference",
-    q25_aic_fitted_minus_true = "AIC difference Q1",
-    q75_aic_fitted_minus_true = "AIC difference Q3",
-    aic_difference_within_2 = "AIC difference within 2",
     quantitative_description = "Quantitative description",
     variability_summary = "Variability summary"
   )
@@ -817,9 +875,9 @@ diagnostic_scenario_display_table <- function(dat) {
     Case = dat$Case,
     `Target model` = dat$`Target model`,
     `Misspecified model` = dat$`Misspecified model`,
-    `FP interaction` = paste0(
-      fmt_num(dat$`False-positive interaction`, 3), " ",
-      fmt_ci_cols(dat$`Interaction CI low`, dat$`Interaction CI high`, 3)
+    `Pseudo-interaction rate` = paste0(
+      fmt_num(dat$`Pseudo-interaction detection`, 3), " ",
+      fmt_ci_cols(dat$`Pseudo-interaction CI low`, dat$`Pseudo-interaction CI high`, 3)
     ),
     DHARMa = paste0(
       fmt_num(dat$`DHARMa min`, 3), "-",
@@ -877,20 +935,20 @@ fc_lookup <- function(scn, mdl, col) {
     col, drop = TRUE
   ]
 }
-fc_fp  <- function(scn, mdl) round(100 * fc_lookup(scn, mdl, "False-positive rate"))
+fc_rejection_rate <- function(scn, mdl) round(100 * fc_lookup(scn, mdl, "Rejection rate"))
 fc_fit <- function(scn, mdl) fc_lookup(scn, mdl, "Successful fits")
-cc_rate <- forced_choice_sim$`False-positive rate`[
+matched_nominal_rate <- forced_choice_sim$`Rejection rate`[
   forced_choice_sim$Model == "Chance-corrected binomial logit"
 ]
-cc_min <- round(100 * min(cc_rate))
-cc_max <- round(100 * max(cc_rate))
+matched_nominal_min <- round(100 * min(matched_nominal_rate))
+matched_nominal_max <- round(100 * max(matched_nominal_rate))
 ```
 
-In each of `r n_rep` replications we generated accuracy for $N = `r sim_N`$ participants with $k = `r sim_k`$ trials each, from a chance-corrected logit model with a .50 floor, a positive age effect, a group difference, and no age-by-group interaction term on the generating scale. Three scenarios differ only in overall performance, set by shifting the intercept: in the *lower-performance* scenario the two groups lie close to the .50 floor (expected accuracies roughly .53 to .80 across ages 6 to 10), in the *middle-performance* scenario they occupy the middle of the above-chance range (roughly .55 to .88), and in the *higher-performance* scenario they approach the ceiling (roughly .61 to .94). Each simulated dataset was analyzed with four aggregate models, one row per participant: a Gaussian linear model on the observed proportions, standard binomial-logit and binomial-probit GLMs on the correct-response counts, and the chance-corrected binomial-logit GLM that matches the generating scale. We recorded how often each returned a significant age-by-group interaction term at $\alpha = .05$, a pseudo-interaction by our definition. @fig-forced-choice-simulation shows the simulation results; the per-scenario rates are tabulated in the Supplement.
+In each of `r n_rep` replications we generated accuracy for $N = `r sim_N`$ participants with $k = `r sim_k`$ trials each, from a chance-corrected logit model with a .50 floor, a positive age effect, a group difference, and no age-by-group product term on the generating scale. Three scenarios differ only in overall performance, set by shifting the intercept: in the *lower-performance* scenario the two groups lie close to the .50 floor (expected accuracies roughly .53 to .80 across ages 6 to 10), in the *middle-performance* scenario they occupy the middle of the above-chance range (roughly .55 to .88), and in the *higher-performance* scenario they approach the ceiling (roughly .61 to .94). Each simulated dataset was analyzed with four aggregate models, one row per participant: a Gaussian linear model on the observed proportions, standard binomial-logit and binomial-probit GLMs on the correct-response counts, and the chance-corrected binomial-logit GLM that matches the generating scale. We recorded how often each product-term test rejected at $\alpha = .05$. The matching model supplies the nominal rejection rate, while the three alternative scales supply pseudo-interaction detection rates. @fig-forced-choice-simulation shows the simulation results; the per-scenario rates are tabulated in the Supplement.
 
-![Simulation 1: forced-choice accuracy with a task-implied chance floor. Panel A shows the deterministic scenario curves generated by the chance-corrected logit model. The grey region marks values below the .50 chance floor, and the dashed horizontal line marks chance performance. Panel B shows the false-positive rate for the age-by-group interaction term across replications, for each fitted model and performance scenario. Data are generated with no age-by-group interaction on the chance-corrected scale.](../figs/forced-choice-simulation.pdf){#fig-forced-choice-simulation fig-pos="H"}
+![Simulation 1: forced-choice accuracy with a task-implied chance floor. Panel A shows the deterministic scenario curves generated by the chance-corrected logit model. The grey region marks values below the .50 chance floor, and the dashed horizontal line marks chance performance. Panel B shows the product-term rejection rate across replications for each fitted model and performance scenario. The matching chance-corrected model shows nominal rejection; the alternative scales show pseudo-interaction detection. Data are generated with no age-by-group product term on the chance-corrected scale.](../figs/forced-choice-simulation.pdf){#fig-forced-choice-simulation fig-pos="H"}
 
-The chance-corrected model stays near the nominal .05 in every scenario, with false-positive rates between `r cc_min`% and `r cc_max`%, because it matches the generating scale. The misspecified models inflate, most severely where performance lies near the floor: in the lower-performance scenario the standard logit rejects `r fc_fp("Lower performance", "Standard binomial logit")`% of the time, the standard probit `r fc_fp("Lower performance", "Standard binomial probit")`%, and the Gaussian identity `r fc_fp("Lower performance", "Gaussian identity")`%, against the nominal 5%. The inflation shrinks as performance moves away from the floor, falling in the higher-performance scenario to `r fc_fp("Higher performance", "Standard binomial logit")`% for the logit and `r fc_fp("Higher performance", "Standard binomial probit")`% for the probit, and it persists wherever the inverse link is curved. When the true floor is .50 and the fitted link places it at 0, the interaction term compensates for the wrong no-interaction baseline.
+The chance-corrected model stays near the nominal .05 in every scenario, with nominal rejection rates between `r matched_nominal_min`% and `r matched_nominal_max`%, because it matches the generating scale. Pseudo-interaction detection is highest where performance lies near the floor: in the lower-performance scenario the standard logit rejects `r fc_rejection_rate("Lower performance", "Standard binomial logit")`% of the time, the standard probit `r fc_rejection_rate("Lower performance", "Standard binomial probit")`%, and the Gaussian identity `r fc_rejection_rate("Lower performance", "Gaussian identity")`%, against the nominal 5%. Detection falls as performance moves away from the floor, reaching `r fc_rejection_rate("Higher performance", "Standard binomial logit")`% for the logit and `r fc_rejection_rate("Higher performance", "Standard binomial probit")`% for the probit in the higher-performance scenario. When the true floor is .50 and the fitted link places it at 0, the product term compensates for the wrong no-interaction baseline.
 
 The chance-corrected model can be numerically demanding. Near the floor the likelihood carries little information about changes on the above-chance scale, and some fits fail to converge; in the lower-performance scenario, only `r fc_fit("Lower performance", "Chance-corrected binomial logit")` of the `r n_rep` replications did. This instability is itself informative, signaling that the design gives limited evidence about above-guessing differences in that region. Weakly informative Bayesian priors or item-level models can stabilize estimation, at the cost of added assumptions that should be stated and checked \[**REF O TOGLIERE FRASE**\].
 
@@ -917,14 +975,14 @@ wf_lookup <- function(gen, fit, col) {
     col, drop = TRUE
   ]
 }
-wf_fp <- function(gen, fit) round(100 * wf_lookup(gen, fit, "False-positive rate"))
+wf_rejection_rate <- function(gen, fit) round(100 * wf_lookup(gen, fit, "Rejection rate"))
 ```
 
 In each of `r n_rep_wf` replications we generated repeated binary responses for $N = `r wf_N`$ participants in a two-group, two-condition design, with `r wf_k` trials per participant-condition cell and a subject random intercept (latent intraclass correlation 0.30). The quite large sample was chosen to make the relatively small systematic discrepancy between logit and probit links detectable, rather than to represent a typical psychological study. The condition-by-group interaction term was zero on the generating link scale. We crossed the generating link with the fitted link, using logit and probit in both roles, and fitted every model as a random-intercept GLMM, recording how often each returned a significant condition-by-group interaction term at $\alpha = .05$. @fig-within-family-links shows the results; the full crossed-link rates are tabulated in the Supplement.
 
-![Simulation 2: within-family link choice in repeated-trial random-intercept GLMMs. Panel A shows the deterministic cell probabilities generated by additive logit or probit models (there is no variability due to random intercepts across subjects). Panel B shows the false-positive rate for the condition-by-group interaction term when the generating and fitted links are crossed. Error bars are Wilson 95% confidence intervals, and the dashed line marks nominal alpha.](../figs/within-family-links.pdf){#fig-within-family-links fig-pos="H"}
+![Simulation 2: within-family link choice in repeated-trial random-intercept GLMMs. Panel A shows the deterministic cell probabilities generated by additive logit or probit models at random intercept 0. Panel B shows the product-term rejection rate when the generating and fitted links are crossed. Matched links show nominal rejection; wrong links show pseudo-interaction detection. Error bars are Wilson 95% confidence intervals, and the dashed line marks nominal alpha.](../figs/within-family-links.pdf){#fig-within-family-links fig-pos="H"}
 
-When the fitted link matches the generating link, the false-positive rate stays near the nominal .05: `r wf_fp("logit", "logit")`% for logit fitted to logit-generated data and `r wf_fp("probit", "probit")`% for probit fitted to probit-generated data. Crossing the links inflates it to `r wf_fp("probit", "logit")`% when a logit model is fitted to probit-generated data and `r wf_fp("logit", "probit")`% when a probit model is fitted to logit-generated data, roughly a tripling of the nominal rate. The inflation is smaller than in the forced-choice case, and it appears among links that share the same family, the same 0-to-1 bounds, and nearly overlapping fitted curves in the middle of the probability range, the setting many applied analysts treat as interchangeable. Under the wrong link the same cell probabilities imply a small but deterministic nonzero interaction term on the fitted scale, which repeated sampling detects. A result that is stable across both links is easier to defend; one that appears only under a single link should be reported as link-conditional, or translated into a response-scale estimand and checked across plausible links. The deterministic product term induced by evaluating each generating model on the alternative link scale is reported in Supplement Section S5.
+When the fitted link matches the generating link, the nominal rejection rate stays near .05: `r wf_rejection_rate("logit", "logit")`% for logit fitted to logit-generated data and `r wf_rejection_rate("probit", "probit")`% for probit fitted to probit-generated data. Crossing the links raises the pseudo-interaction detection rate to `r wf_rejection_rate("probit", "logit")`% when a logit model is fitted to probit-generated data and `r wf_rejection_rate("logit", "probit")`% when a probit model is fitted to logit-generated data, roughly three times the nominal rate. The wrong-link detection rates are smaller than in the forced-choice case, and they appear among links that share the same family, the same 0-to-1 bounds, and nearly overlapping fitted curves in the middle of the probability range, the setting many applied analysts treat as interchangeable. Under the wrong link the same cell probabilities imply a small but deterministic nonzero product term on the fitted scale, which repeated sampling detects. A result that is stable across both links is easier to defend; one that appears only under a single link should be reported as link-conditional, or translated into a response-scale estimand and checked across plausible links. The deterministic product term induced by evaluating each generating model on the alternative link scale is reported in Supplement Section S5.
 
 ## Sum Scores
 
@@ -957,16 +1015,16 @@ ss_lookup <- function(scn, mdl, col) {
     col, drop = TRUE
   ]
 }
-ss_fp <- function(scn, mdl) round(100 * ss_lookup(scn, mdl, "False-positive rate"))
+ss_rejection_rate <- function(scn, mdl) round(100 * ss_lookup(scn, mdl, "Rejection rate"))
 ```
 
 The bounded-score probit model introduced above is tested here against the two natural alternatives: the manifest total and the latent scale it approximates. In each of `r n_rep_ss` replications we generated data for $N = `r ss_N`$ participants on a latent continuous scale, with a continuous predictor, a group effect, and no true x-by-group interaction term. Each latent value was converted into `r ss_J` ordinal items scored 0 to `r ss_cat`, which were summed to a total on a 0-to-`r ss_max` scale. Three scenarios shift the item thresholds so that expected totals fall in the middle of the scale, near the floor, or near the ceiling. Each participant's total score was analyzed on three scales, chosen to isolate the relevant comparison: the observed sum-score identity model, a Gaussian linear model of the manifest total; the Gaussian-probit bounded-score model, a sensitivity model whose inverse link constrains the rescaled conditional mean within the bounds of minimum-maximum range; and the latent generating scale itself, an idealized benchmark available only because the true theta is known. We recorded how often each returned a significant x-by-group interaction term at $\alpha = .05$. @fig-sum-score-simulation shows the results; the per-scenario rates are tabulated in the Supplement.
 
 The bounded-score model fits a continuity-corrected score proportion with a Gaussian likelihood and a probit link, then rescales predictions back to the sum-score metric. A probit rather than a logit link is used because its standard-normal linear predictor keeps the ad hoc correspondence to a latent scale simple and readable as if they were standardized units (but note that, as we showed in a previous section, this is *not* a neutral choice). 
 
-![Simulation 3: sum scores as bounded and discrete outcomes. Panel A shows how a latent additive data-generating model, with no x-by-group interaction term, is mapped onto the observed sum-score scale under middle, floor, and ceiling scenarios. Panel B shows false-positive interaction rates across repeated simulations. The latent generating scale is an idealized benchmark available only because theta is known in the simulation; applied analyses have no access to it.](../figs/sum-score-simulation.pdf){#fig-sum-score-simulation fig-pos="H"}
+![Simulation 3: sum scores as bounded and discrete outcomes. Panel A shows how a latent additive data-generating model, with no x-by-group product term, is mapped onto the observed sum-score scale under middle, floor, and ceiling scenarios. Panel B shows product-term rejection rates across repeated simulations. The latent generating-scale benchmark shows nominal rejection; the observed and bounded-score models show pseudo-interaction detection. The latent benchmark is available only because theta is known in the simulation; applied analyses have no access to it.](../figs/sum-score-simulation.pdf){#fig-sum-score-simulation fig-pos="H"}
 
-The latent generating scale, the idealized benchmark, stays near the nominal .05 in every scenario (between `r ss_fp("Middle of scale", "Latent generating scale")`% and `r ss_fp("Near floor", "Latent generating scale")`%), confirming that the interaction is genuinely absent on the scale that generated the data. The observed sum-score identity model matches it only in the middle of the scale, where the total is approximately linear in the latent variable (`r ss_fp("Middle of scale", "Observed sum-score identity")`%). As expected totals approach a bound, the raw-score model inflates sharply, reaching `r ss_fp("Near ceiling", "Observed sum-score identity")`% near the ceiling and `r ss_fp("Near floor", "Observed sum-score identity")`% near the floor, because uneven compression of the latent scale makes a constant latent group effect appear to change across levels of the predictor. The Gaussian-probit bounded-score model stays close to nominal throughout (between `r ss_fp("Middle of scale", "Gaussian-probit bounded score")`% and `r ss_fp("Near floor", "Gaussian-probit bounded score")`%), showing that respecting the bounds of the score removes most of the inflation.
+The latent generating scale, the idealized benchmark, has nominal rejection rates near .05 in every scenario (between `r ss_rejection_rate("Middle of scale", "Latent generating scale")`% and `r ss_rejection_rate("Near floor", "Latent generating scale")`%), confirming calibration on the scale that generated the data. The observed sum-score identity model has a similar pseudo-interaction detection rate only in the middle of the scale, where the total is approximately linear in the latent variable (`r ss_rejection_rate("Middle of scale", "Observed sum-score identity")`%). As expected totals approach a bound, its detection rate rises sharply, reaching `r ss_rejection_rate("Near ceiling", "Observed sum-score identity")`% near the ceiling and `r ss_rejection_rate("Near floor", "Observed sum-score identity")`% near the floor, because uneven compression of the latent scale makes a constant latent group effect appear to change across levels of the predictor. The Gaussian-probit bounded-score model has pseudo-interaction detection rates close to alpha throughout (between `r ss_rejection_rate("Middle of scale", "Gaussian-probit bounded score")`% and `r ss_rejection_rate("Near floor", "Gaussian-probit bounded score")`%). This sensitivity model respects the score bounds but is not the true latent measurement model.
 
 The pattern is conditional on the region of the score range. Far from the bounds, and for a claim about raw-score units, the Gaussian identity analysis of the total approximates the latent-scale result. Near a bound, the raw-score no-interaction baseline diverges from the latent one, and a interaction term can appear that reflects compression of the metric even when the construct-level effect is constant. The bounded-score probit model is a useful sensitivity check, and it remains a model of the manifest total. When the claim concerns an interaction between latent constructs, the more direct solution is an explicit measurement model, such as SEM, item-level ordinal, or IRT-inspired models; these still require assumptions about thresholds, links, loadings, and latent-response metrics, so they make the measurement part of the interaction claim explicit without removing the scale problem.
 
@@ -984,7 +1042,7 @@ Information criteria such as AIC, BIC, WAIC, and LOO rank model fit among a supp
 
 We simulate five scenarios covering different cases, each being tied to a previous example in the paper. The first is tied to the simple count example in @fig-simple-count-example. Data are generated from a Poisson-log model in which expected errors decline with age, with no age-by-group interaction term on the log-count scale. The diagnostic scenario uses the same design as the figure, with coefficients recorded in the generated scenario table: intercept 2.20, age effect -0.55 per year after age 6, and group effect 0.45. The fitted model keeps the Poisson family and the interaction formula but uses an identity link. This makes the comparison a same-family link comparison: the family and the formula are held fixed, and only the link changes. In real research scenarios, however, family and link often covary. 
 
-The second scenario is the lower-performance forced-choice scenario from Simulation 1. Data are generated with a .50 chance floor, 20 trials per participant, intercept -0.80, age effect 0.60, group effect -0.90, and no age-by-group interaction term on the chance-corrected logit scale. The fitted model is a standard binomial-logit interaction model, which respects the binomial trial structure while placing the lower asymptote at 0, below the task-implied chance level. The chance-corrected model is fitted by direct likelihood maximization. Because that likelihood flattens near the chance floor, we fit it from several starting values and keep the best solution, so that the target model does not enter the AIC comparison underfitted.
+The second scenario is the lower-performance forced-choice scenario from Simulation 1. Data are generated with a .50 chance floor, 20 trials per participant, intercept -0.80, age effect 0.60, group effect -0.90, and no age-by-group interaction term on the chance-corrected logit scale. The fitted model is a standard binomial-logit interaction model, which respects the binomial trial structure while placing the lower asymptote at 0, below the task-implied chance level. The chance-corrected fit was initialized from the corresponding standard-logit model and optimized with BFGS, with Nelder--Mead used as a fallback when needed.
 
 The third scenario mirrors the probit-generated, logit-fitted case in Simulation 2. Data are repeated binary trials with a subject random intercept, 15 trials per condition cell, and latent ICC .30. The fixed effects are the probit reference values used in Simulation 2: intercept 1.50, group effect -1.00, condition effect -1.00, and no group-by-condition interaction term. The fitted model is the corresponding random-intercept logit GLMM with the same interaction formula.
 
@@ -994,7 +1052,7 @@ The fifth scenario uses the Gamma response-time example from the introduction. D
 
 In each replication, diagnostics were applied to the misspecified interaction model, because this is the model an analyst would usually inspect after finding the interaction. This design targets a realistic post-estimation question: does the same fitted model that produced the product-term finding also show enough diagnostic evidence to warn the analyst about the link problem? The choice is demanding because the interaction term can absorb part of the curvature created by the wrong link. A diagnostic workflow applied to an additive model before adding the interaction term would answer a different question. The present simulation asks whether ordinary checks protect the interaction conclusion once the misspecified interaction model has been fitted.
 
-The residual workflow used four DHARMa checks: residual uniformity, dispersion, residual quantile patterns over fitted values, and residual structure over the focal predictor, using a quantile check for continuous predictors and a design-cell comparison for the categorical $2 \times 2$ case [@dunnsmyth1996; @hartig2024]. We also used a Pregibon-style added-term link check as a more link-oriented diagnostic [@pregibon1980].
+The residual workflow used four DHARMa checks: residual uniformity, dispersion, residual quantile patterns over fitted values, and residual structure over the focal predictor, using a quantile check for continuous predictors and a design-cell comparison for the categorical $2 \times 2$ case [@dunnsmyth1996; @hartig2024]. We also used a Pregibon-style added-term link check as a more link-oriented diagnostic [@pregibon1980]. As a calibration check, we also applied the same DHARMa and Pregibon-style procedures to the corresponding correctly specified interaction model in each replication. These rates estimate how often each diagnostic signaled a problem when the fitted link was correct.
 
 Finally, we used AIC only for relative comparisons among prespecified candidate mean models fitted to the same response data with the same interaction formula. In the count and Gamma scenarios, the response family is held fixed and only the link changes. In the binary scenarios, the binomial sampling model is held fixed. The chance-floor scenario compares two binomial mean mappings: a standard logit model and a chance-corrected logit model with a design-implied lower asymptote. Thus, AIC varies only the candidate mean-link mapping, and the interaction term is present in every candidate model. We report the proportion of replications in which the lower AIC favored the target model, and also the distribution of the AIC difference, defined as the AIC of the misspecified model minus the AIC of the target model, so that positive values favor the target link. The proportion by itself is not informative enough, because a link that wins most replications by less than one AIC unit and a link that wins by fifty describe different situations. Because no inconclusive ΔAIC category is used, the complement favors the misspecified model when both AIC values are available. These values describe relative fit within a limited candidate set.
 
@@ -1009,8 +1067,9 @@ knitr::kable(
 )
 ```
 
-@tbl-diagnostic-scenarios documents diagnostic misalignment: the misspecification that generates a pseudo-interaction does not produce a matching diagnostic signal, and protection varied with the candidate models supplied. The chance-floor scenario is the clearest case. A pseudo-interaction appeared in `r dg_pct("Chance-floor accuracy", "False-positive interaction")`% of replications while all four DHARMa checks stayed near nominal levels. The check that responded was the explicit link comparison, and its margin was thin: AIC favored the chance-corrected model in `r dg_pct("Chance-floor accuracy", "AIC favors target")`% of replications, by a median of `r dg_val("Chance-floor accuracy", "Median AIC difference")` AIC units, with the two links within two units in `r dg_pct("Chance-floor accuracy", "AIC difference within 2")`% of them. The candidates thus separated the interaction conclusion much more sharply than they separated fit, and a quiet residual check is not evidence that the link is adequate for the interaction claim.
+@tbl-diagnostic-scenarios documents diagnostic misalignment: the misspecification that generates a pseudo-interaction does not produce a matching diagnostic signal, and protection varied with the candidate models supplied. The chance-floor scenario is the clearest case. The pseudo-interaction detection rate was `r dg_pct("Chance-floor accuracy", "Pseudo-interaction detection")`%, while all four DHARMa diagnostic detection rates stayed near nominal levels. Among replications in which the wrong link produced a significant pseudo-interaction, all applicable DHARMa checks remained non-significant in `r fmt_num(chance_floor_missed_percent, 1)`% (`r chance_floor_missed_n`/`r chance_floor_missed_denominator`). The check that responded was the explicit link comparison, and its margin was thin: AIC favored the chance-corrected model in `r dg_pct("Chance-floor accuracy", "AIC favors target")`% of replications, by a median of `r fmt_num(chance_floor_aic_median, 1)` AIC units, with the two links within two units in `r fmt_num(chance_floor_aic_within_two_percent, 1)`% (`r chance_floor_aic_within_two_n`/`r chance_floor_aic_n`) of the finite comparisons. The candidates thus separated the interaction conclusion much more sharply than they separated fit, and a quiet residual check is not evidence that the link is adequate for the interaction claim.
 
+`r diagnostic_calibration_result_sentence`
 
 # Practical Starting Points for Link-Aware Interaction Testing
 

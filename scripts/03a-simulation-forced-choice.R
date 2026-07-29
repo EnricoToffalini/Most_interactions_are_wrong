@@ -2,8 +2,9 @@
 # Simulation 1: forced-choice accuracy with a non-zero chance floor.
 #
 # This script first shows the deterministic scenario, then simulates data,
-# then quantifies how candidate models can convert link curvature into
-# apparent interactions. Scenario-specific parameters stay here, not in R/.
+# then quantifies nominal rejection on the known generating scale and
+# pseudo-interaction detection on alternative fitted scales. Scenario-specific
+# parameters stay here, not in R/.
 
 rm(list = ls())
 
@@ -399,12 +400,20 @@ simulation_summary <- do.call(rbind, lapply(
 ))
 simulation_summary$scenario <- factor(simulation_summary$scenario, levels = scenarios$scenario)
 simulation_summary$model <- factor(simulation_summary$model, levels = model_names)
+simulation_summary$rate_type <- ifelse(
+  as.character(simulation_summary$model) == "Chance-corrected binomial logit",
+  "Nominal rejection rate",
+  "Pseudo-interaction detection rate"
+)
 simulation_summary <- simulation_summary[order(simulation_summary$scenario, simulation_summary$model), ]
 
 utils::write.csv(simulation_summary, settings$output_summary_table, row.names = FALSE)
 
 report_section("Simulation summary")
 print_compact(simulation_summary)
+cat("\nThe generating age-by-group product term is zero on the chance-corrected logit scale.\n")
+cat("The matching chance-corrected model supplies nominal rejection rates.\n")
+cat("Models fitted on alternative scales supply pseudo-interaction detection rates.\n")
 cat("\nInterpretation aid: median_change_in_group_difference_outcome_units is NOT an observed count.\n")
 cat(
   "It is the median model-implied change in the predicted group difference from age ",
@@ -464,7 +473,7 @@ pA <- ggplot2::ggplot(plot_grid, ggplot2::aes(age, expected_accuracy, linetype =
   ) +
   link_theme()
 
-pB <- ggplot2::ggplot(simulation_summary, ggplot2::aes(x = model, y = false_positive_rate, shape = model)) +
+pB <- ggplot2::ggplot(simulation_summary, ggplot2::aes(x = model, y = rejection_rate, shape = model)) +
   ggplot2::geom_hline(yintercept = settings$alpha, linetype = "dashed", color = "grey35") +
   ggplot2::geom_pointrange(ggplot2::aes(ymin = ci_low, ymax = ci_high), linewidth = 0.45) +
   ggplot2::coord_flip() +
@@ -477,10 +486,10 @@ pB <- ggplot2::ggplot(simulation_summary, ggplot2::aes(x = model, y = false_posi
     "Chance-corrected binomial logit" = 17
   )) +
   ggplot2::labs(
-    title = "B. False-positive interaction rate",
-    subtitle = "Dashed line is nominal alpha; data were generated with no link-scale interaction",
+    title = "B. Product-term rejection rate",
+    subtitle = "Matched generating-scale model: nominal rejection; alternative scales: pseudo-interaction detection. Dashed line: nominal alpha",
     x = NULL,
-    y = "Significant age-by-group tests",
+    y = "Replications rejecting the age-by-group product term",
     shape = NULL
   ) +
   link_theme(base_size = 9) +

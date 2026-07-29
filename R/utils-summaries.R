@@ -42,8 +42,8 @@ summarise_model_simulation <- function(dat, alpha = 0.05, conf = 0.95) {
 
   data.frame(
     n_successful_fits = det$n_successful_fits,
-    n_significant = det$n_significant,
-    false_positive_rate = det$rate,
+    n_rejections = det$n_significant,
+    rejection_rate = det$rate,
     ci_low = det$ci_low,
     ci_high = det$ci_high,
     median_interaction_coef = safe_median(dat$interaction_coef),

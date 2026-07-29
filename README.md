@@ -20,7 +20,7 @@ The paper has three main components.
    - measurement-metric problems, where the observed score may not be the scale on which the theoretical interaction claim is meant to hold.
 
 3. **Worked examples and simulations**  
-   The simulations show how plausible but inadequate links can generate pseudo-interactions when the data-generating process contains no product-term interaction on the relevant scale. The main cases are:
+   The simulations show how plausible but inadequate links can generate pseudo-interactions when the data-generating process contains no product term on the known generating scale. Matched-scale conditions report nominal rejection rates, mismatched-scale conditions report pseudo-interaction detection rates, and displays combining both use neutral product-term rejection rates. The main cases are:
    - forced-choice accuracy with a non-zero chance floor;
    - bounded and discrete sum scores;
    - within-family link choices, especially logit versus probit;
@@ -39,7 +39,7 @@ source("run.R")
 Then render the manuscript:
 
 ```bash
-quarto render paper/paper.qmd
+quarto render paper/paper-v2.qmd
 ```
 
 If the repository includes an `renv.lock` file, restore the package environment before running the analyses:
@@ -69,7 +69,7 @@ renv::restore()
   Examines how logit and probit links can differ for interaction claims even within the binomial family.
 
 - `04-diagnostic-worked-example.R`  
-  Compares false-positive interaction rates with the ability of residual checks, link checks, and AIC comparisons to detect the wrong link.
+  Compares pseudo-interaction detection rates with diagnostic detection rates and same-formula AIC comparisons under deliberately wrong-link fits.
 
 ## Computational notes
 

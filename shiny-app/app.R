@@ -85,7 +85,7 @@ ui <- fluidPage(
         "on the expected response (mu) through any nonlinear inverse link.",
         "When the assumed link differs from the scale a claim refers to,",
         "this curvature can create apparent interactions on the response scale,",
-        "sometimes called pseudo-interactions."),
+        "making the interaction conclusion sensitive to the chosen scale."),
       p("All examples in this app are deterministic. The app does not perform",
         "model fitting or Monte Carlo simulation; it only evaluates inverse link",
         "functions at values you choose. It shows scale dependence, not evidence",

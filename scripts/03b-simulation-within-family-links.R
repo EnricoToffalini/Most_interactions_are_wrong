@@ -199,12 +199,12 @@ wilson_ci <- function(x, n, conf = .95) {
 summarise_cell <- function(dat) {
   ok <- !is.na(dat$p_value)
   n <- sum(ok)
-  n_sig <- sum(dat$p_value[ok] < settings$alpha)
-  ci <- wilson_ci(n_sig, n)
+  n_rejections <- sum(dat$p_value[ok] < settings$alpha)
+  ci <- wilson_ci(n_rejections, n)
   data.frame(
     n_successful_fits = n,
-    n_significant = n_sig,
-    false_positive_rate = n_sig / n,
+    n_rejections = n_rejections,
+    rejection_rate = n_rejections / n,
     ci_low = unname(ci["low"]),
     ci_high = unname(ci["high"]),
     median_interaction_coef = stats::median(dat$interaction_coef, na.rm = TRUE),
@@ -294,6 +294,11 @@ simulation_summary <- merge(
 simulation_summary$generating_link <- factor(simulation_summary$generating_link, levels = settings$candidate_links)
 simulation_summary$fitted_link <- factor(simulation_summary$fitted_link, levels = settings$candidate_links)
 simulation_summary$link_match <- factor(simulation_summary$link_match, levels = c("Matched link", "Wrong link"))
+simulation_summary$rate_type <- ifelse(
+  as.character(simulation_summary$fitted_link) == as.character(simulation_summary$generating_link),
+  "Nominal rejection rate",
+  "Pseudo-interaction detection rate"
+)
 simulation_summary <- simulation_summary[order(simulation_summary$generating_link, simulation_summary$fitted_link), ]
 utils::write.csv(simulation_summary, settings$simulation_summary_path, row.names = FALSE)
 
@@ -333,21 +338,21 @@ match_scales <- list(
   ggplot2::scale_shape_manual(values = c("Matched link" = 16, "Wrong link" = 17), name = NULL)
 )
 
-p_fp <- ggplot2::ggplot(plot_summary, ggplot2::aes(x = fitted_link_label, y = false_positive_rate, color = link_match, shape = link_match)) +
+p_rejection <- ggplot2::ggplot(plot_summary, ggplot2::aes(x = fitted_link_label, y = rejection_rate, color = link_match, shape = link_match)) +
   ggplot2::geom_hline(yintercept = settings$alpha, linetype = "dashed") +
   ggplot2::geom_pointrange(ggplot2::aes(ymin = ci_low, ymax = ci_high), linewidth = .45) +
   ggplot2::facet_wrap(~ generating_link_label, nrow = 1) +
   ggplot2::scale_y_continuous(labels = percent_labels()) +
   match_scales +
   ggplot2::labs(
-    title = "B. False-positive interaction rate",
-    subtitle = "Dashed line is nominal alpha",
+    title = "B. Product-term rejection rate",
+    subtitle = "Matched links: nominal rejection; wrong links: pseudo-interaction detection. Dashed line: nominal alpha",
     x = "Fitted link",
-    y = "False-positive rate"
+    y = "Rejection rate"
   ) +
   link_theme(base_size = 9)
 
-save_plot_grid(list(p_scenario, p_fp), filename_base = settings$figure_base, width = figure_width, height = 6.5, ncol = 1, dpi = default_dpi)
+save_plot_grid(list(p_scenario, p_rejection), filename_base = settings$figure_base, width = figure_width, height = 6.5, ncol = 1, dpi = default_dpi)
 
 pseudo_plot_data <- scenario_contrasts
 pseudo_plot_data$generating_link_label <- factor(paste0("Generated with ", link_label(pseudo_plot_data$generating_link), " link"), levels = paste0("Generated with ", link_label(settings$candidate_links), " link"))
@@ -359,8 +364,8 @@ p_pseudo <- ggplot2::ggplot(pseudo_plot_data, ggplot2::aes(x = fitted_link_label
   ggplot2::facet_wrap(~ generating_link_label, nrow = 1) +
   match_scales +
   ggplot2::labs(
-    title = "Inspection: deterministic pseudo-interaction from link crossing",
-    subtitle = "Zero product term on the generating link scale does not imply zero product term on the fitted link scale",
+    title = "Deterministic pseudo-interaction induced by link crossing",
+    subtitle = "Matched-link contrasts are zero by construction; wrong-link contrasts can be nonzero",
     x = "Fitted link",
     y = "Product contrast on fitted link scale"
   ) +

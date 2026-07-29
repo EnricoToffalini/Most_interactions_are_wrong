@@ -12,6 +12,7 @@ library(ggplot2)
 
 source("R/project-settings.R")
 source("R/utils-link-functions.R")
+source("R/utils-plots.R")
 
 
 link_theme <- function(base_size = 10, base_family = "") {
@@ -135,17 +136,17 @@ plot_data$panel <- factor(plot_data$panel, levels = panel_labels)
 make_link_grid <- function(panel_label, link, n_lines = 11,
                            prob_limits = c(0.50, 0.995), chance = 0.50) {
   eps <- 1e-4
-
+  
   if (link == "identity") {
     y <- seq(prob_limits[1], prob_limits[2], length.out = n_lines)
   }
-
+  
   if (link == "logit") {
     eta_min <- qlogis(pmin(pmax(prob_limits[1], eps), 1 - eps))
     eta_max <- qlogis(pmin(pmax(prob_limits[2], eps), 1 - eps))
     y <- plogis(seq(eta_min, eta_max, length.out = n_lines))
   }
-
+  
   if (link == "cc_logit") {
     p_min <- pmin(pmax(prob_limits[1], chance + eps), 1 - eps)
     p_max <- pmin(pmax(prob_limits[2], chance + eps), 1 - eps)
@@ -154,7 +155,7 @@ make_link_grid <- function(panel_label, link, n_lines = 11,
     y <- chance_linkinv(seq(eta_min, eta_max, length.out = n_lines),
                         chance = chance, link = "logit")
   }
-
+  
   data.frame(panel = panel_label, yintercept = y)
 }
 
@@ -198,8 +199,7 @@ p <- ggplot(
   link_scale_color_discrete(name = "Group") +
   link_scale_linetype_discrete(name = "Group") +
   link_scale_shape_discrete(name = "Group") +
-  link_theme(base_size = 10.5) +
-  link_theme()
+  link_theme(base_size = 10.5)
 
 # SAVE OUTPUT #
 
