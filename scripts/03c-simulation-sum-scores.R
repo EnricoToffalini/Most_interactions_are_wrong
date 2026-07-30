@@ -43,12 +43,12 @@ settings <- list(
 settings$max_score <- settings$J * settings$item_max
 
 scenarios <- data.frame(
-  scenario = c("Middle of scale", "Near floor", "Near ceiling"),
-  threshold_shift = c(0.00, 1.60, -1.60),
+  scenario = c("Lower range", "Middle range", "Upper range"),
+  threshold_shift = c(1.60, 0.00, -1.60),
   interpretation = c(
-    "Item thresholds are centered; expected sum scores occupy the middle of the observed scale.",
-    "Item thresholds are high; expected sum scores are compressed near the lower bound.",
-    "Item thresholds are low; expected sum scores are compressed near the upper bound."
+    "Expected sum scores occupy the lower range of the observed scale.",
+    "Expected sum scores occupy the middle range of the observed scale.",
+    "Expected sum scores occupy the upper range of the observed scale."
   ),
   stringsAsFactors = FALSE
 )
@@ -439,8 +439,47 @@ cat("For the latent-generating-scale comparison, the same quantity is expressed 
 # ---------------------------------------------------------------------
 # 7. Figure panels
 # ---------------------------------------------------------------------
-pA <- ggplot2::ggplot(plot_grid, ggplot2::aes(x, expected_sum_score, color = group, linetype = group)) +
-  ggplot2::geom_hline(yintercept = c(0, settings$max_score), linetype = "dashed") +
+base_latent_steps <- seq(-6, 6, by = 1)
+
+latent_scale_grid <- do.call(
+  rbind,
+  lapply(seq_len(nrow(scenarios)), function(i) {
+    th <- make_thresholds(scenarios$threshold_shift[i])
+    
+    latent_steps <- base_latent_steps + scenarios$threshold_shift[i]
+    
+    data.frame(
+      scenario = scenarios$scenario[i],
+      yintercept = vapply(
+        latent_steps,
+        expected_sum_given_mu,
+        numeric(1),
+        thresholds = th
+      )
+    )
+  })
+)
+
+latent_scale_grid$scenario <- factor(
+  latent_scale_grid$scenario,
+  levels = scenarios$scenario
+)
+
+pA <- ggplot2::ggplot(
+  plot_grid,
+  ggplot2::aes(x, expected_sum_score, color = group, linetype = group)
+) +
+  ggplot2::geom_hline(
+    data = latent_scale_grid,
+    ggplot2::aes(yintercept = yintercept),
+    inherit.aes = FALSE,
+    color = "grey82",
+    linewidth = 0.35
+  ) +
+  ggplot2::geom_hline(
+    yintercept = c(0, settings$max_score),
+    linetype = "dashed"
+  ) +
   ggplot2::geom_line(linewidth = .95) +
   ggplot2::facet_wrap(~ scenario) +
   ggplot2::scale_y_continuous(limits = c(-.5, settings$max_score + .5)) +
@@ -448,11 +487,15 @@ pA <- ggplot2::ggplot(plot_grid, ggplot2::aes(x, expected_sum_score, color = gro
   link_scale_linetype_discrete(name = NULL) +
   ggplot2::labs(
     title = "A. Implied sum-score curves",
-    subtitle = "No x-by-group term on the latent scale",
+    subtitle = "Horizontal lines mark equal steps on the latent scale",
     x = "Continuous predictor x",
     y = "Expected sum score"
   ) +
-  link_theme()
+  link_theme()+
+  ggplot2::theme(
+    panel.grid.major.y = ggplot2::element_blank(),
+    panel.grid.minor.y = ggplot2::element_blank()
+  )
 
 pB <- ggplot2::ggplot(simulation_summary, ggplot2::aes(x = model, y = rejection_rate)) +
   ggplot2::geom_hline(yintercept = settings$alpha, linetype = "dashed") +

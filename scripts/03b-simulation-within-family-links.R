@@ -311,10 +311,48 @@ print_compact(simulation_summary)
 cell_plot_data <- unique(cell_probability_table[, c("generating_link_label", "group", "condition", "expected_probability_random_intercept_0")])
 cell_plot_data$generating_link_label <- factor(cell_plot_data$generating_link_label, levels = paste0("Generated with ", link_label(settings$candidate_links), " link"))
 
+link_grid <- do.call(
+  rbind,
+  lapply(settings$candidate_links, function(link) {
+    
+    coefficient_scale <- get_scenario_parameters(link)$coefficient_scale
+    eta_step <- coefficient_scale / 2
+    
+    eta_values <- seq(
+      from = -3 * coefficient_scale,
+      to   =  3 * coefficient_scale,
+      by   = eta_step
+    )
+    
+    data.frame(
+      generating_link_label = paste0(
+        "Generated with ", link_label(link), " link"
+      ),
+      yintercept = inv_link(eta_values, link)
+    )
+  })
+)
+
+link_grid$generating_link_label <- factor(
+  link_grid$generating_link_label,
+  levels = paste0(
+    "Generated with ",
+    link_label(settings$candidate_links),
+    " link"
+  )
+)
+
 p_scenario <- ggplot2::ggplot(
   cell_plot_data,
   ggplot2::aes(x = condition, y = expected_probability_random_intercept_0, color = group, linetype = group, group = group)
 ) +
+  ggplot2::geom_hline(
+    data = link_grid,
+    ggplot2::aes(yintercept = yintercept),
+    inherit.aes = FALSE,
+    color = "grey82",
+    linewidth = 0.35
+  ) +
   ggplot2::geom_line(linewidth = .9) +
   ggplot2::geom_point(size = 2) +
   ggplot2::facet_wrap(~ generating_link_label, nrow = 1) +
@@ -323,11 +361,15 @@ p_scenario <- ggplot2::ggplot(
   link_scale_linetype_discrete(name = NULL) +
   ggplot2::labs(
     title = "A. Generated cell probabilities",
-    subtitle = "Cell probabilities are calibrated to be similar across generating links",
+    subtitle = "Horizontal lines mark equal steps on each generating-link scale",
     x = NULL,
     y = "Expected probability, random intercept = 0"
   ) +
-  link_theme(base_size = 9)
+  link_theme(base_size = 9) +
+  ggplot2::theme(
+    panel.grid.major.y = ggplot2::element_blank(),
+    panel.grid.minor.y = ggplot2::element_blank()
+  )
 
 plot_summary <- simulation_summary
 plot_summary$generating_link_label <- factor(paste0("Generated with ", link_label(as.character(plot_summary$generating_link)), " link"), levels = paste0("Generated with ", link_label(settings$candidate_links), " link"))

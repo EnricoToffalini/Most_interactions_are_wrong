@@ -1,37 +1,37 @@
 "table_part","scenario","x","group","latent_mean","expected_sum_score","expected_percent_of_max","contrast","value_sum_score_units","value_percent_of_max","latent_scale_value"
-"implied_values","Middle of scale",-1,"Group 0",-0.85,9.35316217276789,0.346413413806218,NA,NA,NA,NA
-"implied_values","Middle of scale",0,"Group 0",0,13.5,0.5,NA,NA,NA,NA
-"implied_values","Middle of scale",1,"Group 0",0.85,17.6468378272321,0.653586586193782,NA,NA,NA,NA
-"implied_values","Middle of scale",-1,"Group 1",-1.75,5.65135360756411,0.209309392872745,NA,NA,NA,NA
-"implied_values","Middle of scale",0,"Group 1",-0.9,9.12355503349178,0.337909445684881,NA,NA,NA,NA
-"implied_values","Middle of scale",1,"Group 1",-0.05,13.2493283621927,0.490715865266395,NA,NA,NA,NA
-"implied_values","Near floor",-1,"Group 0",-0.85,3.52361718813235,0.130504340301198,NA,NA,NA,NA
-"implied_values","Near floor",0,"Group 0",0,6.19735508765149,0.229531669913018,NA,NA,NA,NA
-"implied_values","Near floor",1,"Group 0",0.85,9.81900486028418,0.363666846677192,NA,NA,NA,NA
-"implied_values","Near floor",-1,"Group 1",-1.75,1.75008920227831,0.0648181186029002,NA,NA,NA,NA
-"implied_values","Near floor",0,"Group 1",-0.9,3.39804393665257,0.12585347913528,NA,NA,NA,NA
-"implied_values","Near floor",1,"Group 1",-0.05,6.01191106314788,0.222663372709181,NA,NA,NA,NA
-"implied_values","Near ceiling",-1,"Group 0",-0.85,17.1809951397158,0.636333153322808,NA,NA,NA,NA
-"implied_values","Near ceiling",0,"Group 0",0,20.8026449123485,0.770468330086982,NA,NA,NA,NA
-"implied_values","Near ceiling",1,"Group 0",0.85,23.4763828118676,0.869495659698802,NA,NA,NA,NA
-"implied_values","Near ceiling",-1,"Group 1",-1.75,12.7485609033617,0.472168922346731,NA,NA,NA,NA
-"implied_values","Near ceiling",0,"Group 1",-0.9,16.9449856073747,0.627592059532395,NA,NA,NA,NA
-"implied_values","Near ceiling",1,"Group 1",-0.05,20.6138072065157,0.763474340982061,NA,NA,NA,NA
-"derived_contrasts","Middle of scale",NA,NA,NA,NA,NA,"Group difference at low x: Group 1 minus Group 0",-3.70180856520378,-0.137104020933473,NA
-"derived_contrasts","Middle of scale",NA,NA,NA,NA,NA,"Group difference at high x: Group 1 minus Group 0",-4.39750946503943,-0.162870720927386,NA
-"derived_contrasts","Middle of scale",NA,NA,NA,NA,NA,"x-related change in Group 0: high x minus low x",8.29367565446422,0.307173172387564,NA
-"derived_contrasts","Middle of scale",NA,NA,NA,NA,NA,"x-related change in Group 1: high x minus low x",7.59797475462857,0.281406472393651,NA
-"derived_contrasts","Middle of scale",NA,NA,NA,NA,NA,"Change in group difference from low x to high x",-0.695700899835651,-0.025766699993913,NA
-"derived_contrasts","Middle of scale",NA,NA,NA,NA,NA,"Generating latent-scale x-by-group product term",NA,NA,0
-"derived_contrasts","Near floor",NA,NA,NA,NA,NA,"Group difference at low x: Group 1 minus Group 0",-1.77352798585405,-0.0656862216982981,NA
-"derived_contrasts","Near floor",NA,NA,NA,NA,NA,"Group difference at high x: Group 1 minus Group 0",-3.8070937971363,-0.141003473968011,NA
-"derived_contrasts","Near floor",NA,NA,NA,NA,NA,"x-related change in Group 0: high x minus low x",6.29538767215183,0.233162506375994,NA
-"derived_contrasts","Near floor",NA,NA,NA,NA,NA,"x-related change in Group 1: high x minus low x",4.26182186086958,0.157845254106281,NA
-"derived_contrasts","Near floor",NA,NA,NA,NA,NA,"Change in group difference from low x to high x",-2.03356581128226,-0.0753172522697132,NA
-"derived_contrasts","Near floor",NA,NA,NA,NA,NA,"Generating latent-scale x-by-group product term",NA,NA,0
-"derived_contrasts","Near ceiling",NA,NA,NA,NA,NA,"Group difference at low x: Group 1 minus Group 0",-4.43243423635408,-0.164164230976077,NA
-"derived_contrasts","Near ceiling",NA,NA,NA,NA,NA,"Group difference at high x: Group 1 minus Group 0",-2.86257560535199,-0.10602131871674,NA
-"derived_contrasts","Near ceiling",NA,NA,NA,NA,NA,"x-related change in Group 0: high x minus low x",6.29538767215183,0.233162506375994,NA
-"derived_contrasts","Near ceiling",NA,NA,NA,NA,NA,"x-related change in Group 1: high x minus low x",7.86524630315392,0.29130541863533,NA
-"derived_contrasts","Near ceiling",NA,NA,NA,NA,NA,"Change in group difference from low x to high x",1.56985863100209,0.0581429122593367,NA
-"derived_contrasts","Near ceiling",NA,NA,NA,NA,NA,"Generating latent-scale x-by-group product term",NA,NA,0
+"implied_values","Lower range",-1,"Group 0",-0.85,3.52361718813235,0.130504340301198,NA,NA,NA,NA
+"implied_values","Lower range",0,"Group 0",0,6.19735508765149,0.229531669913018,NA,NA,NA,NA
+"implied_values","Lower range",1,"Group 0",0.85,9.81900486028418,0.363666846677192,NA,NA,NA,NA
+"implied_values","Lower range",-1,"Group 1",-1.75,1.75008920227831,0.0648181186029002,NA,NA,NA,NA
+"implied_values","Lower range",0,"Group 1",-0.9,3.39804393665257,0.12585347913528,NA,NA,NA,NA
+"implied_values","Lower range",1,"Group 1",-0.05,6.01191106314788,0.222663372709181,NA,NA,NA,NA
+"implied_values","Middle range",-1,"Group 0",-0.85,9.35316217276789,0.346413413806218,NA,NA,NA,NA
+"implied_values","Middle range",0,"Group 0",0,13.5,0.5,NA,NA,NA,NA
+"implied_values","Middle range",1,"Group 0",0.85,17.6468378272321,0.653586586193782,NA,NA,NA,NA
+"implied_values","Middle range",-1,"Group 1",-1.75,5.65135360756411,0.209309392872745,NA,NA,NA,NA
+"implied_values","Middle range",0,"Group 1",-0.9,9.12355503349178,0.337909445684881,NA,NA,NA,NA
+"implied_values","Middle range",1,"Group 1",-0.05,13.2493283621927,0.490715865266395,NA,NA,NA,NA
+"implied_values","Upper range",-1,"Group 0",-0.85,17.1809951397158,0.636333153322808,NA,NA,NA,NA
+"implied_values","Upper range",0,"Group 0",0,20.8026449123485,0.770468330086982,NA,NA,NA,NA
+"implied_values","Upper range",1,"Group 0",0.85,23.4763828118676,0.869495659698802,NA,NA,NA,NA
+"implied_values","Upper range",-1,"Group 1",-1.75,12.7485609033617,0.472168922346731,NA,NA,NA,NA
+"implied_values","Upper range",0,"Group 1",-0.9,16.9449856073747,0.627592059532395,NA,NA,NA,NA
+"implied_values","Upper range",1,"Group 1",-0.05,20.6138072065157,0.763474340982061,NA,NA,NA,NA
+"derived_contrasts","Lower range",NA,NA,NA,NA,NA,"Group difference at low x: Group 1 minus Group 0",-1.77352798585405,-0.0656862216982981,NA
+"derived_contrasts","Lower range",NA,NA,NA,NA,NA,"Group difference at high x: Group 1 minus Group 0",-3.8070937971363,-0.141003473968011,NA
+"derived_contrasts","Lower range",NA,NA,NA,NA,NA,"x-related change in Group 0: high x minus low x",6.29538767215183,0.233162506375994,NA
+"derived_contrasts","Lower range",NA,NA,NA,NA,NA,"x-related change in Group 1: high x minus low x",4.26182186086958,0.157845254106281,NA
+"derived_contrasts","Lower range",NA,NA,NA,NA,NA,"Change in group difference from low x to high x",-2.03356581128226,-0.0753172522697132,NA
+"derived_contrasts","Lower range",NA,NA,NA,NA,NA,"Generating latent-scale x-by-group product term",NA,NA,0
+"derived_contrasts","Middle range",NA,NA,NA,NA,NA,"Group difference at low x: Group 1 minus Group 0",-3.70180856520378,-0.137104020933473,NA
+"derived_contrasts","Middle range",NA,NA,NA,NA,NA,"Group difference at high x: Group 1 minus Group 0",-4.39750946503943,-0.162870720927386,NA
+"derived_contrasts","Middle range",NA,NA,NA,NA,NA,"x-related change in Group 0: high x minus low x",8.29367565446422,0.307173172387564,NA
+"derived_contrasts","Middle range",NA,NA,NA,NA,NA,"x-related change in Group 1: high x minus low x",7.59797475462857,0.281406472393651,NA
+"derived_contrasts","Middle range",NA,NA,NA,NA,NA,"Change in group difference from low x to high x",-0.695700899835651,-0.025766699993913,NA
+"derived_contrasts","Middle range",NA,NA,NA,NA,NA,"Generating latent-scale x-by-group product term",NA,NA,0
+"derived_contrasts","Upper range",NA,NA,NA,NA,NA,"Group difference at low x: Group 1 minus Group 0",-4.43243423635408,-0.164164230976077,NA
+"derived_contrasts","Upper range",NA,NA,NA,NA,NA,"Group difference at high x: Group 1 minus Group 0",-2.86257560535199,-0.10602131871674,NA
+"derived_contrasts","Upper range",NA,NA,NA,NA,NA,"x-related change in Group 0: high x minus low x",6.29538767215183,0.233162506375994,NA
+"derived_contrasts","Upper range",NA,NA,NA,NA,NA,"x-related change in Group 1: high x minus low x",7.86524630315392,0.29130541863533,NA
+"derived_contrasts","Upper range",NA,NA,NA,NA,NA,"Change in group difference from low x to high x",1.56985863100209,0.0581429122593367,NA
+"derived_contrasts","Upper range",NA,NA,NA,NA,NA,"Generating latent-scale x-by-group product term",NA,NA,0

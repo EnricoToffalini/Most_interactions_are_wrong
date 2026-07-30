@@ -440,6 +440,16 @@ chance_annotation <- data.frame(
   label = paste0("chance floor = ", sprintf("%.2f", settings$chance))
 )
 
+eta_grid <- seq(-5, 5, by = 1)
+
+chance_link_grid <- data.frame(
+  yintercept = chance_linkinv(
+    eta_grid,
+    chance = settings$chance,
+    link = settings$generating_link
+  )
+)
+
 pA <- ggplot2::ggplot(plot_grid, ggplot2::aes(age, expected_accuracy, linetype = group, color = group)) +
   ggplot2::geom_rect(
     data = floor_band,
@@ -448,7 +458,18 @@ pA <- ggplot2::ggplot(plot_grid, ggplot2::aes(age, expected_accuracy, linetype =
     fill = "grey92",
     color = NA
   ) +
-  ggplot2::geom_hline(yintercept = settings$chance, linetype = "dashed", color = "grey35") +
+  ggplot2::geom_hline(
+    data = chance_link_grid,
+    ggplot2::aes(yintercept = yintercept),
+    inherit.aes = FALSE,
+    color = "grey82",
+    linewidth = 0.35
+  ) +
+  ggplot2::geom_hline(
+    yintercept = settings$chance,
+    linetype = "dashed",
+    color = "grey35"
+  ) +
   ggplot2::geom_line(linewidth = 0.95) +
   ggplot2::geom_text(
     data = chance_annotation,
@@ -465,13 +486,17 @@ pA <- ggplot2::ggplot(plot_grid, ggplot2::aes(age, expected_accuracy, linetype =
   link_scale_linetype_discrete(name = NULL) +
   ggplot2::labs(
     title = "A. Scenario curves generated above a chance floor",
-    subtitle = "No age-by-group product term is present on the chance-corrected logit scale",
+    subtitle = "Horizontal lines mark equal steps on the chance-corrected logit scale",
     x = "Age",
     y = "Expected accuracy",
     color = NULL,
     linetype = NULL
   ) +
-  link_theme()
+  link_theme()+
+  ggplot2::theme(
+    panel.grid.major.y = ggplot2::element_blank(),
+    panel.grid.minor.y = ggplot2::element_blank()
+  )
 
 pB <- ggplot2::ggplot(simulation_summary, ggplot2::aes(x = model, y = rejection_rate, shape = model)) +
   ggplot2::geom_hline(yintercept = settings$alpha, linetype = "dashed", color = "grey35") +
