@@ -242,9 +242,9 @@ ggplot(points_two, aes(age, y, color = condition, shape = condition)) +
 
 Because an interaction is a difference between differences, the question is whether the group difference itself changes with age. On the observed count scale, the group effect does appear to shrink as age increases, so it looks like an interaction. But looking at the same data on the log-scale (@fig-simple-count-example, right panel), both groups have the same age slope, meaning their fitted lines are parallel. A constant difference on the log scale corresponds to a constant ratio on the count scale, so the absolute gap between groups is proportional to the baseline and shrinks as errors decline with age. Whether we call this an interaction is not a fact about the data, it depends on which scale we assume effects add up linearly on. Additive on the log scale means multiplicative (and non-parallel) on the count scale, and vice versa.
 
-This ambiguity extends far beyond this single illustration, as interaction claims are central to psychological theory \[**ADD REF**\]. Whenever researchers ask whether an effect is moderated, or whether it holds only under certain boundary conditions, they are asserting that the impact of one variable depends on another. This count example therefore demonstrates that the reality of such a claim can shift entirely based on the scale on which those differences are computed, as equal differences on one scale are different differences on another scale.
+This ambiguity extends far beyond this single illustration, as interaction hypotheses are widespread in psychological research and often represent the central target of inquiry [@rohrer2021; @domingue2024; @mccabe2022]. Whenever researchers ask whether an effect is moderated, or whether it holds only under certain boundary conditions, they are asserting that the impact of one variable depends on another. This count example therefore demonstrates that the reality of such a claim can shift entirely based on the scale on which those differences are computed, as equal differences on one scale are different differences on another scale.
 
-In psychology, this scale dependence has a characteristic source in measurement. Researchers routinely conceptualize constructs such as cognitive ability or symptom severity as continuous latent dimensions \[**ADD REF**\]. Those dimensions are rarely observed directly; what reaches the data are bounded, discrete quantities, such as counts, ratings, and accuracy scores that carry floors, ceilings, and chance levels. Each measurement scale imposes its own mapping from the latent dimension to the observed response. Where the mapping compresses, a constant effect on the latent dimension appears as a shrinking effect on the observed response: a group or condition closer to a bound has less room to move, and can look less affected by a manipulation, than a group or condition farther away from bounds, even if the underlying data-generating process remains the same at all levels of the scale. 
+In psychology, this scale dependence has a characteristic source in measurement. Researchers routinely conceptualize constructs such as cognitive ability or symptom severity as continuous latent dimensions [@embretsonReise2000; @wagenmakers2012]. Those dimensions are rarely observed directly; what reaches the data are bounded, discrete quantities, such as counts, ratings, and accuracy scores that carry floors, ceilings, and chance levels. Each measurement scale imposes its own mapping from the latent dimension to the observed response. Where the mapping compresses, a constant effect on the latent dimension appears as a shrinking effect on the observed response: a group or condition closer to a bound has less room to move, and can look less affected by a manipulation, than a group or condition farther away from bounds, even if the underlying data-generating process remains the same at all levels of the scale. 
 
 Generalized linear models (GLMs) make this mapping explicit and give it a standard vocabulary [@nelderwedderburn1972; @mccullaghnelder1989], separating two choices that are easy to conflate: the outcome family, which describes the response, and the link function, which sets the scale on which effects combine (Box 1).
 
@@ -559,13 +559,13 @@ forced_choice_sim_raw <- read_required_table(
   "simulation-summary-forced-choice.csv",
   "scripts/03a-simulation-forced-choice.R"
 )
-sum_score_sim_raw <- read_required_table(
-  "simulation-summary-sum-scores.csv",
-  "scripts/03b-simulation-sum-scores.R"
-)
 within_family_sim_raw <- read_required_table(
   "simulation-summary-within-family-links.csv",
-  "scripts/03c-simulation-within-family-links.R"
+  "scripts/03b-simulation-within-family-links.R"
+)
+sum_score_sim_raw <- read_required_table(
+  "simulation-summary-sum-scores.csv",
+  "scripts/03c-simulation-sum-scores.R"
 )
 diagnostic_sim_raw <- read_required_table(
   "simulation-summary-diagnostic-worked-example.csv",
@@ -703,13 +703,13 @@ forced_choice_scenario <- read_required_table(
   "scenario-table-forced-choice.csv",
   "scripts/03a-simulation-forced-choice.R"
 )
-sum_score_scenario <- read_required_table(
-  "scenario-table-sum-scores.csv",
-  "scripts/03b-simulation-sum-scores.R"
-)
 within_family_scenario <- read_required_table(
   "scenario-table-within-family-links.csv",
-  "scripts/03c-simulation-within-family-links.R"
+  "scripts/03b-simulation-within-family-links.R"
+)
+sum_score_scenario <- read_required_table(
+  "scenario-table-sum-scores.csv",
+  "scripts/03c-simulation-sum-scores.R"
 )
 diagnostic_scenario <- read_required_table(
   "scenario-table-diagnostic-worked-example.csv",
@@ -914,9 +914,9 @@ The mismatch is most severe when one group or condition lies near chance. Suppos
 
 ![A minimal $2 \times 2$ design crosses a condition (x-axis) with a group (color), shown on three scales. The four cell probabilities are identical in every panel; only the scale on which the interaction is evaluated changes. The data were generated with no condition-by-group interaction on the chance-corrected logit scale, which has a $0.50$ chance floor, so the interaction coefficient is exactly zero on that scale. The same cells imply a positive interaction on the standard logit scale and a negative interaction on the raw probability scale. Light horizontal lines are equally spaced on each panel's own link scale, so equal steps on that scale map to unequal steps on the probability axis.](../figs/motivating-example.pdf){#fig-motivating-example}
 
-The chance-corrected link is most defensible when the chance level is known from the task design, guessing is a plausible lower-bound process, and below-chance performance is not substantively meaningful for the target claim. In the simplest case, the chance level can be fixed by design, for example $c=0.50$ in a 2-AFC task. In other cases, analysts may estimate the lower asymptote or report sensitivity analyses over plausible values of $c$. When there are lapses, response biases, item heterogeneity, learning across trials, systematic below-chance performance, or participant-specific guessing strategies, a richer model is often needed instead \[**ADD REF**\].
+The chance-corrected link is most defensible when the chance level is known from the task design, guessing is a plausible lower-bound process, and below-chance performance is not substantively meaningful for the target claim. In the simplest case, the chance level can be fixed by design, for example $c=0.50$ in a 2-AFC task. In other cases, analysts may estimate the lower asymptote or report sensitivity analyses over plausible values of $c$. Lapses, response biases, item heterogeneity, changes across trials, or systematic below-chance performance may instead require richer psychometric solutions such as item-response models [e.g., @embretsonReise2000; @wichmann2001].
 
-The chance-corrected GLM link used here closely relates to psychometric-function models [@wichmann2001; @knoblauch2012] that estimate the chance process at the level where it actually operates. For example, the 3-parameter logistic Item Response Theory model has a guessing parameter defined at the item level rather than the design level \[**ADD REF**\]. The GLM link should thus be seen as a design-level approximation, not a substitute for item-level measurement models when the data and scientific question call for that additional structure.
+The chance-corrected GLM link used here closely relates to psychometric-function models [@wichmann2001; @knoblauch2012] that estimate the chance process at the level where it actually operates. For example, the 3-parameter logistic Item Response Theory model includes an item-specific guessing parameter rather than a single chance level fixed at the design level [@embretsonReise2000]. The GLM link should thus be seen as a design-level approximation, not a substitute for item-level measurement models when the data and scientific question call for that additional structure.
 
 ### Simulation 1: Design and Results
 
@@ -946,11 +946,11 @@ matched_nominal_max <- round(100 * max(matched_nominal_rate))
 
 In each of `r n_rep` replications we generated accuracy for $N = `r sim_N`$ participants with $k = `r sim_k`$ trials each, from a chance-corrected logit model with a .50 floor, a positive age effect, a group difference, and no age-by-group product term on the generating scale. Three scenarios differ only in overall performance, set by shifting the intercept: in the *lower-performance* scenario the two groups lie close to the .50 floor (expected accuracies roughly .53 to .80 across ages 6 to 10), in the *middle-performance* scenario they occupy the middle of the above-chance range (roughly .55 to .88), and in the *higher-performance* scenario they approach the ceiling (roughly .61 to .94). Each simulated dataset was analyzed with four aggregate models, one row per participant: a Gaussian linear model on the observed proportions, standard binomial-logit and binomial-probit GLMs on the correct-response counts, and the chance-corrected binomial-logit GLM that matches the generating scale. We recorded how often each product-term test rejected at $\alpha = .05$. The matching model supplies the nominal rejection rate, while the three alternative scales supply pseudo-interaction detection rates. @fig-forced-choice-simulation shows the simulation results; the per-scenario rates are tabulated in the Supplement.
 
-![Simulation 1: forced-choice accuracy with a task-implied chance floor. Panel A shows the deterministic scenario curves generated by the chance-corrected logit model. The grey region marks values below the .50 chance floor, and the dashed horizontal line marks chance performance. Panel B shows the product-term rejection rate across replications for each fitted model and performance scenario. The matching chance-corrected model shows nominal rejection; the alternative scales show pseudo-interaction detection. Data are generated with no age-by-group product term on the chance-corrected scale.](../figs/forced-choice-simulation.pdf){#fig-forced-choice-simulation fig-pos="H"}
+![Simulation 1: forced-choice accuracy with a chance floor. Data are generated with no age-by-group product term on the chance-corrected logit scale. Panel A shows the resulting accuracy curves across three performance levels; the grey region lies below the .50 chance floor. Panel B shows product-term rejection rates by fitted model and scenario. The matched chance-corrected model remains near nominal alpha, whereas the alternative scales produce pseudo-interactions. The dashed line marks alpha = .05.](../figs/forced-choice-simulation.pdf){#fig-forced-choice-simulation fig-pos="H"}
 
 The chance-corrected model stays near the nominal .05 in every scenario, with nominal rejection rates between `r matched_nominal_min`% and `r matched_nominal_max`%, because it matches the generating scale. Pseudo-interaction detection is highest where performance lies near the floor: in the lower-performance scenario the standard logit rejects `r fc_rejection_rate("Lower performance", "Standard binomial logit")`% of the time, the standard probit `r fc_rejection_rate("Lower performance", "Standard binomial probit")`%, and the Gaussian identity `r fc_rejection_rate("Lower performance", "Gaussian identity")`%, against the nominal 5%. Detection falls as performance moves away from the floor, reaching `r fc_rejection_rate("Higher performance", "Standard binomial logit")`% for the logit and `r fc_rejection_rate("Higher performance", "Standard binomial probit")`% for the probit in the higher-performance scenario. When the true floor is .50 and the fitted link places it at 0, the product term compensates for the wrong no-interaction baseline.
 
-The chance-corrected model can be numerically demanding. Near the floor the likelihood carries little information about changes on the above-chance scale, and some fits fail to converge; in the lower-performance scenario, only `r fc_fit("Lower performance", "Chance-corrected binomial logit")` of the `r n_rep` replications did. This instability is itself informative, signaling that the design gives limited evidence about above-guessing differences in that region. Weakly informative Bayesian priors or item-level models can stabilize estimation, at the cost of added assumptions that should be stated and checked \[**REF O TOGLIERE FRASE**\].
+The chance-corrected model can be numerically demanding. Near the floor the likelihood carries little information about changes on the above-chance scale, and some fits fail to converge; in the lower-performance scenario, only `r fc_fit("Lower performance", "Chance-corrected binomial logit")` of the `r n_rep` replications did. This instability is itself informative, signaling that the design gives limited evidence about above-guessing differences in that region. Weakly informative priors can help stabilize estimation when binomial data provide limited information [@gelman2008], although the added assumptions should be stated and checked.
 
 ## Within-Family Link Choice
 
@@ -964,7 +964,7 @@ Both links can be represented as latent-threshold models. They differ in the ass
 #| label: within-family-inline
 #| include: false
 
-# Design constants for Simulation 2 (see scripts/03c-simulation-within-family-links.R).
+# Design constants for Simulation 2 (see scripts/03b-simulation-within-family-links.R).
 wf_N <- 700
 wf_k <- 15
 n_rep_wf <- max(within_family_sim$`Successful fits`)
@@ -980,7 +980,7 @@ wf_rejection_rate <- function(gen, fit) round(100 * wf_lookup(gen, fit, "Rejecti
 
 In each of `r n_rep_wf` replications we generated repeated binary responses for $N = `r wf_N`$ participants in a two-group, two-condition design, with `r wf_k` trials per participant-condition cell and a subject random intercept (latent intraclass correlation 0.30). The quite large sample was chosen to make the relatively small systematic discrepancy between logit and probit links detectable, rather than to represent a typical psychological study. The condition-by-group interaction term was zero on the generating link scale. We crossed the generating link with the fitted link, using logit and probit in both roles, and fitted every model as a random-intercept GLMM, recording how often each returned a significant condition-by-group interaction term at $\alpha = .05$. @fig-within-family-links shows the results; the full crossed-link rates are tabulated in the Supplement.
 
-![Simulation 2: within-family link choice in repeated-trial random-intercept GLMMs. Panel A shows the deterministic cell probabilities generated by additive logit or probit models at random intercept 0. Panel B shows the product-term rejection rate when the generating and fitted links are crossed. Matched links show nominal rejection; wrong links show pseudo-interaction detection. Error bars are Wilson 95% confidence intervals, and the dashed line marks nominal alpha.](../figs/within-family-links.pdf){#fig-within-family-links fig-pos="H"}
+![Simulation 2: logit versus probit in repeated-trial random-intercept GLMMs. Data are generated with no condition-by-group product term on the generating link scale. Panel A shows the corresponding cell probabilities under logit and probit links. Panel B shows product-term rejection rates for each generating–fitted link combination. Matched links remain near nominal alpha, whereas wrong links produce pseudo-interactions. Error bars are Wilson 95% confidence intervals; the dashed line marks alpha = .05.](../figs/within-family-links.pdf){#fig-within-family-links fig-pos="H"}
 
 When the fitted link matches the generating link, the nominal rejection rate stays near .05: `r wf_rejection_rate("logit", "logit")`% for logit fitted to logit-generated data and `r wf_rejection_rate("probit", "probit")`% for probit fitted to probit-generated data. Crossing the links raises the pseudo-interaction detection rate to `r wf_rejection_rate("probit", "logit")`% when a logit model is fitted to probit-generated data and `r wf_rejection_rate("logit", "probit")`% when a probit model is fitted to logit-generated data, roughly three times the nominal rate. The wrong-link detection rates are smaller than in the forced-choice case, and they appear among links that share the same family, the same 0-to-1 bounds, and nearly overlapping fitted curves in the middle of the probability range, the setting many applied analysts treat as interchangeable. Under the wrong link the same cell probabilities imply a small but deterministic nonzero product term on the fitted scale, which repeated sampling detects. A result that is stable across both links is easier to defend; one that appears only under a single link should be reported as link-conditional, or translated into a response-scale estimand and checked across plausible links. The deterministic product term induced by evaluating each generating model on the alternative link scale is reported in Supplement Section S5.
 
@@ -1002,7 +1002,7 @@ When item-level data are available and the claim concerns latent constructs, an 
 #| label: sum-score-inline
 #| include: false
 
-# Design constants for Simulation 3 (see scripts/03b-simulation-sum-scores.R).
+# Design constants for Simulation 3 (see scripts/03c-simulation-sum-scores.R).
 ss_N   <- 600
 ss_J   <- 9
 ss_cat <- 3                 # each item scored 0 to 3
@@ -1022,7 +1022,7 @@ The bounded-score probit model introduced above is tested here against the two n
 
 The bounded-score model fits a continuity-corrected score proportion with a Gaussian likelihood and a probit link, then rescales predictions back to the sum-score metric. A probit rather than a logit link is used because its standard-normal linear predictor keeps the ad hoc correspondence to a latent scale simple and readable as if they were standardized units (but note that, as we showed in a previous section, this is *not* a neutral choice). 
 
-![Simulation 3: sum scores as bounded and discrete outcomes. Panel A shows how a latent additive data-generating model, with no x-by-group product term, is mapped onto the observed sum-score scale under middle, floor, and ceiling scenarios. Panel B shows product-term rejection rates across repeated simulations. The latent generating-scale benchmark shows nominal rejection; the observed and bounded-score models show pseudo-interaction detection. The latent benchmark is available only because theta is known in the simulation; applied analyses have no access to it.](../figs/sum-score-simulation.pdf){#fig-sum-score-simulation fig-pos="H"}
+![Simulation 3: sum scores as bounded and discrete outcomes. Data are generated with no x-by-group product term on the latent scale. Panel A shows how the same additive latent structure maps onto sum scores in the middle of the scale, near the floor, and near the ceiling. Panel B shows product-term rejection rates for the latent benchmark and two observed-score models. The latent model remains near nominal alpha, whereas the observed-score models produce pseudo-interactions. The dashed line marks alpha = .05. The latent benchmark is available only in simulation.](../figs/sum-score-simulation.pdf){#fig-sum-score-simulation fig-pos="H"}
 
 The latent generating scale, the idealized benchmark, has nominal rejection rates near .05 in every scenario (between `r ss_rejection_rate("Middle of scale", "Latent generating scale")`% and `r ss_rejection_rate("Near floor", "Latent generating scale")`%), confirming calibration on the scale that generated the data. The observed sum-score identity model has a similar pseudo-interaction detection rate only in the middle of the scale, where the total is approximately linear in the latent variable (`r ss_rejection_rate("Middle of scale", "Observed sum-score identity")`%). As expected totals approach a bound, its detection rate rises sharply, reaching `r ss_rejection_rate("Near ceiling", "Observed sum-score identity")`% near the ceiling and `r ss_rejection_rate("Near floor", "Observed sum-score identity")`% near the floor, because uneven compression of the latent scale makes a constant latent group effect appear to change across levels of the predictor. The Gaussian-probit bounded-score model has pseudo-interaction detection rates close to alpha throughout (between `r ss_rejection_rate("Middle of scale", "Gaussian-probit bounded score")`% and `r ss_rejection_rate("Near floor", "Gaussian-probit bounded score")`%). This sensitivity model respects the score bounds but is not the true latent measurement model.
 
