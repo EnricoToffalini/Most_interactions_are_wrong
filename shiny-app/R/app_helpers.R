@@ -92,7 +92,8 @@ four_cell_values <- function(beta_0, beta_x, beta_z, beta_xz,
 
 # Difference-in-differences from a four-cell data.frame:
 # [cell(1,1) - cell(0,1)] - [cell(1,0) - cell(0,0)],
-# computed on the link scale (eta) and the observed scale (mu).
+# computed on the link scale (eta) and the response scale (mu). The paper and
+# supplement pair these two names, so the app uses them and no synonym.
 # On the link scale this equals beta_xz exactly.
 diff_in_diff <- function(values) {
   cell <- function(x, z, col) {
@@ -101,5 +102,5 @@ diff_in_diff <- function(values) {
   did <- function(col) {
     (cell(1, 1, col) - cell(0, 1, col)) - (cell(1, 0, col) - cell(0, 0, col))
   }
-  list(link_scale = did("eta"), observed_scale = did("mu"))
+  list(link_scale = did("eta"), response_scale = did("mu"))
 }

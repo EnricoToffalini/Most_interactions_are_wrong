@@ -749,6 +749,8 @@ include_graphic_if_exists(
 
 All analyses were conducted in R, and the manuscript and this supplement were written in Quarto. Each simulation sets a fixed random seed, and the number of Monte Carlo replications and the significance level are recorded together with the saved results. Exact package versions are pinned with `renv`, which is the source of truth for the computational environment; the key modelling dependencies are `glmmTMB` for the mixed-model simulations and `DHARMa` for the diagnostic checks. The complete data, analysis code, preregistration materials, and generated outputs are archived in the public repository associated with the article, so that every table and figure can be regenerated from the raw inputs.
 
+The manuscript simulations use a small number of transparent scenarios. A broader precomputed sensitivity atlas generated in `simulation-atlas/` varies key parameters around those anchors, and the Shiny app explores its compact summaries without running simulations interactively. Replication-level atlas results are intended for the public repository or OSF archive and are not required to render this supplement.
+
 # References
 
 ::: {#refs}

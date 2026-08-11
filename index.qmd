@@ -1,0 +1,435 @@
+---
+pagetitle: "The Link Function Problem in Psychological Interaction Testing"
+description-meta: "Manuscript, simulation atlas, review materials and code for The Link Function Problem in Psychological Interaction Testing."
+lang: en
+format:
+  html:
+    minimal: true          # no Bootstrap, no Quarto JS
+    theme: none            # all styling comes from the <style> block below
+    toc: false
+    section-divs: false    # headings stay plain <h2>, no auto <section> wrappers
+    anchor-sections: false
+    embed-resources: true  # single self-contained index.html (no index_files/)
+    include-in-header:
+      text: |
+        <style>
+        /* ---------------------------------------------------------------- tokens -- */
+        :root {
+          --bg:        #fbfaf8;
+          --surface:   #ffffff;
+          --border:    #e2ded8;
+          --border-hi: #c9c2b8;
+          --text:      #1c1a17;
+          --muted:     #6b655d;
+          --accent:    #7a4a24;
+          --accent-bg: #f3ede6;
+          --shadow:    0 1px 2px rgba(28, 26, 23, .05);
+          --shadow-hi: 0 4px 14px rgba(28, 26, 23, .09);
+        }
+        @media (prefers-color-scheme: dark) {
+          :root:not([data-theme="light"]) {
+            --bg:        #171614;
+            --surface:   #201e1b;
+            --border:    #34312c;
+            --border-hi: #4d4841;
+            --text:      #ece8e2;
+            --muted:     #a29b91;
+            --accent:    #d6a173;
+            --accent-bg: #2a251f;
+            --shadow:    none;
+            --shadow-hi: 0 4px 14px rgba(0, 0, 0, .35);
+          }
+        }
+        :root[data-theme="dark"] {
+          --bg:        #171614;
+          --surface:   #201e1b;
+          --border:    #34312c;
+          --border-hi: #4d4841;
+          --text:      #ece8e2;
+          --muted:     #a29b91;
+          --accent:    #d6a173;
+          --accent-bg: #2a251f;
+          --shadow:    none;
+          --shadow-hi: 0 4px 14px rgba(0, 0, 0, .35);
+        }
+
+        /* ------------------------------------------------------------------ base -- */
+        * { box-sizing: border-box; }
+        html { -webkit-text-size-adjust: 100%; }
+        body {
+          margin: 0;
+          background: var(--bg);
+          color: var(--text);
+          font-family: ui-serif, Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+          font-size: 17px;
+          line-height: 1.6;
+        }
+        .wrap { max-width: 62rem; margin: 0 auto; padding: 0 1.5rem; }
+        a { color: var(--accent); }
+
+        /* ---------------------------------------------------------------- header -- */
+        .masthead { border-bottom: 1px solid var(--border); padding: 4rem 0 2.5rem; }
+        .masthead p { margin: 0 0 1rem; }
+        .masthead p:last-child { margin-bottom: 0; }
+        .eyebrow {
+          display: block;
+          font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+          font-size: .72rem; font-weight: 600; letter-spacing: .12em;
+          text-transform: uppercase; color: var(--muted);
+        }
+        h1 {
+          font-size: clamp(1.9rem, 5vw, 2.9rem);
+          line-height: 1.15; font-weight: 600; margin: 0 0 1rem; letter-spacing: -.01em;
+        }
+        .authors {
+          display: block;
+          font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+          font-size: .92rem; color: var(--muted); max-width: 46rem;
+        }
+
+        /* ------------------------------------------------------------------ lede -- */
+        .lede { padding: 2.5rem 0 1rem; max-width: 46rem; }
+        .lede p { margin: 0 0 1.1rem; }
+        .lede p:last-child { margin-bottom: 0; }
+        .lede strong { font-weight: 600; }
+        /* "Read the paper" pointer at the end of the lede. */
+        .readmore {
+          display: inline-block;
+          font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+          font-size: .9rem; font-weight: 600; text-decoration: none;
+          border-bottom: 1px solid var(--accent); padding-bottom: .1rem;
+        }
+        .readmore:hover, .readmore:focus-visible { border-bottom-width: 2px; }
+
+        /* --------------------------------------------------------------- section -- */
+        .sec { padding: 2.25rem 0 0; }
+        .sec > h2 {
+          font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+          font-size: .74rem; font-weight: 600; letter-spacing: .12em;
+          text-transform: uppercase; color: var(--muted);
+          margin: 0 0 1rem; padding-bottom: .6rem; border-bottom: 1px solid var(--border);
+        }
+        .sec > .note {
+          font-size: .9rem; color: var(--muted); margin: -.4rem 0 1rem; max-width: 46rem;
+        }
+        .sec > .note p { margin: 0; }
+
+        /* ----------------------------------------------------------------- cards -- */
+        .grid {
+          display: grid; gap: .9rem;
+          grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+        }
+        /* A grid with a single card keeps a card-like width instead of
+           stretching that card across the full page. Delete this rule if you
+           prefer lone cards to span the whole row. */
+        .grid:has(> .card:only-child) { grid-template-columns: minmax(0, 28rem); }
+        .card {
+          position: relative;
+          display: flex; flex-direction: column; gap: .35rem;
+          padding: 1.15rem 1.25rem;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          box-shadow: var(--shadow);
+          transition: border-color .15s, box-shadow .15s, transform .15s;
+        }
+        .card p { margin: 0; }
+        .card:hover, .card:has(.card__title:focus-visible) {
+          border-color: var(--border-hi);
+          box-shadow: var(--shadow-hi);
+          transform: translateY(-2px);
+        }
+        .card__kind {
+          display: inline-block;
+          font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+          font-size: .66rem; font-weight: 600; letter-spacing: .1em;
+          text-transform: uppercase; color: var(--accent);
+          background: var(--accent-bg);
+          padding: .18rem .5rem; border-radius: 4px;
+        }
+        /* The title link is stretched over the whole card, so the card is clickable. */
+        .card__title {
+          font-size: 1.08rem; font-weight: 600; line-height: 1.3;
+          color: inherit; text-decoration: none;
+        }
+        .card__title::after {
+          content: ""; position: absolute; inset: 0; border-radius: 10px;
+        }
+        .card__title:focus-visible { outline: none; }
+        .card__title:focus-visible::after {
+          outline: 2px solid var(--accent); outline-offset: 2px;
+        }
+        .card__desc {
+          display: block;
+          font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+          font-size: .87rem; line-height: 1.5; color: var(--muted);
+        }
+        .card--muted { background: transparent; box-shadow: none; }
+
+        /* -------------------------------------------------------------- callouts -- */
+        .notebox {
+          border: 1px solid var(--border); border-left: 3px solid var(--accent);
+          border-radius: 8px; background: var(--surface);
+          padding: 1.15rem 1.25rem; margin-top: .9rem;
+        }
+        .notebox h3 {
+          font-size: 1.05rem; font-weight: 600; margin: 0 0 .4rem;
+        }
+        .notebox p {
+          font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+          font-size: .89rem; color: var(--muted); margin: 0 0 .7rem;
+        }
+        .notebox p:last-child { margin-bottom: 0; }
+        pre {
+          margin: 0 0 .7rem; padding: .7rem .85rem; overflow-x: auto;
+          background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+        }
+        code {
+          font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Consolas, monospace;
+          font-size: .84em;
+        }
+        pre code { color: var(--text); }
+
+        /* ---------------------------------------------------------------- footer -- */
+        .footer {
+          margin-top: 3.5rem; padding: 2rem 0 3rem;
+          border-top: 1px solid var(--border);
+          font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+          font-size: .85rem; color: var(--muted);
+        }
+        .footer h2 {
+          font-size: .74rem; font-weight: 600; letter-spacing: .12em;
+          text-transform: uppercase; color: var(--muted); margin: 0 0 .6rem;
+        }
+        .footer p { margin: 0 0 1.2rem; max-width: 46rem; }
+        .footer p:last-child { margin-bottom: 0; }
+        .footer .cite {
+          display: block;
+          font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Consolas, monospace;
+          font-size: .8rem; line-height: 1.7; color: var(--text);
+        }
+        </style>
+---
+
+<!--
+================================================================================
+  HOW TO EDIT THIS PAGE
+================================================================================
+  This file is the source of index.html. Render it with:
+
+      quarto render index.qmd
+
+  The output is a single self-contained page (no build step, no JavaScript, no
+  external assets), served by .github/workflows/static.yml, which publishes the
+  whole repository to GitHub Pages, so every link below is just a normal
+  relative path into the repository.
+
+  All styling lives in the <style> block inside the YAML header above; the body
+  below is plain Quarto markdown built from two repeatable blocks. To
+  restructure, extend or shrink the page, copy, move or delete a whole block:
+
+  1) A SECTION block:
+       ::::: {.sec} ... :::::
+     Contains a heading and a grid of cards.
+
+  2) A CARD block, inside a section's :::: {.grid}:
+
+       ::: {.card}
+       [FORMAT LABEL]{.card__kind}
+
+       [Title](RELATIVE/PATH){.card__title}
+
+       [One or two sentences.]{.card__desc}
+       :::
+
+     Use {.card .card--muted} for a secondary / non-primary item, and add
+     `target="_blank" rel="noopener"` to the link attributes for links that
+     leave the site. The title link is stretched over the whole card by CSS,
+     so the entire card stays clickable.
+
+  Note: fences are nested by length only for readability (::::: section,
+  :::: grid, ::: card); Quarto only requires that each one be closed.
+
+  Nothing else in the file depends on how many sections or cards exist.
+================================================================================
+-->
+
+::::: {.masthead}
+:::: {.wrap}
+
+[Research compendium · University of Padova]{.eyebrow}
+
+# The Link Function Problem in Psychological Interaction Testing
+
+[Margherita Calderan · Filippo Gambarota · Laura Sità · Tommaso Feraco · Enrico Toffalini]{.authors}
+
+::::
+:::::
+
+:::::::: {.wrap}
+
+::: {.lede}
+Equal differences on one scale become different differences on another scale.
+This is crucial for interaction testing because an interaction is a difference
+between differences, and in psychological research the observed response and
+the construct of interest are often expressed on different scales. Therefore,
+the same data can show an interaction on one scale and not on another.
+
+Generalized Linear Models make this problem explicit: the **link function**
+defines the scale on which a model without an interaction term is additive.
+Choosing a link thus defines what *no interaction* means, while the family
+describes the nature of the response variable.
+
+The paper has two connected parts. A preregistered review of recent articles
+from five leading psychology journals shows that interaction testing is
+routinely performed, that the link function is most often unspecified, and that
+constrained outcomes are routinely analyzed with identity-link models without
+justifying the assumption of equal effects on the observed scale. Worked
+examples and simulations then develop three common response formats —
+forced-choice accuracy with a chance floor, logit versus probit within the same
+family, and sum scores as a measurement case — and quantify how a
+plausible-looking link can turn an additive structure on one scale into a
+statistically significant interaction on another.
+
+[Read the full abstract and the paper (PDF)](paper/paper-v2.pdf){.readmore}
+:::
+
+<!-- ============================================================== SECTION == -->
+::::: {.sec}
+## Paper
+
+:::: {.grid}
+
+::: {.card}
+[PDF]{.card__kind}
+
+[Manuscript](paper/paper-v2.pdf){.card__title}
+
+[The full paper: review of practice, conceptual framework, worked examples and
+simulation results.]{.card__desc}
+:::
+
+::: {.card}
+[PDF]{.card__kind}
+
+[Supplement](paper/supplement.pdf){.card__title}
+
+[Additional derivations, full simulation settings and the complete result
+tables referenced from the manuscript.]{.card__desc}
+:::
+
+::::
+:::::
+
+<!-- ============================================================== SECTION == -->
+::::: {.sec}
+## Explore the results
+
+:::: {.grid}
+
+::: {.card}
+[HTML report]{.card__kind}
+
+[Simulation atlas](simulation-atlas/Simulation-atlas-report.html){.card__title}
+
+[Extended sensitivity analyses around the manuscript scenarios, well beyond the
+conditions printed in the paper.]{.card__desc}
+:::
+
+::::
+:::::
+
+<!-- ============================================================== SECTION == -->
+::::: {.sec}
+## Literature Review
+
+:::: {.grid}
+
+::: {.card}
+[PDF]{.card__kind}
+
+[Preregistration protocol](Literature_review/Preregistration/Preregistration-Protocol-Link-Functions.pdf){.card__title}
+
+[The registered protocol for the descriptive review of interaction testing in
+recent psychological articles.]{.card__desc}
+:::
+
+::: {.card}
+[CSV]{.card__kind}
+
+[Review dataset](Literature_review/final-dataset-review.csv){.card__title}
+
+[Coded articles behind the descriptive review. Descriptive by design, not an
+audit of individual papers.]{.card__desc}
+:::
+
+::::
+:::::
+
+<!-- ============================================================== SECTION == -->
+::::: {.sec}
+## Code
+
+:::: {.grid}
+::: {.card .card--muted}
+[GitHub]{.card__kind}
+
+[Repository & scripts](https://github.com/EnricoToffalini/Most_interactions_are_wrong){.card__title target="_blank" rel="noopener"}
+
+[All simulation and analysis scripts in `scripts/`, reproducible via `run.R`
+with an `renv` lockfile.]{.card__desc}
+:::
+
+::::
+:::::
+
+<!-- ============================================================== SECTION == -->
+::::: {.sec}
+## Shiny app
+
+:::: {.grid}
+
+::: {.card}
+[R · run locally]{.card__kind}
+
+[Companion Shiny app](https://github.com/EnricoToffalini/Most_interactions_are_wrong/tree/main/shiny-app){.card__title target="_blank" rel="noopener"}
+
+[Interactive explorer for link scales, four-cell interaction calculators and
+the atlas summaries. Needs a local R session — see the note below.]{.card__desc}
+:::
+
+::::
+
+<!-- Replace this with a plain card once the app is deployed online -->
+::: {.notebox}
+### Running the Shiny app
+
+The app needs a live R session, so it cannot be served from this static site.
+Clone the repository and run, from its root:
+
+```
+shiny::runApp("shiny-app")
+```
+
+Only `shiny` and `ggplot2` are required.
+:::
+
+:::::
+
+<!-- =============================================================== FOOTER == -->
+::: {.footer}
+## Citation
+
+[Calderan, M., Gambarota, F., Sità, L., Feraco, T., & Toffalini, E.
+The Link Function Problem in Psychological Interaction Testing.
+GitHub repository.]{.cite}
+
+## License
+
+Manuscript, figures, tables and review data are released under
+**CC BY 4.0**; code is released under the **MIT License**, unless otherwise
+stated. Third-party materials cited in the manuscript remain under their
+original copyright.
+:::
+
+::::::::

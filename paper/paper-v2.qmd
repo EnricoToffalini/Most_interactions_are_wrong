@@ -262,6 +262,8 @@ These contributions identify adjacent parts of a shared problem. None of them, h
 
 The present article addresses these issues in two parts. The first is a preregistered descriptive review of recent empirical articles in five prominent psychology journals, quantifying how often interactions are tested, how often the outcome family and link function are made explicit, and which response formats predominate. The second develops the link function problem in three common response formats: forced-choice accuracy with a chance floor, sum scores, and within-family link choices such as logit versus probit. Using simulations, it quantifies how often an inadequate link turns a purely additive structure into a statistically significant interaction, and whether standard diagnostics detect the misspecification. @tbl-link-aware-workflow summarizes these insights into a practical workflow for applied research.
 
+A broader precomputed sensitivity analysis, varying sample size, main-effect magnitude, scale location, and selected design parameters, is available in the public repository and can be explored through the accompanying interactive application.
+
 # Current Practice in Psychological Interaction Testing: A Preregistered Review
 
 ```{r review-section-load-data}
@@ -553,6 +555,19 @@ select_required_columns <- function(dat, cols) {
 rename_columns <- function(dat, labels) {
   names(dat)[match(names(labels), names(dat))] <- unname(labels)
   dat
+}
+
+# Inline row lookups must hit exactly one row. A label that no longer matches the
+# summary tables would otherwise return a zero-length value that knitr renders as
+# an empty string, silently dropping the number from the text.
+require_single <- function(value, what) {
+  if (length(value) != 1) {
+    stop(
+      "Inline lookup ", what, " matched ", length(value),
+      " values instead of 1. Check that the label matches the summary table."
+    )
+  }
+  value
 }
 
 forced_choice_sim_raw <- read_required_table(
@@ -892,7 +907,10 @@ diagnostic_scenario_display_table <- function(dat) {
 
 dg_lookup <- function(case, col) {
   if (!col %in% names(diagnostic_scenarios)) return(NA_real_)
-  diagnostic_scenarios[diagnostic_scenarios$Case == case, col, drop = TRUE]
+  require_single(
+    diagnostic_scenarios[diagnostic_scenarios$Case == case, col, drop = TRUE],
+    paste0("diagnostic_scenarios[", case, " / ", col, "]")
+  )
 }
 dg_pct <- function(case, col) round(100 * dg_lookup(case, col))
 dg_val <- function(case, col, digits = 1) fmt_num(dg_lookup(case, col), digits)
@@ -930,10 +948,13 @@ sim_k <- 20
 n_rep <- max(forced_choice_sim$`Successful fits`)
 
 fc_lookup <- function(scn, mdl, col) {
-  forced_choice_sim[
-    forced_choice_sim$Scenario == scn & forced_choice_sim$Model == mdl,
-    col, drop = TRUE
-  ]
+  require_single(
+    forced_choice_sim[
+      forced_choice_sim$Scenario == scn & forced_choice_sim$Model == mdl,
+      col, drop = TRUE
+    ],
+    paste0("forced_choice_sim[", scn, " / ", mdl, " / ", col, "]")
+  )
 }
 fc_rejection_rate <- function(scn, mdl) round(100 * fc_lookup(scn, mdl, "Rejection rate"))
 fc_fit <- function(scn, mdl) fc_lookup(scn, mdl, "Successful fits")
@@ -970,10 +991,13 @@ wf_k <- 15
 n_rep_wf <- max(within_family_sim$`Successful fits`)
 
 wf_lookup <- function(gen, fit, col) {
-  within_family_sim[
-    within_family_sim$`Generating link` == gen & within_family_sim$`Fitted link` == fit,
-    col, drop = TRUE
-  ]
+  require_single(
+    within_family_sim[
+      within_family_sim$`Generating link` == gen & within_family_sim$`Fitted link` == fit,
+      col, drop = TRUE
+    ],
+    paste0("within_family_sim[", gen, " / ", fit, " / ", col, "]")
+  )
 }
 wf_rejection_rate <- function(gen, fit) round(100 * wf_lookup(gen, fit, "Rejection rate"))
 ```
@@ -1010,12 +1034,25 @@ ss_max <- ss_J * ss_cat     # 0-27 total
 n_rep_ss <- max(sum_score_sim$`Successful fits`)
 
 ss_lookup <- function(scn, mdl, col) {
-  sum_score_sim[
-    sum_score_sim$Scenario == scn & sum_score_sim$Model == mdl,
-    col, drop = TRUE
-  ]
+  require_single(
+    sum_score_sim[
+      sum_score_sim$Scenario == scn & sum_score_sim$Model == mdl,
+      col, drop = TRUE
+    ],
+    paste0("sum_score_sim[", scn, " / ", mdl, " / ", col, "]")
+  )
 }
 ss_rejection_rate <- function(scn, mdl) round(100 * ss_lookup(scn, mdl, "Rejection rate"))
+
+# Ranges quoted in the text are the observed min/max across scenarios, so they
+# stay ordered if a re-run changes which scenario is the extreme one.
+ss_rate_range <- function(mdl) {
+  rates <- sum_score_sim$`Rejection rate`[sum_score_sim$Model == mdl]
+  if (length(rates) == 0) stop("No rejection rates found for model ", mdl, ".")
+  round(100 * range(rates))
+}
+ss_rate_min <- function(mdl) ss_rate_range(mdl)[1]
+ss_rate_max <- function(mdl) ss_rate_range(mdl)[2]
 ```
 
 The bounded-score probit model introduced above is tested here against the two natural alternatives: the manifest total and the latent scale it approximates. In each of `r n_rep_ss` replications we generated data for $N = `r ss_N`$ participants on a latent continuous scale, with a continuous predictor, a group effect, and no true x-by-group interaction term. Each latent value was converted into `r ss_J` ordinal items scored 0 to `r ss_cat`, which were summed to a total on a 0-to-`r ss_max` scale. Three scenarios shift the item thresholds so that expected totals fall in the middle of the scale, near the floor, or near the ceiling. Each participant's total score was analyzed on three scales, chosen to isolate the relevant comparison: the observed sum-score identity model, a Gaussian linear model of the manifest total; the Gaussian-probit bounded-score model, a sensitivity model whose inverse link constrains the rescaled conditional mean within the bounds of minimum-maximum range; and the latent generating scale itself, an idealized benchmark available only because the true theta is known. We recorded how often each returned a significant x-by-group interaction term at $\alpha = .05$. @fig-sum-score-simulation shows the results; the per-scenario rates are tabulated in the Supplement.
@@ -1024,7 +1061,7 @@ The bounded-score model fits a continuity-corrected score proportion with a Gaus
 
 ![Simulation 3: sum scores as bounded and discrete outcomes. Data are generated with no x-by-group product term on the latent scale. Panel A shows how the same additive latent structure maps onto sum scores in the middle of the scale, near the floor, and near the ceiling. Panel B shows product-term rejection rates for the latent benchmark and two observed-score models. The latent model remains near nominal alpha, whereas the observed-score models produce pseudo-interactions. The dashed line marks alpha = .05. The latent benchmark is available only in simulation.](../figs/sum-score-simulation.pdf){#fig-sum-score-simulation fig-pos="H"}
 
-The latent generating scale, the idealized benchmark, has nominal rejection rates near .05 in every scenario (between `r ss_rejection_rate("Middle of scale", "Latent generating scale")`% and `r ss_rejection_rate("Near floor", "Latent generating scale")`%), confirming calibration on the scale that generated the data. The observed sum-score identity model has a similar pseudo-interaction detection rate only in the middle of the scale, where the total is approximately linear in the latent variable (`r ss_rejection_rate("Middle of scale", "Observed sum-score identity")`%). As expected totals approach a bound, its detection rate rises sharply, reaching `r ss_rejection_rate("Near ceiling", "Observed sum-score identity")`% near the ceiling and `r ss_rejection_rate("Near floor", "Observed sum-score identity")`% near the floor, because uneven compression of the latent scale makes a constant latent group effect appear to change across levels of the predictor. The Gaussian-probit bounded-score model has pseudo-interaction detection rates close to alpha throughout (between `r ss_rejection_rate("Middle of scale", "Gaussian-probit bounded score")`% and `r ss_rejection_rate("Near floor", "Gaussian-probit bounded score")`%). This sensitivity model respects the score bounds but is not the true latent measurement model.
+The latent generating scale, the idealized benchmark, has nominal rejection rates near .05 in every scenario (between `r ss_rate_min("Latent generating scale")`% and `r ss_rate_max("Latent generating scale")`%), confirming calibration on the scale that generated the data. The observed sum-score identity model has a similar pseudo-interaction detection rate only in the middle of the scale, where the total is approximately linear in the latent variable (`r ss_rejection_rate("Middle range", "Observed sum-score identity")`%). As expected totals approach a bound, its detection rate rises sharply, reaching `r ss_rejection_rate("Upper range", "Observed sum-score identity")`% near the ceiling and `r ss_rejection_rate("Lower range", "Observed sum-score identity")`% near the floor, because uneven compression of the latent scale makes a constant latent group effect appear to change across levels of the predictor. The Gaussian-probit bounded-score model has pseudo-interaction detection rates close to alpha throughout (between `r ss_rate_min("Gaussian-probit bounded score")`% and `r ss_rate_max("Gaussian-probit bounded score")`%). This sensitivity model respects the score bounds but is not the true latent measurement model.
 
 The pattern is conditional on the region of the score range. Far from the bounds, and for a claim about raw-score units, the Gaussian identity analysis of the total approximates the latent-scale result. Near a bound, the raw-score no-interaction baseline diverges from the latent one, and a interaction term can appear that reflects compression of the metric even when the construct-level effect is constant. The bounded-score probit model is a useful sensitivity check, and it remains a model of the manifest total. When the claim concerns an interaction between latent constructs, the more direct solution is an explicit measurement model, such as SEM, item-level ordinal, or IRT-inspired models; these still require assumptions about thresholds, links, loadings, and latent-response metrics, so they make the measurement part of the interaction claim explicit without removing the scale problem.
 

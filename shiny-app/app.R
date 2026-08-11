@@ -1,6 +1,6 @@
 # Companion Shiny app for the link-function paper.
-# Deterministic, explanatory examples only: no model fitting, no Monte Carlo
-# simulation, no expensive computation. Dependencies: shiny and ggplot2.
+# Deterministic calculators plus precomputed atlas summaries: no model fitting,
+# Monte Carlo simulation, or expensive computation. Dependencies: shiny and ggplot2.
 
 for (pkg in c("shiny", "ggplot2")) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
@@ -21,6 +21,17 @@ helper_candidates <- c("R/app_helpers.R", "shiny-app/R/app_helpers.R")
 helper_path <- helper_candidates[file.exists(helper_candidates)][1]
 if (is.na(helper_path)) stop("Cannot find R/app_helpers.R relative to the working directory.")
 source(helper_path)
+
+atlas_helper_candidates <- c("R/atlas_helpers.R", "shiny-app/R/atlas_helpers.R")
+atlas_helper_path <- atlas_helper_candidates[file.exists(atlas_helper_candidates)][1]
+if (is.na(atlas_helper_path)) stop("Cannot find R/atlas_helpers.R relative to the working directory.")
+source(atlas_helper_path)
+ATLAS_DATA <- atlas_load_data()
+ATLAS_CASE_CHOICES <- if (ATLAS_DATA$available) {
+  atlas_case_choices(unique(ATLAS_DATA$core$family))
+} else {
+  c("Atlas data unavailable" = "")
+}
 
 # Fixed two-series palette (Okabe-Ito blue and vermillion), colorblind-safe.
 # Linetype is used as a secondary encoding so identity is never color-alone.
@@ -62,7 +73,7 @@ app_theme <- theme_minimal(base_size = 16) +
 # ---------------------------------------------------------------- UI --------
 
 ui <- fluidPage(
-  titlePanel("Link functions and interactions: a deterministic companion"),
+  titlePanel("The link function problem in psychological interaction testing: a deterministic companion"),
   tabsetPanel(
 
     # Tab 1 ----------------------------------------------------------------
@@ -70,29 +81,55 @@ ui <- fluidPage(
       "Overview",
       br(),
       h4("What this app shows"),
-      p("In a generalized linear model, three things are easy to conflate:"),
+      p("A generalized linear model separates two choices that are easy to",
+        "conflate, and the paper adds a third that sits outside the model:"),
       tags$ol(
         tags$li(strong("Outcome family:"),
-                " the response support and sampling model (for example binomial counts on {0, ..., n})."),
+                " the distribution assumed for the response. It defines which",
+                " values the outcome can take and how observations vary around",
+                " their expectation (for example a binomial family for correct",
+                " responses out of k trials)."),
         tags$li(strong("Link function:"),
-                " the scale on which the linear predictor is additive."),
+                " g(mu), which maps the expected outcome mu onto the linear",
+                " predictor eta, the scale on which the model is additive. The",
+                " link therefore defines what the absence of an interaction,",
+                " beta_xz = 0, means in the fitted model."),
         tags$li(strong("Target metric:"),
-                " the quantity the researcher verbally claims the interaction is about.")
+                " the metric the substantive claim is about. It can be the",
+                " observed response itself, or an underlying dimension that the",
+                " observed response only maps onto, as with a sum score built",
+                " from item responses.")
       ),
       p("A zero product term means no interaction on the link scale,",
-        "not necessarily on the observed response scale.",
+        "not necessarily on the response scale.",
         "Equal intervals on the linear predictor (eta) map to unequal intervals",
         "on the expected response (mu) through any nonlinear inverse link.",
-        "When the assumed link differs from the scale a claim refers to,",
-        "this curvature can create apparent interactions on the response scale,",
-        "making the interaction conclusion sensitive to the chosen scale."),
-      p("All examples in this app are deterministic. The app does not perform",
-        "model fitting or Monte Carlo simulation; it only evaluates inverse link",
-        "functions at values you choose. It shows scale dependence, not evidence",
-        "that one link is universally correct."),
-      p("The simulation results referenced in the paper are produced by the",
-        "scripts in scripts/ and, when available, are displayed unchanged in the",
-        "last tab.")
+        "Unless the link is the identity, the product-term coefficient and the",
+        "response-scale interaction, a difference between expected differences",
+        "on the observed outcome, can disagree."),
+      p("The paper calls an interaction contrast that is exactly zero on the",
+        "known generating scale but nonzero on another fitted scale a ",
+        strong("pseudo-interaction"),
+        ". It is not a false positive in a strict statistical sense: it is a",
+        " genuine mathematical property of that scale. The label is available",
+        " only in simulation, where the generating scale is known. With",
+        " empirical data it is not, so an interaction conclusion is instead",
+        " described as ", em("link-sensitive"), ", conditional on the fitted",
+        " scale, or unstable across plausible links."),
+      p("The interactive calculators in this app are deterministic. The app does",
+        "not perform model fitting or Monte Carlo simulation; it evaluates inverse",
+        "link functions and filters precomputed atlas summaries. These displays show",
+        "scale dependence, not evidence that one link is universally correct."),
+      p("The simulation results referenced in the paper remain produced by the",
+        "scripts in scripts/. The separate Simulation atlas tab reads its own compact,",
+        "precomputed sensitivity summaries."),
+      h4("If you have the paper in front of you"),
+      p("Go straight to the ", strong("Simulation atlas"), " tab. It is organized by",
+        "manuscript case: choose Simulation 1, 2 or 3, and the first page recomputes",
+        "exactly the scenarios printed in that simulation's figure, with the paper",
+        "section, figure number and supplement reference stated on screen. The two",
+        "further pages ask how far the result travels beyond those scenarios and",
+        "whether routine model checks would have caught the problem.")
     ),
 
     # Tab 2 ----------------------------------------------------------------
@@ -148,11 +185,12 @@ ui <- fluidPage(
           verbatimTextOutput("t3_did"),
           plotOutput("t3_plot", height = "360px"),
           p("Setting beta_xz = 0 makes the link-scale difference-in-differences",
-            "exactly zero, while the observed-scale difference-in-differences can",
+            "exactly zero, while the response-scale difference-in-differences can",
             "still be nonzero whenever the inverse link is nonlinear and the two",
             "main effects move the cells across regions of different curvature.",
-            "On this scale, the apparent interaction is induced by the link, not",
-            "by the product term.")
+            "That nonzero response-scale contrast is the deterministic",
+            "pseudo-interaction: it is induced by the fitted scale, not by the",
+            "product term.")
         )
       )
     ),
@@ -221,10 +259,15 @@ ui <- fluidPage(
           plotOutput("t4_plot", height = "420px"),
           h5("Predicted probabilities at low, middle, and high age"),
           tableOutput("t4_table"),
-          p("A standard binomial logit maps eta to the full (0, 1) interval.",
-            "A forced-choice task implies a lower asymptote at the chance level,",
-            "so accuracy cannot fall below it in expectation.",
-            "Ignoring the chance floor can change the observed-scale pattern of",
+          p("A standard binomial logit maps eta onto the full 0-to-1 range and",
+            "places the lower asymptote at 0. In an m-alternative forced-choice",
+            "task, guessing yields an expected accuracy of c = 1/m, so a claim",
+            "about performance above guessing places the lower asymptote at c,",
+            "not at 0. A product term under the standard link therefore tests",
+            "additivity over the full 0-to-1 range, whereas under the",
+            "chance-corrected link it tests additivity on a",
+            "performance-above-chance scale that already encodes the task floor.",
+            "Ignoring the chance floor can change the response-scale pattern of",
             "group differences across age even when the product term is zero on",
             "the generating scale. In this deterministic example the same eta is",
             "passed through both inverse links; only the mapping differs.")
@@ -234,7 +277,7 @@ ui <- fluidPage(
 
     # Tab 5 ----------------------------------------------------------------
     tabPanel(
-      "Logit vs probit",
+      "Within-family link choice",
       br(),
       sidebarLayout(
         sidebarPanel(
@@ -250,12 +293,129 @@ ui <- fluidPage(
           plotOutput("t5_diff_plot", height = "260px"),
           h5("Four-cell example with beta_xz = 0 (beta_0 = intercept, beta_x = beta_z = slope)"),
           tableOutput("t5_table"),
-          p("With eta scaled by a constant near 1.6 to 1.7, logit and probit",
-            "curves are often similar in the middle of the probability range,",
-            "but they differ in the tails. When cell probabilities sit near 0 or",
-            "1, this tail behavior can change observed-scale",
-            "difference-in-differences, so interaction claims can depend on the",
-            "choice between two links that look almost identical in the middle.")
+          p("Logit and probit are both standard for binary data, respect the",
+            "same 0-to-1 bounds, and usually produce very similar fitted",
+            "probabilities: with eta scaled by a constant near 1.6 to 1.7 the",
+            "two curves are close in the middle of the probability range. They",
+            "differ in curvature and tail behavior, however, so equal",
+            "differences under one link are not exactly equal under the other.",
+            "When cell probabilities sit near 0 or 1, this can change the",
+            "response-scale difference-in-differences, so even two links many",
+            "analysts treat as interchangeable define slightly different scales",
+            "of additivity and can alter the interaction conclusion.")
+        )
+      )
+    ),
+
+    # Simulation atlas ------------------------------------------------------
+    # Deliberately organised around the manuscript: one choice at the top, then
+    # three wide pages that answer three questions in the paper's own order.
+    tabPanel(
+      "Simulation atlas",
+      br(),
+      fluidRow(column(
+        12,
+        div(
+          class = "panel panel-default",
+          div(class = "panel-heading",
+              strong("Use this tab with the paper open next to it")),
+          div(
+            class = "panel-body",
+            p("Every scenario in the atlas has a product term of ", strong("exactly zero"),
+              " on the generating scale, as in the paper's own simulations. Any nonzero",
+              " result below is therefore a ", strong("pseudo-interaction"), ": it belongs",
+              " to the fitted scale, not to the data-generating process. The app reads",
+              " precomputed Monte Carlo summaries; it fits no models and runs no",
+              " simulations in the browser."),
+            tags$ol(
+              tags$li("Pick the simulation you are currently reading. That single choice",
+                      " drives all three pages below."),
+              tags$li(strong("Page 1"), " recomputes exactly the scenarios printed in the",
+                      " paper, so the numbers can be read side by side with the figure."),
+              tags$li(strong("Page 2"), " leaves the paper and asks how far its result",
+                      " travels; ", strong("page 3"), " asks whether routine model checks",
+                      " would have warned the analyst.")
+            ),
+            p(em("The atlas is a set of declared sensitivity slices around the manuscript",
+                 " anchors, not an exhaustive map of psychological settings."))
+          )
+        ),
+        uiOutput("atlas_status"),
+        radioButtons(
+          "atlas_case", "Which simulation of the paper are you reading?",
+          choices = ATLAS_CASE_CHOICES, width = "100%"
+        ),
+        uiOutput("atlas_case_card")
+      )),
+      tabsetPanel(
+
+        tabPanel(
+          "1. What the paper prints",
+          br(),
+          fluidRow(column(
+            12,
+            uiOutput("atlas_anchor_intro"),
+            plotOutput("atlas_anchor_plot", height = "440px"),
+            br(),
+            tableOutput("atlas_anchor_table"),
+            uiOutput("atlas_anchor_note")
+          ))
+        ),
+
+        tabPanel(
+          "2. Beyond the paper's scenarios",
+          br(),
+          fluidRow(column(
+            12,
+            uiOutput("atlas_beyond_intro"),
+            radioButtons(
+              "atlas_metric", "Quantity shown in both figures on this page",
+              choices = c(
+                "Pseudo-interaction detection rate (Monte Carlo, alpha = .05)" = "detection",
+                "Deterministic induced product term on the fitted link scale (no sampling)" = "deterministic"
+              ),
+              inline = TRUE, width = "100%"
+            ),
+            plotOutput("atlas_slice_plot", height = "540px"),
+            br(),
+            plotOutput("atlas_surface_plot", height = "460px"),
+            hr(),
+            h4("Any single scenario in detail"),
+            p("The same numbers, one scenario at a time, with the expected values the",
+              "scenario was generated from. Manuscript anchors are listed first."),
+            uiOutput("atlas_scenario_ui"),
+            fluidRow(
+              column(5, plotOutput("atlas_expected_plot", height = "340px")),
+              column(
+                7,
+                uiOutput("atlas_scenario_headline"),
+                tableOutput("atlas_scenario_table"),
+                uiOutput("atlas_fit_warning")
+              )
+            )
+          ))
+        ),
+
+        tabPanel(
+          "3. Do routine checks catch it?",
+          br(),
+          fluidRow(column(
+            12,
+            uiOutput("atlas_diagnostic_intro"),
+            plotOutput("atlas_diagnostic_plot", height = "480px"),
+            p("A diagnostic detection rate is not the complement of pseudo-interaction",
+              "risk. Some checks are structurally inapplicable to some model classes;",
+              "those cases are stored explicitly as not applicable, which is a different",
+              "claim from not computed in this run."),
+            hr(),
+            h4("Strength of the AIC comparison"),
+            p("How often the target link wins is not enough on its own: winning by less",
+              "than one AIC unit and winning by fifty describe different situations.",
+              "The difference is AIC(wrong link) minus AIC(target link), so positive",
+              "values favor the target link. The paper makes the same point in its",
+              "diagnostic section, and Supplement S5 tabulates the same quantity."),
+            tableOutput("atlas_aic_table")
+          ))
         )
       )
     )
@@ -366,7 +526,7 @@ server <- function(input, output, session) {
     dd <- diff_in_diff(cells)
     lines <- c(
       sprintf("Link-scale difference-in-differences (equals beta_xz): %.6g", dd$link_scale),
-      sprintf("Observed-scale difference-in-differences:              %.6g", dd$observed_scale)
+      sprintf("Response-scale difference-in-differences:              %.6g", dd$response_scale)
     )
     if (input$t3_link == "identity" && any(cells$mu < 0 | cells$mu > 1)) {
       lines <- c(lines, "",
@@ -387,7 +547,7 @@ server <- function(input, output, session) {
       scale_linetype_manual(values = c("solid", "dashed"), name = NULL) +
       labs(
         x = "X", y = "mu (expected response)",
-        title = "Observed response scale",
+        title = "Response scale",
         subtitle = "Parallel lines on the link scale need not be parallel here"
       ) +
       app_theme
@@ -591,11 +751,252 @@ server <- function(input, output, session) {
       link = c("logit", sprintf("probit (coefficients / %.2f)", s)),
       `link-scale DiD` = c(diff_in_diff(logit_cells)$link_scale,
                            diff_in_diff(probit_cells)$link_scale),
-      `observed-scale DiD` = c(diff_in_diff(logit_cells)$observed_scale,
-                               diff_in_diff(probit_cells)$observed_scale),
+      `response-scale DiD` = c(diff_in_diff(logit_cells)$response_scale,
+                               diff_in_diff(probit_cells)$response_scale),
       check.names = FALSE
     )
   }, digits = 5)
+
+  # Simulation atlas: compact precomputed summaries only --------------------
+  # One reactive family, derived from the single top-level control, feeds every
+  # display on all three atlas pages.
+  output$atlas_status <- renderUI({
+    class <- if (ATLAS_DATA$run_type == "full") "alert alert-info" else "alert alert-warning"
+    tags$div(class = class, ATLAS_DATA$message)
+  })
+
+  atlas_family <- reactive({
+    validate(need(
+      ATLAS_DATA$available && !is.null(input$atlas_case) && nzchar(input$atlas_case),
+      "The precomputed atlas is not installed. See simulation-atlas/README.md."
+    ))
+    input$atlas_case
+  })
+
+  atlas_replications <- reactive({
+    rows <- ATLAS_DATA$core[ATLAS_DATA$core$family == atlas_family(), , drop = FALSE]
+    unique(rows$B_requested)
+  })
+
+  # The paper reference stays visible; the longer design prose is folded away so
+  # that the figures on each page are not pushed off the first screen.
+  output$atlas_case_card <- renderUI({
+    guide <- atlas_guide(atlas_family())
+    validate(need(!is.null(guide), "No manuscript crosswalk is defined for this family."))
+    line <- function(term, value) tags$p(tags$strong(paste0(term, ": ")), value)
+    entry <- function(term, value) tagList(tags$dt(term), tags$dd(value))
+    tags$div(
+      class = "panel panel-primary",
+      tags$div(class = "panel-heading",
+               sprintf("%s of the paper: %s", guide$case, guide$short)),
+      tags$div(
+        class = "panel-body",
+        line("Where to read it", guide$section),
+        line("Figure these numbers belong to",
+             sprintf("%s. %s.", guide$figure, guide$figure_panel)),
+        line("Supplement", guide$supplement),
+        tags$details(
+          tags$summary("Design, models compared, and what the atlas adds",
+                       style = "cursor: pointer; font-weight: 600;"),
+          tags$dl(
+            style = "margin-top: 10px;",
+            entry("How the data are generated", guide$design),
+            entry("Models compared", guide$models),
+            entry("What the atlas adds on top", guide$beyond)
+          )
+        )
+      )
+    )
+  })
+
+  # Page 1: the manuscript anchors -----------------------------------------
+  atlas_anchors <- reactive({
+    rows <- atlas_anchor_data(ATLAS_DATA$core, atlas_family())
+    validate(need(nrow(rows) > 0, "No manuscript anchors are stored for this case."))
+    rows
+  })
+
+  output$atlas_anchor_intro <- renderUI({
+    guide <- atlas_guide(atlas_family())
+    rows <- atlas_anchors()
+    tagList(
+      h4(sprintf("The scenarios behind %s of the paper", guide$figure)),
+      p("These are the manuscript's own scenarios, recomputed by the atlas with its",
+        "own deterministic seeds and", strong(sprintf("%s replications",
+                                                      paste(atlas_replications(), collapse = "/"))),
+        "per fitted model. Differences from the printed figure of a few percentage",
+        "points are Monte Carlo error, not a different result."),
+      p(sprintf(
+        "%d scenario(s) x %d fitted model(s) are shown. In each one the product term is exactly zero on the generating scale.",
+        length(unique(rows$scenario_id)), length(unique(rows$model_label))
+      ))
+    )
+  })
+
+  output$atlas_anchor_plot <- renderPlot({
+    plot <- atlas_anchor_plot(atlas_anchors())
+    validate(need(!is.null(plot), "No anchor plot is available for this case."))
+    plot + app_theme
+  })
+
+  output$atlas_anchor_table <- renderTable({
+    atlas_anchor_table(atlas_anchors())
+  }, striped = TRUE, bordered = TRUE, spacing = "s")
+
+  output$atlas_anchor_note <- renderUI({
+    rows <- atlas_anchors()
+    unstable <- rows[is.finite(rows$fit_success_rate) & rows$fit_success_rate < 0.95, , drop = FALSE]
+    tagList(
+      p("The induced product term is computed without any sampling: it is the",
+        "product term that the generating expected values already imply once they",
+        "are evaluated on the fitted link scale. Under a matched link it is zero by",
+        "construction; under a wrong link it is a fixed nonzero value, and that is",
+        "the reason the rejection rate departs from alpha. The rejection rate under",
+        "a wrong link reflects power to detect that fitted-scale product term."),
+      if (nrow(unstable)) {
+        tags$div(
+          class = "alert alert-warning",
+          tags$strong("Numerically demanding cells: "),
+          paste(sprintf("%s / %s (%.1f%% of fits converged)", unstable$anchor_x,
+                        unstable$model_label, 100 * unstable$fit_success_rate),
+                collapse = "; "),
+          ". The paper discusses this instability as itself informative."
+        )
+      }
+    )
+  })
+
+  # Page 2: beyond the anchors ---------------------------------------------
+  output$atlas_beyond_intro <- renderUI({
+    guide <- atlas_guide(atlas_family())
+    tagList(
+      h4("How far does the paper's result travel?"),
+      p("The paper reports a small number of tuned, transparent scenarios.",
+        guide$beyond),
+      p("Nothing here is interpolated: every point and tile is a precomputed",
+        "scenario. The anchors of", strong(guide$case), "appear as the central point of",
+        "each panel.")
+    )
+  })
+
+  atlas_slice_rows <- reactive({
+    rows <- atlas_slice_overview_data(ATLAS_DATA$core, atlas_family())
+    validate(need(nrow(rows) > 0, "No one-dimensional sensitivity slices are stored for this case."))
+    rows
+  })
+
+  output$atlas_slice_plot <- renderPlot({
+    plot <- atlas_slice_overview_plot(atlas_slice_rows(), input$atlas_metric)
+    validate(need(!is.null(plot), "No sensitivity figure is available for this case."))
+    plot + app_theme + theme(legend.box = "horizontal")
+  })
+
+  output$atlas_surface_plot <- renderPlot({
+    rows <- atlas_surface_data(ATLAS_DATA$core, atlas_family())
+    validate(need(nrow(rows) > 0, "No main-effect surface is stored for this case."))
+    plot <- atlas_surface_plot(rows, input$atlas_metric)
+    validate(need(!is.null(plot), "No main-effect surface is available for this case."))
+    # A vertical colourbar on the right keeps its tick labels legible; app_theme
+    # is applied first because it would otherwise override the position.
+    plot + app_theme + theme(legend.position = "right", panel.grid = element_blank())
+  })
+
+  output$atlas_scenario_ui <- renderUI({
+    choices <- atlas_scenario_choices(ATLAS_DATA$core, atlas_family())
+    validate(need(length(choices) > 0, "No scenarios are stored for this case."))
+    selectInput("atlas_scenario", "Scenario", choices = choices, width = "620px")
+  })
+
+  atlas_scenario_selected <- reactive({
+    req(input$atlas_scenario)
+    rows <- atlas_scenario_rows(ATLAS_DATA$core, input$atlas_scenario)
+    validate(need(nrow(rows) > 0, "No matching precomputed scenario."))
+    rows
+  })
+
+  output$atlas_scenario_headline <- renderUI({
+    tags$p(tags$strong(atlas_scenario_headline(atlas_scenario_selected())))
+  })
+
+  output$atlas_scenario_table <- renderTable({
+    atlas_scenario_table(atlas_scenario_selected())
+  }, striped = TRUE, bordered = TRUE, spacing = "s")
+
+  output$atlas_fit_warning <- renderUI({
+    rows <- atlas_scenario_selected()
+    unstable <- rows[is.finite(rows$fit_success_rate) & rows$fit_success_rate < 0.95, , drop = FALSE]
+    if (!nrow(unstable)) return(NULL)
+    tags$div(
+      class = "alert alert-warning",
+      sprintf("Fit success fell below 95%% for: %s. Interpret those rows cautiously.",
+              paste(sprintf("%s (%.1f%%)", unstable$model_label,
+                            100 * unstable$fit_success_rate), collapse = "; "))
+    )
+  })
+
+  output$atlas_expected_plot <- renderPlot({
+    plot <- atlas_expected_plot(atlas_scenario_selected()[1, , drop = FALSE])
+    validate(need(!is.null(plot), "Expected-value plot is unavailable for this scenario."))
+    plot
+  })
+
+  # Page 3: diagnostics ----------------------------------------------------
+  atlas_diagnostic_family <- reactive({
+    validate(need(nrow(ATLAS_DATA$diagnostic) > 0,
+                  "The diagnostic atlas summary is not installed."))
+    rows <- ATLAS_DATA$diagnostic[ATLAS_DATA$diagnostic$family == atlas_family(), , drop = FALSE]
+    validate(need(nrow(rows) > 0, "No diagnostic scenarios are stored for this case."))
+    rows
+  })
+
+  output$atlas_diagnostic_intro <- renderUI({
+    guide <- atlas_guide(atlas_family())
+    rows <- atlas_diagnostic_family()
+    note <- unique(as.character(rows$diagnostic_note))
+    pending <- atlas_uncomputed_diagnostics(rows)
+    tagList(
+      h4("Would an ordinary model check have warned the analyst?"),
+      p("The paper answers this in its section ", tags$em("Can Standard Diagnostics Catch a Wrong Link?"),
+        ", where five link-misspecification scenarios are summarized in ",
+        strong("Table 3"), " (details in Supplement S5). Only the two scenarios whose",
+        " families the atlas implements are extended here."),
+      tags$dl(
+        tags$dt("Corresponding scenario in the paper"), tags$dd(guide$diagnostic_case),
+        tags$dt("Stored note"), tags$dd(note[1])
+      ),
+      if (length(pending)) {
+        tags$div(
+          class = "alert alert-warning",
+          tags$strong("Applicable checks not computed in this run: "),
+          paste(pending, collapse = "; "), ". ",
+          "They are applicable to this family but were deferred; re-run the diagnostic",
+          " pass with RUN_DHARMA = TRUE in simulation-atlas/02-run-atlas.R to fill them",
+          " in. The checks shown below are unaffected."
+        )
+      }
+    )
+  })
+
+  output$atlas_diagnostic_plot <- renderPlot({
+    rows <- atlas_diagnostic_overview_data(atlas_diagnostic_family(), atlas_family())
+    validate(need(nrow(rows) > 0, paste(
+      "No diagnostic slice is available for this case. The paper defines no",
+      "same-likelihood diagnostic comparison for the sum-score models, and a run",
+      "with RUN_DHARMA = FALSE stores the DHARMa checks as not computed."
+    )))
+    plot <- atlas_diagnostic_overview_plot(rows)
+    validate(need(!is.null(plot), "No diagnostic figure is available for this case."))
+    plot + app_theme
+  })
+
+  output$atlas_aic_table <- renderTable({
+    rows <- atlas_diagnostic_family()
+    validate(need("aic_delta_median" %in% names(rows),
+                  "This atlas summary predates the AIC-magnitude columns; re-run 03-summarize-atlas.R."))
+    table <- atlas_aic_delta_table(rows)
+    validate(need(nrow(table) > 0, "No AIC comparison is stored for this case."))
+    table
+  }, striped = TRUE, bordered = TRUE, spacing = "s", na = "--")
 
   # Tab 6: precomputed paper outputs ----------------------------------------
   output$t6_figs <- renderUI({

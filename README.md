@@ -48,6 +48,16 @@ If the repository includes an `renv.lock` file, restore the package environment 
 renv::restore()
 ```
 
+## Interactive simulation atlas
+
+The manuscript results produced by `scripts/` remain the primary reproduction
+pipeline. `simulation-atlas/` provides broader sensitivity analyses around the
+manuscript scenarios, while `shiny-app/` remains the interactive explorer and
+reads only the atlas's precomputed compact summaries. Full replication-level
+atlas results may be archived on OSF; see
+[`simulation-atlas/README.md`](simulation-atlas/README.md) for the separate
+offline workflow.
+
 ## Main scripts
 
 - `01-review-descriptives.R`  
@@ -98,7 +108,7 @@ A formal citation will be added after the manuscript is accepted or posted as a 
 For now, please cite the repository as:
 
 ```text
-Toffalini, E., Gambarota, F., Sità, L., Feraco, T., & Calderan, M.
+Calderan, M., Gambarota, F., Sità, L., Feraco, T., & Toffalini, E.
 The Link Function Problem in Psychological Interaction Testing.
 GitHub repository.
 ```
@@ -115,7 +125,7 @@ Third-party materials cited in the manuscript or used only as references remain 
 Suggested attribution:
 
 ```text
-Toffalini, E., Gambarota, F., Sità, L., Feraco, T., & Calderan, M.
+Calderan, M., Gambarota, F., Sità, L., Feraco, T., & Toffalini, E.
 The Link Function Problem in Psychological Interaction Testing.
 GitHub repository.
 ```

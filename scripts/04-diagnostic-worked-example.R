@@ -103,7 +103,7 @@ diag_scenarios <- list(
   probit_dgp_logit_fit = list(
     scenario = "Binary repeated trials",
     short_label = "Binary ",
-    paper_anchor = "Simulation 3, probit-generated logit-fitted case",
+    paper_anchor = "Simulation 2, probit-generated logit-fitted case",
     outcome_family = "Binary repeated trials",
     true_link_function = "probit",
     fitted_link_function = "logit",
@@ -122,7 +122,7 @@ diag_scenarios <- list(
   probit_continuous_logit_fit = list(
     scenario = "Binary continuous predictor",
     short_label = "Binary continuous ",
-    paper_anchor = "Matched continuous-predictor counterpart to Simulation 3",
+    paper_anchor = "Matched continuous-predictor counterpart to Simulation 2",
     outcome_family = "Binary repeated trials",
     true_link_function = "probit",
     fitted_link_function = "logit",
@@ -142,7 +142,7 @@ diag_scenarios <- list(
   gamma_log_inverse = list(
     scenario = "Gamma mean response time",
     short_label = "Gamma ",
-    paper_anchor = "Family-link distinction figure, Gamma log-link panel",
+    paper_anchor = "Gamma response-time example from the introduction (log versus inverse link)",
     outcome_family = "Gamma positive continuous",
     true_link_function = "log",
     fitted_link_function = "inverse",
@@ -1045,7 +1045,7 @@ scenario_description <- function(name, scn) {
   }
   if (name == "gamma_log_inverse") {
     return(paste0(
-      "Family-link distinction figure, log-link scale: log(E[y]) = log(400) + ", scn$beta_x,
+      "Gamma response-time example, log-link scale: log(E[y]) = log(400) + ", scn$beta_x,
       " * x + ", scn$beta_group,
       " * group; Gamma shape = ", scn$shape,
       "; no x-by-group product term."
