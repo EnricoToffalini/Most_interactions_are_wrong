@@ -63,6 +63,19 @@ format:
     tbl-pos: "H"
     header-includes:
       - \usepackage{float}
+    include-in-header:
+      text: |
+        % Table typography: wrapped lines inside a cell are set slightly tighter
+        % than normal and each row gets a little extra vertical air, so a line
+        % break inside a cell is not mistaken for the start of a new table row.
+        \usepackage{etoolbox}
+        \usepackage{array}
+        \AtBeginEnvironment{longtable}{%
+          \linespread{0.95}\selectfont
+          \setlength{\extrarowheight}{6pt}}
+        \AtBeginEnvironment{tabular}{%
+          \linespread{0.95}\selectfont
+          \setlength{\extrarowheight}{6pt}}
     toc: true
     number-sections: false
   html:
@@ -251,14 +264,18 @@ print_table_if_exists(
 
 Each interaction-testing article was independently coded by two researchers. Discrepancies were resolved through discussion or, if needed, by consulting the other coauthors. Generative AI tools were used only as an optional aid to locate relevant passages within an article; all coding used in the review is human. The preregistered variable definitions are reproduced below.
 
+<!-- The coded variable names use underscores in the coding sheet and in the R
+     code. Underscores are unbreakable in the PDF table, so the names are
+     displayed here with spaces instead, for rendering purposes only. -->
+
 | Variable | Definition (preregistered) | Type |
 |---|-------------|---|
-| `Tests_interactions` | Whether the article tests at least one interaction term in a statistical model or using an ANOVA. | Boolean |
-| `Uses_non_identity_link_function` | Whether at least one tested interaction is presumably analyzed with a non-identity link function (for example, because a generalized linear model was used). | Boolean |
-| `Explicit_link_function` | Whether the link function is explicitly declared for at least one statistical model in the article. Indicating only which generalized linear model or family was used is not enough. | Boolean |
-| `Incorrect_identity_link_function` | Whether at least one tested interaction is analyzed using an identity link function when another, non-identity link function would be more appropriate. | Boolean |
-| `Finds_significant_interactions` | Whether at least one interaction, among those where the link was coded as incorrectly identity, yields a statistically significant result, or is considered and discussed analogously in non-frequentist analyses. | Boolean |
-| `Response_variable_types` | Non-exclusive list of response-variable types on which interactions are tested (for example, sum score, accuracy, error count, response times, ordinal/Likert). | Category |
+| Tests interactions | Whether the article tests at least one interaction term in a statistical model or using an ANOVA. | Boolean |
+| Uses non identity link function | Whether at least one tested interaction is presumably analyzed with a non-identity link function (for example, because a generalized linear model was used). | Boolean |
+| Explicit link function | Whether the link function is explicitly declared for at least one statistical model in the article. Indicating only which generalized linear model or family was used is not enough. | Boolean |
+| Incorrect identity link function | Whether at least one tested interaction is analyzed using an identity link function when another, non-identity link function would be more appropriate. | Boolean |
+| Finds significant interactions | Whether at least one interaction, among those where the link was coded as incorrectly identity, yields a statistically significant result, or is considered and discussed analogously in non-frequentist analyses. | Boolean |
+| Response variable types | Non-exclusive list of response-variable types on which interactions are tested (for example, sum score, accuracy, error count, response times, ordinal/Likert). | Category |
 
 : Coded variables and their preregistered definitions. {#tbl-variables disable-apaquarto-processing=true}
 
@@ -274,7 +291,7 @@ Beyond these definitions, the coders applied a small set of operational rules fo
 
 : Operational rules the coders applied for the decisions that most affect the reported counts, condensed from the coding sheet. The preregistered variable definitions are in @tbl-variables. {#tbl-coding-rules disable-apaquarto-processing=true}
 
-Two coding notes bound the interpretation of these variables. First, `Incorrect_identity_link_function` is a conservative screening flag for a formal mismatch between the observed-outcome constraints and the identity-link generative model. Cases were flagged only when the constraint was identifiable from the published report; when the report did not allow this judgment, the case was not counted. The flag is not an error rate, not a severity grade, and does not imply that the substantive conclusion is false, since an observed-score estimand can be a deliberate and defensible target. Second, `Response_variable_types` is non-exclusive: one article can contribute to several categories, so the category counts do not sum to the number of articles.
+Two coding notes bound the interpretation of these variables. First, *Incorrect identity link function* is a conservative screening flag for a formal mismatch between the observed-outcome constraints and the identity-link generative model. Cases were flagged only when the constraint was identifiable from the published report; when the report did not allow this judgment, the case was not counted. The flag is not an error rate, not a severity grade, and does not imply that the substantive conclusion is false, since an observed-score estimand can be a deliberate and defensible target. Second, *Response variable types* is non-exclusive: one article can contribute to several categories, so the category counts do not sum to the number of articles.
 
 Coding relied only on what a reader can observe in a published report: the analysis described, the outcome described, and any explicit statement of family or link. The review therefore documents reporting practice, not the correctness of substantive conclusions. For the same reason, the review did not classify interactions as removable or nonremovable at the article level, because published reports rarely provide the target contrast, the complete coefficients, and the assumed measurement scale that such a classification requires.
 

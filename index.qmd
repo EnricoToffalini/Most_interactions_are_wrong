@@ -312,7 +312,7 @@ simulation results.]{.card__desc}
 ::: {.card}
 [PDF]{.card__kind}
 
-[Supplement](paper/supplement.pdf){.card__title}
+[Supplement](paper/Supplement-A-Technical-details.pdf){.card__title}
 
 [Additional derivations, full simulation settings and the complete result
 tables referenced from the manuscript.]{.card__desc}
@@ -330,7 +330,7 @@ tables referenced from the manuscript.]{.card__desc}
 ::: {.card}
 [HTML report]{.card__kind}
 
-[Simulation atlas](simulation-atlas/Simulation-atlas-report.html){.card__title}
+[Simulation atlas](simulation-atlas/Supplement-B-Simulation-atlas.html){.card__title}
 
 [Extended sensitivity analyses around the manuscript scenarios, well beyond the
 conditions printed in the paper.]{.card__desc}

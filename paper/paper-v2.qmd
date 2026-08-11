@@ -70,9 +70,18 @@ format:
       - \raggedbottom
     include-in-header:
       text: |
-        % Single-space table bodies so tables fit in text (floatsintext)
+        % Single-space table bodies so tables fit in text (floatsintext).
+        % Wrapped lines inside a cell are set slightly tighter than normal and
+        % each row gets a little extra vertical air, so a line break inside a
+        % cell is not mistaken for the start of a new table row.
         \usepackage{etoolbox}
-        \AtBeginEnvironment{longtable}{\linespread{1}\selectfont}
+        \usepackage{array}
+        \AtBeginEnvironment{longtable}{%
+          \linespread{0.95}\selectfont
+          \setlength{\extrarowheight}{6pt}}
+        \AtBeginEnvironment{tabular}{%
+          \linespread{0.95}\selectfont
+          \setlength{\extrarowheight}{6pt}}
 ---
 
 ```{r}

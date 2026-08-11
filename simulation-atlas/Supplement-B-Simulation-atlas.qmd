@@ -18,6 +18,19 @@ format:
   pdf:
     toc: true
     number-sections: true
+    include-in-header:
+      text: |
+        % Table typography: wrapped lines inside a cell are set slightly tighter
+        % than normal and each row gets a little extra vertical air, so a line
+        % break inside a cell is not mistaken for the start of a new table row.
+        \usepackage{etoolbox}
+        \usepackage{array}
+        \AtBeginEnvironment{longtable}{%
+          \linespread{0.95}\selectfont
+          \setlength{\extrarowheight}{4pt}}
+        \AtBeginEnvironment{tabular}{%
+          \linespread{0.95}\selectfont
+          \setlength{\extrarowheight}{4pt}}
 execute:
   echo: false
   warning: false
@@ -110,6 +123,10 @@ num <- function(x, digits = 3) {
 ci_text <- function(low, high, digits = 1) {
   paste0("[", pct(low, digits), ", ", pct(high, digits), "]")
 }
+
+# Slice identifiers are code-level values that use underscores. Underscores are
+# unbreakable in the PDF tables, so display them with spaces instead.
+slice_display <- function(x) gsub("_", " ", x, fixed = TRUE)
 
 has_slice <- function(x, slice) {
   vapply(
@@ -441,7 +458,7 @@ compact_core_table <- function(family) {
   dat <- family_rows(family)
   out <- data.frame(
     ID = dat$scenario_id,
-    Slice = dat$slice,
+    Slice = slice_display(dat$slice),
     Scenario = dat$scenario_label,
     `Generating link/scale` = dat$generating_link,
     `Fitted model/scale` = as.character(dat$model_label),
