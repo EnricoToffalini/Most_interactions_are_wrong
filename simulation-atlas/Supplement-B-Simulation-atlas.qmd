@@ -1,5 +1,5 @@
 ---
-title: "Simulation Atlas"
+title: "Supplement B - Simulation Atlas"
 subtitle: "Extended sensitivity analyses for The Link Function Problem in Psychological Interaction Testing"
 author:
   - Margherita Calderan

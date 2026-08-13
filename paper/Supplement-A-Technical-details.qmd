@@ -1,5 +1,5 @@
 ---
-title: "Supplementary Materials for The Link Function Problem in Psychological Interaction Testing"
+title: "Supplement A - Technical Details for The Link Function Problem in Psychological Interaction Testing"
 author:
   - name: Margherita Calderan
     orcid: 0009-0005-5668-5162
