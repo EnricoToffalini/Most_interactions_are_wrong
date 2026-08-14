@@ -790,11 +790,44 @@ fit_binary_mixed_continuous <- function(data, link, include_interaction = TRUE, 
 
 pregibon_added_term_p <- function(fit, data) {
   if (inherits(fit, "try-error") || is.null(fit)) return(NA_real_)
-  
-  eta_hat <- try(stats::predict(fit, type = "link"), silent = TRUE)
+
+  # For mixed models, construct the added term from the fixed-effects linear
+  # predictor only. The default glmmTMB prediction includes estimated random
+  # effects; squaring those empirical Bayes estimates and feeding them back as
+  # an ordinary covariate is badly anti-conservative under the correct link.
+  eta_hat <- try(
+    if (inherits(fit, "glmmTMB")) {
+      stats::predict(fit, type = "link", re.form = NA)
+    } else {
+      stats::predict(fit, type = "link")
+    },
+    silent = TRUE
+  )
   if (inherits(eta_hat, "try-error") || length(eta_hat) != nrow(data)) return(NA_real_)
-  
+
   data$eta_hat_sq <- as.numeric(eta_hat)^2
+
+  # A saturated fixed-effects design can already span eta_hat_sq. This occurs
+  # in the 2 x 2 interaction model, whose four cell indicators span any
+  # function of the four fitted cell predictors. The added coefficient is then
+  # not identifiable, so the check is not applicable.
+  if (inherits(fit, "glmmTMB")) {
+    fixed_formula <- try(stats::formula(fit, fixed.only = TRUE), silent = TRUE)
+    if (inherits(fixed_formula, "try-error")) return(NA_real_)
+    augmented_fixed_formula <- stats::update.formula(
+      fixed_formula,
+      . ~ . + eta_hat_sq
+    )
+    X_base <- try(stats::model.matrix(fixed_formula, data = data), silent = TRUE)
+    X_augmented <- try(
+      stats::model.matrix(augmented_fixed_formula, data = data),
+      silent = TRUE
+    )
+    if (inherits(X_base, "try-error") || inherits(X_augmented, "try-error")) {
+      return(NA_real_)
+    }
+    if (qr(X_augmented)$rank <= qr(X_base)$rank) return(NA_real_)
+  }
   
   if (inherits(fit, "chance_binomial_logit")) {
     fit2 <- fit_chance_binomial_logit(
@@ -818,7 +851,19 @@ pregibon_added_term_p <- function(fit, data) {
         )
       )
     } else {
-      start <- c(stats::coef(fit), eta_hat_sq = 0)
+      # glm() reads `start` by position, and model.matrix() orders the added
+      # main effect eta_hat_sq before any interaction term. Appending the zero
+      # to coef(fit) therefore handed the interaction estimate to eta_hat_sq and
+      # zero to the interaction. Under an identity link that start implies
+      # negative fitted means, so the refit aborted with "cannot find valid
+      # starting values" and the check returned NA in nearly every count-scenario
+      # replication. Aligning the start by name keeps it at the current fit.
+      X_start <- try(stats::model.matrix(augmented_formula, data = data), silent = TRUE)
+      if (inherits(X_start, "try-error")) return(NA_real_)
+      start <- stats::setNames(rep(0, ncol(X_start)), colnames(X_start))
+      current <- stats::coef(fit)
+      shared <- intersect(names(current), names(start))
+      start[shared] <- current[shared]
       fit2 <- safe_glm(
         stats::glm(
           augmented_formula,
@@ -1516,6 +1561,7 @@ cat("- DHARMa and Pregibon checks on the wrong-link interaction model measure de
 cat("- The same checks on the correct-link interaction model provide baseline calibration rates.\n")
 cat("- DHARMa quantile checks are used only when the predictor has enough unique values.\n")
 cat("- For the 2 x 2 binary repeated-trials scenario, DHARMa uses a categorical design-cell check instead.\n")
+cat("- The Pregibon-style check uses the fixed-effects linear predictor for GLMMs; it is not applicable when its square does not increase the fixed-effects design rank, as in the saturated 2 x 2 interaction model.\n")
 cat("- The continuous binary scenario matches the 2 x 2 binary scenario in coefficients, ICC, and trials, but replaces condition with x in [0, 1].\n")
 cat("- AIC compares the target interaction model with the misspecified interaction model, with the same formula.\n")
 cat("- AIC always favors one of the two candidate models when both AIC values are available.\n")

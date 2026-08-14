@@ -635,7 +635,7 @@ The diagnostic simulation ties each of the five link-misspecification scenarios 
 
 *Simulation-based residuals* [@dunnsmyth1996; @hartig2024] were computed with DHARMa, simulating $250$ responses from the fitted model per replication. Four prespecified checks were applied: residual uniformity (`testUniformity`), dispersion (`testDispersion`), residual quantile patterns over fitted values (`testQuantiles`), and residual structure over the focal predictor. The last check is scenario-aware: `testQuantiles` over the predictor is used when the predictor has at least eight unique values; for the $2 \times 2$ repeated-trials scenario, residuals are instead compared across the group-by-condition design cells using a Kruskal-Wallis test on the DHARMa scaled residuals. @tbl-diagnostic-breakdown reports this design-cell check for D3. Cells are marked "--" only when a check is not applicable or returns no usable replications in the saved diagnostic summary.
 
-*The Pregibon-style added-term link check* [@pregibon1980] extracts the fitted linear predictor, adds its square to the model formula, and tests the significance of the added term while retaining the family, link, base formula, and random-effects structure of the model being diagnosed.
+*The Pregibon-style added-term link check* [@pregibon1980] extracts the fitted linear predictor, adds its square to the model formula, and tests the significance of the added term while retaining the family, link, base formula, and random-effects structure of the model being diagnosed. For GLMMs, the constructed term uses the population-level linear predictor, with the estimated random effects set to zero; this avoids feeding outcome-derived empirical Bayes estimates back into the model as an ordinary covariate. The check is reported as not applicable when the squared predictor does not increase the rank of the fixed-effects design matrix. In particular, the $2 \times 2$ interaction model is saturated over its four design cells, so its squared fitted linear predictor is exactly collinear with the existing fixed effects.
 
 *The chance-corrected fits in D2* are the only ones estimated outside a standard model-fitting function, and they use a more defensive procedure than Simulation 1, because here the target-link model is one of the two candidates in the AIC comparison and a failed fit would silently remove a replication from that comparison. The model is fitted by direct maximum likelihood with $c = .50$ fixed by design. Five starting values are tried: a vector of zeros, three derived from the corresponding standard-logit fit, and one from a linear fit on the empirical above-chance proportions, which is the scale the likelihood actually works on. Each start is optimized with both BFGS and Nelder--Mead, the solution with the highest likelihood is retained, and it is then polished with a tighter BFGS run. Because `optim()` reports only that a stopping rule was met, and that rule is easily met far from the maximum on the flat region near the chance floor, the retained solution is additionally checked against the score and the curvature of the log-likelihood; the same Hessian supplies the variance-covariance matrix used for the Wald test. Replications that fail these checks are recorded as failed fits.
 
@@ -901,8 +901,33 @@ if (is.null(diag_long) || is.null(diag_rep)) {
   )
 
   rate_cell <- function(scenario, quantity) {
+    if (
+      scenario == "Binary repeated trials" &&
+      quantity == "Pregibon-style added-term link check, secondary"
+    ) return("N.A.")
     row <- diag_long[diag_long$scenario == scenario & diag_long$quantity == quantity, , drop = FALSE]
-    if (nrow(row) != 1 || is.na(row$rate)) return("--")
+    if (nrow(row) != 1) {
+      stop(
+        "Could not uniquely identify diagnostic rate for ",
+        scenario, " / ", quantity
+      )
+    }
+    intentionally_not_applicable <-
+      (
+        quantity == "DHARMa residual distribution across design cells" &&
+        scenario != "Binary repeated trials"
+      ) ||
+      (
+        quantity == "DHARMa residual quantiles over focal predictor" &&
+        scenario == "Binary repeated trials"
+      )
+    if (is.na(row$rate)) {
+      if (intentionally_not_applicable) return("--")
+      stop(
+        "Unexpected missing diagnostic rate for ",
+        scenario, " / ", quantity
+      )
+    }
     fmt_rate(row$rate)
   }
 
@@ -957,7 +982,7 @@ if (is.null(diag_long) || is.null(diag_rep)) {
 }
 ```
 
-Pseudo-interaction denominators are replications with an available interaction test. “Missed” means that none of the applicable prespecified DHARMa checks had $p < .05$; pseudo-interactions for which all five DHARMa p-values were missing are excluded from this conditional denominator. $\Delta\mathrm{AIC} = \mathrm{AIC}(\text{wrong link}) - \mathrm{AIC}(\text{target link})$, so positive values favor the target link and negative values favor the wrong link. The sample size shown with the median and the denominator for $|\Delta\mathrm{AIC}| < 2$ are the finite AIC comparisons. The Pregibon row reaches 100% in D1, D3, and D4, but only the D1 value is evidence about the link: as the calibration section below shows, in D3 and D4 the same check also flags every replication when the link is correct.
+Pseudo-interaction denominators are replications with an available interaction test. “Missed” means that none of the applicable prespecified DHARMa checks had $p < .05$; pseudo-interactions for which all five DHARMa p-values were missing are excluded from this conditional denominator. $\Delta\mathrm{AIC} = \mathrm{AIC}(\text{wrong link}) - \mathrm{AIC}(\text{target link})$, so positive values favor the target link and negative values favor the wrong link. The sample size shown with the median and the denominator for $|\Delta\mathrm{AIC}| < 2$ are the finite AIC comparisons. N.A. indicates that the Pregibon-style added term is not identifiable in the saturated $2 \times 2$ interaction model.
 
 ## Distribution of the AIC difference
 
@@ -998,7 +1023,7 @@ print_table_if_exists(
 
 The same DHARMa and Pregibon-style checks were applied to the corresponding correct-link interaction model in each replication. These baseline flagging rates provide a reference for interpreting detection under the wrong link. They reuse the same simulated datasets and scenarios rather than defining a new simulation.
 
-Two patterns in @tbl-diagnostic-calibration are worth reading before the wrong-link column. The four DHARMa checks are well calibrated throughout: no scenario exceeds a correct-link flagging rate of about six percent, so their wrong-link rates can be read as detection. The Pregibon-style check is well calibrated in the same sense in the count, chance-floor, and Gamma scenarios, but not in the two random-intercept GLMM scenarios, where it flags every correct-link replication. In a mixed model the added $\hat{\eta}^2$ term appears to absorb structure that is present whether or not the link is correct, so in those two scenarios the check is degenerate rather than powerful, and its wrong-link rate of 100% carries no information about link adequacy. A diagnostic has to be calibrated under the intended model before its behaviour under an alternative can be interpreted, and this is the one place in the present set of checks where that condition fails.
+The correct-link column provides the baseline needed to interpret detection under the wrong link. The four DHARMa checks are well calibrated throughout. For the Pregibon-style check, the random-intercept GLMMs use the population-level rather than subject-specific fitted linear predictor. The $2 \times 2$ version is not applicable because its saturated fixed-effects design already spans the proposed squared term; the continuous-predictor version is estimable, and its wrong-link flagging rate should be read against its correct-link calibration rate.
 
 ```{r}
 #| label: tbl-diagnostic-calibration
@@ -1092,6 +1117,11 @@ if (is.null(diag_calibration)) {
     check.names = FALSE,
     stringsAsFactors = FALSE
   )
+
+  pregibon_not_applicable <-
+    paired$scenario == "Binary repeated trials" &
+    paired$diagnostic == "Pregibon-style added-term link check"
+  out[pregibon_not_applicable, c("Correct-link flagging", "Wrong-link flagging")] <- "N.A."
 
   print(knitr::kable(out))
   cat("\n\n")
