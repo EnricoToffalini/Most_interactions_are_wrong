@@ -217,7 +217,7 @@ compact_by_journal <- function(d) {
 
 # S1. Scope of this supplement
 
-This supplement contains extended review methods and reliability, the chance-corrected-link algebra, full simulation specifications and estimation details, and fine-grained supplementary results.
+This supplement contains extended review methods and reliability, the chance-corrected-link algebra, the generative parameters behind the illustrative figures of the main paper, full simulation specifications and estimation details for the three worked simulations and for the diagnostic simulation, and fine-grained supplementary results.
 
 # S2. Preregistered review: extended methods and reliability
 
@@ -357,6 +357,63 @@ so that performance saturates below $1$ when occasional lapses are plausible [@w
 
 This section gives the formal generative models and the estimation internals for the simulations. The main paper describes the purpose and interpretation of each simulation; here we state the equations, the fixed parameter values, and the fitting procedures needed to reproduce the reported behaviour. Unless noted otherwise, each scenario used $B = 300$ Monte Carlo replications with a significance level of $\alpha = .05$, and each simulation set a fixed random seed.
 
+## Generative parameters of the illustrative figures
+
+Two figures in the main paper are illustrations rather than simulation results, so their parameters are recorded here.
+
+The introductory count example samples $N = 250$ children with age drawn uniformly between $6$ and $10$ and group assigned by a fair coin. Error counts are Poisson with a log link,
+
+$$
+\log \mu_i = 2.60 - 0.55\,(\text{age}_i - 6) + 0.65\,\text{group}_i,
+$$
+
+with no age-by-group product term on the log scale. The figure plots a Poisson-log model fitted to one such sample, on the count scale and on the log scale. The count scenario of the diagnostic simulation uses the same structure with a slightly lower intercept ($2.20$) and group effect ($0.45$).
+
+The motivating $2 \times 2$ figure is fully deterministic: it evaluates four cell probabilities, without sampling. They are generated additively on the chance-corrected logit scale with $c = .50$,
+
+$$
+p = .50 + .50\,\mathrm{logistic}(\eta), \qquad
+\eta = -1.00 + 2.10\,\text{condition} + 1.70\,\text{group},
+$$
+
+again with no condition-by-group product term. The resulting cell probabilities are given in @tbl-motivating-example-cells. Because a saturated $2 \times 2$ design has exactly one product-term coefficient per scale, those same four probabilities imply the three different interaction coefficients reported in @tbl-motivating-example: exactly zero on the generating scale, positive on the standard logit scale, and negative on the raw probability scale.
+
+```{r}
+#| label: tbl-motivating-example-cells
+#| tbl-cap: "Cell probabilities of the motivating 2 x 2 figure. These four values are identical in all three panels of that figure."
+#| disable-apaquarto-processing: true
+#| results: asis
+
+print_table_if_exists(
+  note_if_missing = "Motivating-example cell table not available in this build.",
+  "tables", "motivating-example-cells.csv",
+  transform = function(d) data.frame(
+    Group = d$group,
+    Condition = d$condition,
+    `Linear predictor` = fmt_num(d$linear_predictor, 2),
+    `Expected probability` = fmt_num(d$expected_probability, 3),
+    check.names = FALSE
+  )
+)
+```
+
+```{r}
+#| label: tbl-motivating-example
+#| tbl-cap: "Product-term coefficient implied by the cell probabilities in the previous table, on each of the three scales shown in the motivating figure. Only the scale on which the difference between differences is computed changes."
+#| disable-apaquarto-processing: true
+#| results: asis
+
+print_table_if_exists(
+  note_if_missing = "Motivating-example coefficient table not available in this build.",
+  "tables", "motivating-example-interaction-by-scale.csv",
+  transform = function(d) data.frame(
+    Scale = d$panel,
+    `Implied product term` = fmt_num(d$b_interaction, 3),
+    check.names = FALSE
+  )
+)
+```
+
 ## Simulation 1: forced-choice accuracy with a chance floor
 
 For each participant $i$, age is drawn on the range $6$ to $10$ and centered at $8$, group is a two-level factor, and the number of correct responses out of $k = 20$ trials is binomial with
@@ -391,11 +448,34 @@ print_table_if_exists(
 )
 ```
 
+Because the chance-corrected model is the only one that can fail to converge, the rates in @tbl-rejection-forced-choice are not all computed on the same replications: in the lower-performance scenario the three alternative models use all 300 replications while the matched model uses the 179 that converged. @tbl-rejection-forced-choice-common repeats all four models on the replications in which *every* model returned a usable interaction test, so that within each scenario the four rates describe identical datasets. The middle- and higher-performance scenarios are unaffected, because all four models converged everywhere there. In the lower-performance scenario the rates shift slightly, and the ordering of the four models is unchanged: the standard logit remains highest, followed by the standard probit, the Gaussian identity, and the matched chance-corrected model near nominal alpha. The selective convergence therefore does not create the pattern reported in the main paper.
+
+```{r}
+#| label: tbl-rejection-forced-choice-common
+#| tbl-cap: "Product-term rejection rates for the forced-choice simulation, restricted to the replications in which all four models converged. Common reps = replications retained in the scenario, identical for the four models by construction; Reject is computed within that subset. CI = Wilson 95%."
+#| disable-apaquarto-processing: true
+#| results: asis
+
+print_table_if_exists(
+  note_if_missing = "Common-convergence forced-choice summary not available in this build.",
+  "tables", "simulation-summary-forced-choice-common-convergence.csv",
+  transform = function(d) data.frame(
+    Scenario = d$scenario,
+    Model = d$model,
+    `Rate type` = d$rate_type,
+    `Common reps` = d$n_common_convergence_replications,
+    Reject = d$n_rejections,
+    `Rejection rate [95% CI]` = fmt_rate_ci(d$rejection_rate, d$ci_low, d$ci_high),
+    check.names = FALSE
+  )
+)
+```
+
 ## Simulation 2: within-family link choice
 
 Repeated binary trials are generated in a two-group, two-condition design with $n = 700$ participants, $k = 15$ trials per participant-condition cell, and a subject random intercept. The reference fixed effects on the probit scale are intercept $1.50$, group $-1.00$, condition $-1.00$, and product term $0$. When the generating link is logit, all fixed effects are multiplied by $1.65$, so that the logit and probit data-generating processes imply similar cell probabilities while preserving a zero product term on the generating link scale. The random-intercept standard deviation is set from a latent-scale ICC of $.30$, using the latent residual variance of the generating link ($\pi^2/3$ for logit, $1$ for probit).
 
-Generating and fitted links are fully crossed (logit and probit in both roles), giving two matched-link and two wrong-link cells. All models are random-intercept GLMMs fitted with `glmmTMB`, using the same `group * condition` fixed-effect formula. The separate fitted-curve illustration uses a grouped-binomial dataset with 1,000 observational units and 60 trials per unit, with one `cbind(correct, incorrect)` response per unit.
+Generating and fitted links are fully crossed (logit and probit in both roles), giving two matched-link and two wrong-link cells. All models are random-intercept GLMMs fitted with `glmmTMB`, using the same `group * condition` fixed-effect formula. The separate fitted-curve illustration uses a grouped-binomial dataset with 1,000 observational units and 60 trials per unit, with one `cbind(correct, incorrect)` response per unit; it is shown in Section S5, @fig-logit-probit-fitted.
 
 ```{r}
 #| label: tbl-rejection-within-family
@@ -443,31 +523,178 @@ Three analyses are fitted with the same `x * group` formula, to separate the rel
 print_table_if_exists(
   note_if_missing = "Sum-score simulation summary not available in this build.",
   "tables", "simulation-summary-sum-scores.csv",
-  transform = function(d) data.frame(
-    Scenario = d$scenario,
-    Model = d$model,
-    `Rate type` = d$rate_type,
-    Fits = d$n_successful_fits,
-    Reject = d$n_rejections,
-    `Rejection rate [95% CI]` = fmt_rate_ci(d$rejection_rate, d$ci_low, d$ci_high),
-    check.names = FALSE
-  )
+  transform = function(d) {
+    # The saved file is sorted alphabetically, which buries the latent
+    # benchmark in the middle of each scenario block. Order the rows the way
+    # the main paper discusses them: benchmark first, then the two
+    # observed-score models, with scenarios running from floor to ceiling.
+    scenario_order <- c("Lower range", "Middle range", "Upper range")
+    model_order <- c(
+      "Latent generating scale",
+      "Observed sum-score identity",
+      "Gaussian-probit bounded score"
+    )
+    d <- d[order(
+      match(d$scenario, scenario_order),
+      match(d$model, model_order)
+    ), , drop = FALSE]
+    data.frame(
+      Scenario = d$scenario,
+      Model = d$model,
+      `Rate type` = d$rate_type,
+      Fits = d$n_successful_fits,
+      Reject = d$n_rejections,
+      `Rejection rate [95% CI]` = fmt_rate_ci(d$rejection_rate, d$ci_low, d$ci_high),
+      check.names = FALSE
+    )
+  }
+)
+```
+
+## Diagnostic simulation: data-generating processes
+
+The main paper introduces the five diagnostic scenarios in prose. Their formal generating models are given here. In every scenario the product term is exactly zero on the generating link scale, and the fitted model keeps the outcome family and the interaction formula while changing only the link.
+
+*D1, count errors (Poisson log, fitted with identity).* For $N = 250$ children with age uniform on $[6, 10]$ and a balanced group factor, errors are Poisson with
+
+$$
+\log \mu_i = 2.20 - 0.55\,(\text{age}_i - 6) + 0.45\,\text{group}_i .
+$$
+
+*D2, chance-floor accuracy (chance-corrected logit, fitted with standard logit).* The lower-performance scenario of Simulation 1: $k = 20$ trials per participant and
+
+$$
+p_i = .50 + .50\,\mathrm{logistic}(\eta_i), \qquad
+\eta_i = -0.80 + 0.60\,\text{age}_{c,i} - 0.90\,\text{group}_i .
+$$
+
+*D3, binary repeated trials (probit, fitted with logit).* A two-group, two-condition design with $15$ trials per participant-condition cell, a subject random intercept, and a latent ICC of $.30$:
+
+$$
+\Pr(y_{ij} = 1) = \Phi\!\left(1.50 - 1.00\,\text{group}_i - 1.00\,\text{condition}_{j} + u_i\right).
+$$
+
+*D4, binary with a continuous predictor (probit, fitted with logit).* The same structure as D3, with the two-level condition replaced by a continuous predictor $x \sim \mathrm{Uniform}(0, 1)$, so that the contrast from $x = 0$ to $x = 1$ has the same probit-scale size as the condition contrast in D3. This scenario exists because residual checks over a focal predictor are better identified when the predictor has many unique values.
+
+*D5, Gamma mean response time (log, fitted with inverse).* Response times are Gamma with shape $8$ and
+
+$$
+\log \mu_i = \log(400) + 0.25\,x_i + 0.25\,\text{group}_i ,
+$$
+
+so the baseline mean is $400$ ms at $x = 0$ in the reference group.
+
+@tbl-diagnostic-scenario-values reports the expected values these parameters imply, which is what the misspecified link has to reproduce with a product term.
+
+```{r}
+#| label: tbl-diagnostic-scenario-values
+#| tbl-cap: "Expected values implied by the five diagnostic data-generating processes, at low, middle, and high values of the focal predictor. Values for the two binary scenarios are conditional on a subject random intercept of zero. Units differ by scenario and are given in the outcome column."
+#| disable-apaquarto-processing: true
+#| results: asis
+
+print_table_if_exists(
+  note_if_missing = "Diagnostic scenario-value table not available in this build.",
+  "tables", "scenario-table-diagnostic-worked-example.csv",
+  transform = function(d) {
+    scenario_order <- c(
+      "Count errors", "Chance-floor accuracy", "Binary repeated trials",
+      "Binary continuous predictor", "Gamma mean response time"
+    )
+    outcome_label <- c(
+      expected_count = "expected count",
+      expected_accuracy = "expected accuracy",
+      expected_probability_at_random_intercept_0 = "expected probability (u = 0)",
+      expected_mean = "expected mean (ms)"
+    )
+    keep <- !duplicated(d[c("scenario", "group", "predictor_value")])
+    d <- d[keep, , drop = FALSE]
+    d <- d[order(
+      match(d$scenario, scenario_order),
+      d$group,
+      d$predictor_value
+    ), , drop = FALSE]
+    labels <- outcome_label[d$expected_value_label]
+    labels[is.na(labels)] <- d$expected_value_label[is.na(labels)]
+    data.frame(
+      Scenario = d$scenario,
+      Predictor = d$predictor_name,
+      Value = fmt_num(d$predictor_value, 1),
+      Group = d$group,
+      `Linear predictor` = fmt_num(d$linear_predictor, 2),
+      Outcome = labels,
+      Expected = fmt_num(d$expected_value, 3),
+      check.names = FALSE
+    )
+  }
 )
 ```
 
 ## Diagnostic simulation: estimation and checks
 
-The diagnostic simulation ties each of five link-misspecification scenarios (defined in the main paper's diagnostic section) to a misspecified fitted link, holding the outcome family and the interaction formula fixed. In every replication the interaction model is fitted under the wrong link, and the primary diagnostics are applied to that same fitted model, because that is the model an analyst would inspect after finding the interaction. The same diagnostics are also applied to the corresponding correct-link interaction model as a calibration check. The technical specification of the checks is as follows.
+The diagnostic simulation ties each of the five link-misspecification scenarios defined above to a misspecified fitted link, holding the outcome family and the interaction formula fixed. In every replication the interaction model is fitted under the wrong link, and the primary diagnostics are applied to that same fitted model, because that is the model an analyst would inspect after finding the interaction. The same diagnostics are also applied to the corresponding correct-link interaction model as a calibration check. The technical specification of the checks is as follows.
 
 *Simulation-based residuals* [@dunnsmyth1996; @hartig2024] were computed with DHARMa, simulating $250$ responses from the fitted model per replication. Four prespecified checks were applied: residual uniformity (`testUniformity`), dispersion (`testDispersion`), residual quantile patterns over fitted values (`testQuantiles`), and residual structure over the focal predictor. The last check is scenario-aware: `testQuantiles` over the predictor is used when the predictor has at least eight unique values; for the $2 \times 2$ repeated-trials scenario, residuals are instead compared across the group-by-condition design cells using a Kruskal-Wallis test on the DHARMa scaled residuals. @tbl-diagnostic-breakdown reports this design-cell check for D3. Cells are marked "--" only when a check is not applicable or returns no usable replications in the saved diagnostic summary.
 
 *The Pregibon-style added-term link check* [@pregibon1980] extracts the fitted linear predictor, adds its square to the model formula, and tests the significance of the added term while retaining the family, link, base formula, and random-effects structure of the model being diagnosed.
+
+*The chance-corrected fits in D2* are the only ones estimated outside a standard model-fitting function, and they use a more defensive procedure than Simulation 1, because here the target-link model is one of the two candidates in the AIC comparison and a failed fit would silently remove a replication from that comparison. The model is fitted by direct maximum likelihood with $c = .50$ fixed by design. Five starting values are tried: a vector of zeros, three derived from the corresponding standard-logit fit, and one from a linear fit on the empirical above-chance proportions, which is the scale the likelihood actually works on. Each start is optimized with both BFGS and Nelder--Mead, the solution with the highest likelihood is retained, and it is then polished with a tighter BFGS run. Because `optim()` reports only that a stopping rule was met, and that rule is easily met far from the maximum on the flat region near the chance floor, the retained solution is additionally checked against the score and the curvature of the log-likelihood; the same Hessian supplies the variance-covariance matrix used for the Wald test. Replications that fail these checks are recorded as failed fits.
 
 *The same-formula AIC comparison* contrasts the target-link and the misspecified-link interaction models, holding the response data, the likelihood family, and the structural formula fixed, so only the mean-link mapping varies. No inconclusive $\Delta$AIC category is used, so the two AIC rows in @tbl-diagnostic-breakdown are complementary whenever both AIC values are available.
 
 # S5. Supplementary tables and figures
 
 The tables in this section report quantities at a finer grain than the main paper, or quantities the main paper states only in prose or in a figure. The headline rejection-rate summaries are reported in Section S4, next to each data-generating process.
+
+## Implied values, Simulation 1
+
+The main paper describes the three forced-choice scenarios by the accuracy range they occupy. @tbl-scenario-forced-choice gives the exact expected values behind those descriptions, and @tbl-contrasts-forced-choice gives the contrasts derived from them. The last row of the contrast table is the quantity the simulation is about: the age-by-group product term is exactly zero on the generating chance-corrected logit scale, while the group difference in expected accuracy still changes with age, by an amount that grows as the scenario moves toward the chance floor.
+
+```{r}
+#| label: tbl-scenario-forced-choice
+#| tbl-cap: "Expected accuracy implied by the three forced-choice scenarios, at the youngest, middle, and oldest age. Correct responses are out of k = 20 trials."
+#| disable-apaquarto-processing: true
+#| results: asis
+
+print_table_if_exists(
+  note_if_missing = "Forced-choice scenario table not available in this build.",
+  "tables", "scenario-table-forced-choice.csv",
+  transform = function(d) {
+    d <- d[d$table_part == "implied_values", , drop = FALSE]
+    data.frame(
+      Scenario = d$scenario,
+      Age = fmt_num(d$age, 0),
+      Group = d$group,
+      `Linear predictor` = fmt_num(d$linear_predictor, 2),
+      `Expected accuracy` = fmt_num(d$expected_accuracy, 3),
+      `Correct out of 20` = fmt_num(d$expected_correct_out_of_k_trials, 2),
+      check.names = FALSE
+    )
+  }
+)
+```
+
+```{r}
+#| label: tbl-contrasts-forced-choice
+#| tbl-cap: "Contrasts derived from the forced-choice scenarios. Probability points and correct-response units are on the observed accuracy scale; the link-scale column is on the generating chance-corrected logit scale."
+#| disable-apaquarto-processing: true
+#| results: asis
+
+print_table_if_exists(
+  note_if_missing = "Forced-choice contrast table not available in this build.",
+  "tables", "scenario-table-forced-choice.csv",
+  transform = function(d) {
+    d <- d[d$table_part == "derived_contrasts", , drop = FALSE]
+    data.frame(
+      Scenario = d$scenario,
+      Contrast = d$contrast,
+      `Probability points` = fmt_num(d$value_probability_points, 3),
+      `Correct out of 20` = fmt_num(d$value_correct_out_of_k_trials, 2),
+      `Link scale` = fmt_num(d$link_scale_value, 3),
+      check.names = FALSE
+    )
+  }
+)
+```
 
 ## Deterministic link-scale decomposition, Simulation 2
 
@@ -492,6 +719,94 @@ print_table_if_exists(
       check.names = FALSE
     )
   }
+)
+```
+
+## Implied values, Simulation 3
+
+@tbl-scenario-sum-scores gives the expected sum scores implied by the three sum-score scenarios, and @tbl-contrasts-sum-scores the contrasts derived from them. The generating latent-scale product term is zero in all three, yet the change in the group difference from low to high $x$, expressed in raw score points, is close to zero only in the middle of the scale and grows as the expected totals approach a bound. This is the compression the main paper describes, stated as a number rather than as a curve.
+
+```{r}
+#| label: tbl-scenario-sum-scores
+#| tbl-cap: "Expected sum scores implied by the three sum-score scenarios, at low, middle, and high values of the predictor. Totals run from 0 to 27."
+#| disable-apaquarto-processing: true
+#| results: asis
+
+print_table_if_exists(
+  note_if_missing = "Sum-score scenario table not available in this build.",
+  "tables", "scenario-table-sum-scores.csv",
+  transform = function(d) {
+    d <- d[d$table_part == "implied_values", , drop = FALSE]
+    data.frame(
+      Scenario = d$scenario,
+      x = fmt_num(d$x, 0),
+      Group = d$group,
+      `Latent mean` = fmt_num(d$latent_mean, 2),
+      `Expected sum score` = fmt_num(d$expected_sum_score, 2),
+      `Percent of max` = fmt_rate(d$expected_percent_of_max),
+      check.names = FALSE
+    )
+  }
+)
+```
+
+```{r}
+#| label: tbl-contrasts-sum-scores
+#| tbl-cap: "Contrasts derived from the sum-score scenarios. Sum-score units and percent of maximum are on the observed total; the latent-scale column is on the generating scale."
+#| disable-apaquarto-processing: true
+#| results: asis
+
+print_table_if_exists(
+  note_if_missing = "Sum-score contrast table not available in this build.",
+  "tables", "scenario-table-sum-scores.csv",
+  transform = function(d) {
+    d <- d[d$table_part == "derived_contrasts", , drop = FALSE]
+    data.frame(
+      Scenario = d$scenario,
+      Contrast = d$contrast,
+      `Sum-score units` = fmt_num(d$value_sum_score_units, 3),
+      `Percent of max` = fmt_rate(d$value_percent_of_max),
+      `Latent scale` = fmt_num(d$latent_scale_value, 3),
+      check.names = FALSE
+    )
+  }
+)
+```
+
+## Logit and probit fitted curves
+
+Section S4 notes that the within-family comparison is also illustrated with a separate grouped-binomial dataset of 1,000 observational units and 60 trials per unit. @fig-logit-probit-fitted shows the two fitted curves, and @tbl-logit-probit-fitted the corresponding coefficients and AIC values.
+
+The illustration makes concrete why the two links are usually treated as interchangeable and why that is not sufficient for an interaction claim. Panel A shows fitted probabilities that are hard to tell apart by eye. Panel B plots their difference, which never exceeds about two probability points but is systematic rather than noisy: it changes sign across the predictor range, so the logit fit sits above the probit fit in some regions and below it in others. A difference between differences computed on one scale therefore cannot equal the same contrast computed on the other, which is the deterministic quantity tabulated in @tbl-within-family-deterministic. The coefficients in @tbl-logit-probit-fitted are on each model's own link scale and are not comparable across rows; the AIC values are comparable, and they differ by far more than the fitted probabilities do.
+
+```{r}
+#| label: fig-logit-probit-fitted
+#| fig-cap: "Logit and probit models fitted to the same grouped-binomial dataset."
+#| out-width: "80%"
+#| results: asis
+
+include_graphic_if_exists(
+  "figs", "logit-probit-fitted-example.pdf",
+  note_if_missing = "Logit-probit fitted-curve figure not available in this build."
+)
+```
+
+```{r}
+#| label: tbl-logit-probit-fitted
+#| tbl-cap: "Coefficients and AIC for the logit and probit models fitted to the grouped-binomial illustration dataset. Intercept and slope are on each model's own link scale, so they are not directly comparable across rows."
+#| disable-apaquarto-processing: true
+#| results: asis
+
+print_table_if_exists(
+  note_if_missing = "Logit-probit model results not available in this build.",
+  "tables", "model-results-logit-probit-fitted-example.csv",
+  transform = function(d) data.frame(
+    Model = d$model,
+    Intercept = fmt_num(d$intercept, 3),
+    Slope = fmt_num(d$slope, 3),
+    AIC = fmt_num(d$AIC, 1),
+    check.names = FALSE
+  )
 )
 ```
 
@@ -642,11 +957,48 @@ if (is.null(diag_long) || is.null(diag_rep)) {
 }
 ```
 
-Pseudo-interaction denominators are replications with an available interaction test. “Missed” means that none of the applicable prespecified DHARMa checks had $p < .05$; pseudo-interactions for which all five DHARMa p-values were missing are excluded from this conditional denominator. $\Delta\mathrm{AIC} = \mathrm{AIC}(\text{wrong link}) - \mathrm{AIC}(\text{target link})$, so positive values favor the target link and negative values favor the wrong link. The sample size shown with the median and the denominator for $|\Delta\mathrm{AIC}| < 2$ are the finite AIC comparisons.
+Pseudo-interaction denominators are replications with an available interaction test. “Missed” means that none of the applicable prespecified DHARMa checks had $p < .05$; pseudo-interactions for which all five DHARMa p-values were missing are excluded from this conditional denominator. $\Delta\mathrm{AIC} = \mathrm{AIC}(\text{wrong link}) - \mathrm{AIC}(\text{target link})$, so positive values favor the target link and negative values favor the wrong link. The sample size shown with the median and the denominator for $|\Delta\mathrm{AIC}| < 2$ are the finite AIC comparisons. The Pregibon row reaches 100% in D1, D3, and D4, but only the D1 value is evidence about the link: as the calibration section below shows, in D3 and D4 the same check also flags every replication when the link is correct.
+
+## Distribution of the AIC difference
+
+The main paper argues that the proportion of replications in which AIC favours the target link is not informative on its own, because winning by less than one AIC unit and winning by fifty describe different situations. @tbl-diagnostic-aic-distribution therefore gives the distribution of $\Delta\mathrm{AIC}$ rather than only its median. The contrast between the count scenario and the chance-floor scenario is the clearest: both favour the target link in most replications, but the count scenario separates the two links by tens of AIC units across the whole distribution, whereas in the chance-floor scenario the lower decile is negative, meaning that in a non-trivial share of replications AIC actively preferred the misspecified link, and roughly two fifths of the comparisons fall within two units of a tie.
+
+```{r}
+#| label: tbl-diagnostic-aic-distribution
+#| tbl-cap: "Distribution of the AIC difference across replications, by diagnostic scenario. Delta AIC = AIC(wrong link) - AIC(target link), so positive values favor the target link. n = replications with both AIC values available."
+#| disable-apaquarto-processing: true
+#| results: asis
+
+print_table_if_exists(
+  note_if_missing = "AIC distribution table not available in this build.",
+  "tables", "simulation-summary-diagnostic-scenarios.csv",
+  transform = function(d) {
+    scenario_order <- c(
+      "Count errors", "Chance-floor accuracy", "Binary repeated trials",
+      "Binary continuous predictor", "Gamma mean response time"
+    )
+    d <- d[order(match(d$scenario, scenario_order)), , drop = FALSE]
+    data.frame(
+      Scenario = d$scenario,
+      n = d$n_aic_pairs,
+      `10th` = fmt_num(d$q10_aic_fitted_minus_true, 1),
+      `25th` = fmt_num(d$q25_aic_fitted_minus_true, 1),
+      Median = fmt_num(d$median_aic_fitted_minus_true, 1),
+      `75th` = fmt_num(d$q75_aic_fitted_minus_true, 1),
+      `90th` = fmt_num(d$q90_aic_fitted_minus_true, 1),
+      `Within 2 units` = fmt_rate(d$aic_difference_within_2),
+      `Favors target` = fmt_rate(d$aic_favors_target),
+      check.names = FALSE
+    )
+  }
+)
+```
 
 ## Calibration under correctly specified links
 
 The same DHARMa and Pregibon-style checks were applied to the corresponding correct-link interaction model in each replication. These baseline flagging rates provide a reference for interpreting detection under the wrong link. They reuse the same simulated datasets and scenarios rather than defining a new simulation.
+
+Two patterns in @tbl-diagnostic-calibration are worth reading before the wrong-link column. The four DHARMa checks are well calibrated throughout: no scenario exceeds a correct-link flagging rate of about six percent, so their wrong-link rates can be read as detection. The Pregibon-style check is well calibrated in the same sense in the count, chance-floor, and Gamma scenarios, but not in the two random-intercept GLMM scenarios, where it flags every correct-link replication. In a mixed model the added $\hat{\eta}^2$ term appears to absorb structure that is present whether or not the link is correct, so in those two scenarios the check is degenerate rather than powerful, and its wrong-link rate of 100% carries no information about link adequacy. A diagnostic has to be calibrated under the intended model before its behaviour under an alternative can be interpreted, and this is the one place in the present set of checks where that condition fails.
 
 ```{r}
 #| label: tbl-diagnostic-calibration

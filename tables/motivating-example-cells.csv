@@ -1,0 +1,5 @@
+"chance","beta_intercept","beta_condition","beta_group","beta_interaction","group","condition","linear_predictor","expected_probability"
+0.5,-1,2.1,1.7,0,"Group 0",0,-1,0.634470710684998
+0.5,-1,2.1,1.7,0,"Group 0",1,1.1,0.875130052797559
+0.5,-1,2.1,1.7,0,"Group 1",0,0.7,0.834093886084083
+0.5,-1,2.1,1.7,0,"Group 1",1,2.8,0.971337912050566

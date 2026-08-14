@@ -39,6 +39,8 @@ settings <- list(
   alpha = default_alpha,
   output_scenario_table = "tables/scenario-table-forced-choice.csv",
   output_summary_table = "tables/simulation-summary-forced-choice.csv",
+  output_common_convergence_table =
+    "tables/simulation-summary-forced-choice-common-convergence.csv",
   output_figure_base = "figs/forced-choice-simulation",
   output_inspection_base = "outputs/inspection/forced-choice-effect-size-inspection",
   output_rds = "outputs/simulation-forced-choice.rds"
@@ -349,16 +351,17 @@ model_did <- function(fit, model_name) {
   change_in_group_difference(p_low_g0, p_low_g1, p_high_g0, p_high_g1)
 }
 
-run_replication <- function(scenario_label, beta_intercept) {
+run_replication <- function(scenario_label, beta_intercept, replication) {
   d <- simulate_one(beta_intercept)
   fits <- fit_models(d)
-  
+
   do.call(rbind, lapply(model_names, function(m) {
     fit <- fits[[m]]
     did <- model_did(fit, m)
-    
+
     data.frame(
       scenario = scenario_label,
+      replication = replication,
       model = m,
       p_value = model_p(fit, m),
       interaction_coef = model_coef(fit, m),
@@ -382,7 +385,7 @@ simulation_results <- do.call(rbind, lapply(seq_len(nrow(scenarios)), function(i
   
   do.call(rbind, lapply(seq_len(settings$B), function(b) {
     progress_tick(b, settings$B, label = "  replication ")
-    run_replication(s$scenario, s$beta_intercept)
+    run_replication(s$scenario, s$beta_intercept, replication = b)
   }))
 }))
 
@@ -421,6 +424,72 @@ cat(
   sep = ""
 )
 cat("expressed as correct-response units out of ", settings$k_trials, " trials.\n", sep = "")
+
+# ---------------------------------------------------------------------
+# 7b. Common-convergence subset
+# ---------------------------------------------------------------------
+# The chance-corrected model can fail to converge near the floor, so its rate
+# is computed on a different (and non-random) set of replications than the
+# other three models. This second summary restricts every model to the
+# replications in which all four models returned a usable interaction test,
+# so that the four rates are directly comparable within a scenario.
+common_convergence_results <- do.call(rbind, lapply(
+  split(simulation_results, simulation_results$scenario, drop = TRUE),
+  function(dat) {
+    usable <- stats::aggregate(
+      list(all_models_converged = is.finite(dat$p_value)),
+      by = list(replication = dat$replication),
+      FUN = all
+    )
+    keep <- usable$replication[usable$all_models_converged]
+    dat[dat$replication %in% keep, , drop = FALSE]
+  }
+))
+
+common_convergence_summary <- do.call(rbind, lapply(
+  split(
+    common_convergence_results,
+    list(common_convergence_results$scenario, common_convergence_results$model),
+    drop = TRUE
+  ),
+  function(dat) {
+    sm <- summarise_model_simulation(dat, alpha = settings$alpha)
+    data.frame(
+      scenario = dat$scenario[1],
+      model = dat$model[1],
+      n_common_convergence_replications = length(unique(dat$replication)),
+      sm,
+      stringsAsFactors = FALSE
+    )
+  }
+))
+common_convergence_summary$scenario <- factor(
+  common_convergence_summary$scenario,
+  levels = scenarios$scenario
+)
+common_convergence_summary$model <- factor(
+  common_convergence_summary$model,
+  levels = model_names
+)
+common_convergence_summary$rate_type <- ifelse(
+  as.character(common_convergence_summary$model) == "Chance-corrected binomial logit",
+  "Nominal rejection rate",
+  "Pseudo-interaction detection rate"
+)
+common_convergence_summary <- common_convergence_summary[
+  order(common_convergence_summary$scenario, common_convergence_summary$model),
+]
+
+utils::write.csv(
+  common_convergence_summary,
+  settings$output_common_convergence_table,
+  row.names = FALSE
+)
+
+report_section("Simulation summary, common-convergence subset")
+print_compact(common_convergence_summary)
+cat("\nEvery model is restricted to the replications in which all four models converged,\n")
+cat("so the four rates within a scenario are computed on identical datasets.\n")
 
 # ---------------------------------------------------------------------
 # 8. Figure panels
@@ -576,7 +645,8 @@ saveRDS(
     example_dataset = example_data,
     example_binned = example_binned,
     simulation_results = simulation_results,
-    simulation_summary = simulation_summary
+    simulation_summary = simulation_summary,
+    common_convergence_summary = common_convergence_summary
   ),
   file = settings$output_rds
 )
@@ -584,6 +654,7 @@ saveRDS(
 report_section("Saved files")
 cat("- ", settings$output_scenario_table, "\n", sep = "")
 cat("- ", settings$output_summary_table, "\n", sep = "")
+cat("- ", settings$output_common_convergence_table, "\n", sep = "")
 cat("- ", settings$output_figure_base, ".pdf/png\n", sep = "")
 cat("- ", settings$output_inspection_base, ".pdf/png\n", sep = "")
 cat("- ", settings$output_rds, "\n", sep = "")

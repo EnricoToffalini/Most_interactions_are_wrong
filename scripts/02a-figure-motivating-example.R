@@ -103,6 +103,35 @@ cat("\nCell probabilities:\n")
 print(cells[order(cells$group_num, cells$condition), c("group", "condition", "eta", "prob")],
       row.names = FALSE)
 
+# The figure prints these quantities inside the panel labels only. Saving them
+# lets Supplement A document the generative parameters of the figure without
+# duplicating the constants in the supplement source.
+dir.create("tables", showWarnings = FALSE, recursive = TRUE)
+
+motivating_cells <- cells[order(cells$group_num, cells$condition), ]
+utils::write.csv(
+  data.frame(
+    chance = chance,
+    beta_intercept = beta0,
+    beta_condition = beta_condition,
+    beta_group = beta_group,
+    beta_interaction = beta_interaction,
+    group = as.character(motivating_cells$group),
+    condition = motivating_cells$condition,
+    linear_predictor = motivating_cells$eta,
+    expected_probability = motivating_cells$prob,
+    stringsAsFactors = FALSE
+  ),
+  "tables/motivating-example-cells.csv",
+  row.names = FALSE
+)
+
+utils::write.csv(
+  coef_table,
+  "tables/motivating-example-interaction-by-scale.csv",
+  row.names = FALSE
+)
+
 # ---------------------------------------------------------------------
 # 3. Plot data
 # ---------------------------------------------------------------------

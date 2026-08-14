@@ -39,7 +39,7 @@ settings <- list(
   n_cores = max(
     1L,
     min(
-      as.integer(Sys.getenv("N_CORES", "7")),
+      as.integer(Sys.getenv("N_CORES", "12")),
       max(1L, parallel::detectCores(logical = TRUE) - 1L)
     )
   ),
@@ -1029,7 +1029,7 @@ scenario_description <- function(name, scn) {
   }
   if (name == "probit_dgp_logit_fit") {
     return(paste0(
-      "Simulation 3 probit reference coefficients: eta = ", scn$beta_intercept,
+      "Simulation 2 probit reference coefficients: eta = ", scn$beta_intercept,
       " + ", scn$beta_group, " * group + ", scn$beta_condition,
       " * condition + subject random intercept; latent ICC = ", scn$target_icc,
       "; no group-by-condition product term."
@@ -1079,7 +1079,12 @@ make_scenario_values <- function(name, scn) {
     predictor_value <- g$condition_num
     outcome_label <- "expected_probability_at_random_intercept_0"
   } else if (name == "probit_continuous_logit_fit") {
-    g <- expand.grid(x = c(scn$x_range[1], 0, scn$x_range[2]), group_num = c(0, 1))
+    # Low, mid, high on the predictor's own range. Hard-coding 0 as the middle
+    # value collapsed onto the lower bound whenever x_range starts at 0.
+    g <- expand.grid(
+      x = c(scn$x_range[1], mean(scn$x_range), scn$x_range[2]),
+      group_num = c(0, 1)
+    )
     eta <- scn$beta_intercept + scn$beta_group * g$group_num + scn$beta_x * g$x
     expected <- stats::pnorm(eta)
     predictor_name <- "x"
