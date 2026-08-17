@@ -425,7 +425,7 @@ $$
 
 The generating scale is the chance-corrected logit with a fixed floor of $.50$, and the age-by-group product term is exactly zero on that scale. Three scenarios move the same structure along the accuracy range through the intercept: lower performance ($\beta_0 = -0.80$), middle performance ($\beta_0 = 0.00$), and higher performance ($\beta_0 = 0.80$). Each replication samples $N = 250$ participants.
 
-Four candidate models are fitted to each replication with the same `age_c * group` interaction formula: (1) a Gaussian identity model on the accuracy proportion; (2) a standard binomial logit on successes out of trials; (3) a standard binomial probit; and (4) a chance-corrected binomial logit fitted by direct maximum likelihood on the binomial likelihood with mean $p = c + (1-c)\,\mathrm{logistic}(\eta)$ and $c = .50$ fixed by design. For the chance-corrected fit, starting values come from a standard binomial fit, optimization uses BFGS with a numerically computed Hessian, and Wald $p$-values are derived from the inverse Hessian. Replications in which optimization or the Hessian inversion fails are recorded as failed fits and summarized over successful fits only. The chance-corrected model can fail when observed performance sits close to the floor, where the likelihood carries little information about above-chance changes; the main paper treats this as information about the design rather than as a numerical nuisance.
+Four candidate models are fitted to each replication with the same `age_c * group` interaction formula: (1) a Gaussian identity model on the accuracy proportion; (2) a standard binomial logit on successes out of trials; (3) a standard binomial probit; and (4) a chance-corrected binomial logit fitted by direct maximum likelihood on the binomial likelihood with mean $p = c + (1-c)\,\mathrm{logistic}(\eta)$ and $c = .50$ fixed by design. For the chance-corrected fit, starting values come from a standard binomial fit, optimization uses BFGS with a numerically computed Hessian, and Wald $p$-values are derived from the inverse Hessian. A Wald test is retained only when that Hessian is positive definite and well conditioned, since a flat likelihood can otherwise return a negative variance or one small enough to make the normal tail underflow, both of which would enter the summary as an artificially significant product term. Replications in which optimization fails, or in which the Hessian fails those checks, are recorded as failed fits and summarized over successful fits only. The chance-corrected model can fail when observed performance sits close to the floor, where the likelihood carries little information about above-chance changes; the main paper treats this as information about the design rather than as a numerical nuisance.
 
 ```{r}
 #| label: tbl-rejection-forced-choice
@@ -448,7 +448,22 @@ print_table_if_exists(
 )
 ```
 
-Because the chance-corrected model is the only one that can fail to converge, the rates in @tbl-rejection-forced-choice are not all computed on the same replications: in the lower-performance scenario the three alternative models use all 300 replications while the matched model uses the 179 that converged. @tbl-rejection-forced-choice-common repeats all four models on the replications in which *every* model returned a usable interaction test, so that within each scenario the four rates describe identical datasets. The middle- and higher-performance scenarios are unaffected, because all four models converged everywhere there. In the lower-performance scenario the rates shift slightly, and the ordering of the four models is unchanged: the standard logit remains highest, followed by the standard probit, the Gaussian identity, and the matched chance-corrected model near nominal alpha. The selective convergence therefore does not create the pattern reported in the main paper.
+```{r}
+#| label: forced-choice-convergence-inline
+#| include: false
+
+fc_summary_tbl <- read_csv_if_exists("tables", "simulation-summary-forced-choice.csv")
+fc_lower_matched_fits <- if (is.null(fc_summary_tbl)) {
+  "the"
+} else {
+  fc_summary_tbl$n_successful_fits[
+    fc_summary_tbl$scenario == "Lower performance" &
+      fc_summary_tbl$model == "Chance-corrected binomial logit"
+  ]
+}
+```
+
+Because the chance-corrected model is the only one that can fail to converge, the rates in @tbl-rejection-forced-choice are not all computed on the same replications: in the lower-performance scenario the three alternative models use all 300 replications while the matched model uses the `r fc_lower_matched_fits` that converged. @tbl-rejection-forced-choice-common repeats all four models on the replications in which *every* model returned a usable interaction test, so that within each scenario the four rates describe identical datasets. The middle- and higher-performance scenarios are unaffected, because all four models converged everywhere there. In the lower-performance scenario the rates shift slightly, and the ordering of the four models is unchanged, with the standard logit highest, followed by the standard probit, the Gaussian identity, and the matched chance-corrected model, which under-rejects because the floor leaves little information about above-chance differences. The selective convergence therefore does not create the pattern reported in the main paper.
 
 ```{r}
 #| label: tbl-rejection-forced-choice-common

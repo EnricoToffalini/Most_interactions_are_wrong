@@ -154,12 +154,30 @@ fit_chance_binom <- function(formula, data, y_col = "y", k_col = "k",
     ))
   }
 
-  V <- try(solve(opt$hessian), silent = TRUE)
-  if (inherits(V, "try-error") || any(!is.finite(V))) {
+  # A Wald test is only defined when the observed information matrix is positive
+  # definite and well conditioned. Near the chance floor the likelihood can be
+  # flat enough that it is neither, and inverting it anyway returns variances
+  # that are negative (clamped to zero, giving an infinite z) or implausibly
+  # small (giving a z large enough to underflow the normal tail to exactly 0).
+  # Both are recorded as missing, so the fit counts as unusable.
+  hess_sym <- (opt$hessian + t(opt$hessian)) / 2
+  eig <- try(
+    eigen(hess_sym, symmetric = TRUE, only.values = TRUE)$values,
+    silent = TRUE
+  )
+  well_conditioned <- !inherits(eig, "try-error") &&
+    all(is.finite(eig)) &&
+    min(eig) > 0 &&
+    (min(eig) / max(eig)) > sqrt(.Machine$double.eps)
+
+  V <- if (well_conditioned) try(solve(hess_sym), silent = TRUE) else NULL
+  if (is.null(V) || inherits(V, "try-error") || any(!is.finite(V))) {
     V <- matrix(NA_real_, ncol(X), ncol(X))
   }
 
-  se <- sqrt(pmax(diag(V), 0))
+  variances <- diag(V)
+  variances[!is.finite(variances) | variances <= 0] <- NA_real_
+  se <- sqrt(variances)
   z <- opt$par / se
   pval <- 2 * stats::pnorm(abs(z), lower.tail = FALSE)
 
