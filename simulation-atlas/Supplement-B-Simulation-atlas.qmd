@@ -166,14 +166,14 @@ model_order <- list(
 slice_specs <- list(
   forced_choice = data.frame(
     slice = c("sample_size", "scale_location", "trial_count", "chance_level"),
-    label = c("Sample size", "Scale location", "Trials per participant", "Chance level"),
+    label = c("Sample size", "Intercept", "Trials per participant", "Chance level"),
     variable = c("N", "beta_intercept", "k_trials", "chance"),
     xlab = c("N", "Generating intercept", "Trials per participant", "Chance level"),
     stringsAsFactors = FALSE
   ),
   within_family = data.frame(
     slice = c("sample_size", "trial_count", "latent_location", "icc"),
-    label = c("Sample size", "Trials per cell", "Latent location", "Latent ICC"),
+    label = c("Sample size", "Trials per cell", "Intercept", "Latent ICC"),
     variable = c("n_subjects", "k_trials", "reference_beta_intercept", "target_icc"),
     xlab = c("Participants", "Trials per participant-condition cell", "Reference intercept", "Latent ICC"),
     stringsAsFactors = FALSE
@@ -496,7 +496,7 @@ diagnostic_expand_slices <- function(dat) {
     if (!nrow(out)) next
 
     out$slice_view <- slice
-    out$slice_label <- if (slice == "sample_size") "Sample size" else "Scale location"
+    out$slice_label <- if (slice == "sample_size") "Sample size" else "Intercept"
     out$x_value <- NA_real_
 
     if (slice == "sample_size") {
@@ -668,8 +668,8 @@ design_table <- data.frame(
     paste(B_core, collapse = "/")
   ),
   `Sensitivity slices` = c(
-    "Main effects; sample size; scale location; trials; chance level",
-    "Main effects; sample size; trials; latent location; ICC",
+    "Main effects; sample size; intercept; trials; chance level",
+    "Main effects; sample size; trials; intercept; ICC",
     "Main effects; sample size; scale location; item count; latent dispersion"
   ),
   check.names = FALSE
@@ -732,7 +732,7 @@ plot_slice_rates("forced_choice")
 knitr::kable(slice_range_table("forced_choice"), align = c("l", "l", "l", "r", "r"))
 ```
 
-The slices separate distinct reasons why a deterministic scale discrepancy may or may not become a statistical interaction. Scale location and chance level change the curvature relevant to the fitted link. Sample size and number of trials change how precisely that discrepancy is estimated. The figure therefore distinguishes the existence of a pseudo-interaction on the fitted scale from the probability that a product-term test detects it.
+The slices separate distinct reasons why a deterministic scale discrepancy may or may not become a statistical interaction. The intercept and the chance level change the curvature relevant to the fitted link. Sample size and number of trials change how precisely that discrepancy is estimated. The figure therefore distinguishes the existence of a pseudo-interaction on the fitted scale from the probability that a product-term test detects it.
 
 ## Main-effect surface
 
@@ -749,7 +749,7 @@ The surface directly targets the mechanism emphasized in the manuscript. Two add
 
 # Simulation 2: Within-family link choice, logit versus probit
 
-The manuscript crosses logit and probit as generating and fitted links in repeated-trial random-intercept GLMMs. Both links use the binomial family and the same 0-to-1 bounds. The difference is the scale on which additivity is imposed. The atlas extends this comparison across sample size, trials per participant-condition cell, latent location, latent ICC, and the joint values of the group and condition coefficients. In the main-effect surface, the probit generating coefficients for both effects are `r coefficient_values_text("within_family", "beta_group", "probit", digits = 2)`, whereas the corresponding logit coefficients are `r coefficient_values_text("within_family", "beta_group", "logit", digits = 3)`.
+The manuscript crosses logit and probit as generating and fitted links in repeated-trial random-intercept GLMMs. Both links use the binomial family and the same 0-to-1 bounds. The difference is the scale on which additivity is imposed. The atlas extends this comparison across sample size, trials per participant-condition cell, the intercept, latent ICC, and the joint values of the group and condition coefficients. In the main-effect surface, the probit generating coefficients for both effects are `r coefficient_values_text("within_family", "beta_group", "probit", digits = 2)`, whereas the corresponding logit coefficients are `r coefficient_values_text("within_family", "beta_group", "logit", digits = 3)`.
 
 ## Manuscript anchors
 
@@ -789,7 +789,7 @@ plot_slice_rates("within_family")
 knitr::kable(slice_range_table("within_family"), align = c("l", "l", "l", "r", "r"))
 ```
 
-Sample size and trial count mainly change how detectable the small systematic discrepancy between the links becomes. Latent location and the main-effect magnitudes change the discrepancy itself by moving cell probabilities into regions where logit and probit curvature differs more. ICC changes the information structure of the repeated observations while leaving the fixed generating interaction at zero.
+Sample size and trial count mainly change how detectable the small systematic discrepancy between the links becomes. The intercept and the main-effect magnitudes change the discrepancy itself by moving cell probabilities into regions where logit and probit curvature differs more. ICC changes the information structure of the repeated observations while leaving the fixed generating interaction at zero.
 
 ## Main-effect surface
 
@@ -863,7 +863,7 @@ The surface shows how the mapping from latent values to a bounded total can turn
 
 # Diagnostic atlas
 
-The diagnostic atlas extends two of the manuscript's five diagnostic scenarios: the forced-choice chance-floor case and the probit-generated, logit-fitted repeated-trial case. It is narrower than the main diagnostic simulation in the paper. Its purpose is to ask whether the relation between pseudo-interaction risk and diagnostic detection changes as sample size and scale location vary.
+The diagnostic atlas extends two of the manuscript's five diagnostic scenarios: the forced-choice chance-floor case and the probit-generated, logit-fitted repeated-trial case. It is narrower than the main diagnostic simulation in the paper. Its purpose is to ask whether the relation between pseudo-interaction risk and diagnostic detection changes as sample size and the intercept vary.
 
 Diagnostics are applied to the **misspecified interaction model**, matching the manuscript's post-estimation question: once the fitted model has produced the product-term finding, does that same model show enough evidence of misspecification to warn the analyst? AIC compares prespecified candidate mean models with the same structural interaction formula. Positive delta AIC, defined as AIC of the misspecified model minus AIC of the generating model, favors the generating link.
 
@@ -902,7 +902,7 @@ The AIC win rate is reported together with the magnitude of the difference becau
 
 # What the atlas adds, and what it does not
 
-The atlas strengthens the simulation evidence in three ways. First, it shows whether the manuscript anchors sit inside broader patterns or depend narrowly on one tuned configuration. Second, it separates parameters that change the **deterministic scale discrepancy**, such as scale location and main-effect magnitude, from parameters that mainly change **detectability**, such as sample size and trial count. Third, the diagnostic extension places pseudo-interaction detection and model-checking performance on the same sensitivity slices.
+The atlas strengthens the simulation evidence in three ways. First, it shows whether the manuscript anchors sit inside broader patterns or depend narrowly on one tuned configuration. Second, it separates parameters that change the **deterministic scale discrepancy**, such as the intercept and main-effect magnitude, from parameters that mainly change **detectability**, such as sample size and trial count. Third, the diagnostic extension places pseudo-interaction detection and model-checking performance on the same sensitivity slices.
 
 The atlas does not estimate how often link misspecification occurs in psychological research. It does not cover every plausible outcome family, link, random-effects structure, measurement model, or predictor distribution. It also does not turn model diagnostics into a decision rule for the scientifically correct scale. Its role is narrower: to show how the mechanisms developed in the paper change across a declared set of nearby scenarios.
 
