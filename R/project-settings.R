@@ -9,7 +9,7 @@
 # Monte Carlo defaults. These can be overridden from the shell, for example:
 #   N_SIM=1000 Rscript scripts/03-simulation-forced-choice.R
 #   ALPHA=0.01 Rscript scripts/03-simulation-forced-choice.R
-default_B <- as.integer(Sys.getenv("N_SIM", "300"))
+default_B <- as.integer(Sys.getenv("N_SIM", "3000"))
 default_alpha <- as.numeric(Sys.getenv("ALPHA", "0.05"))
 
 # Shared output defaults.

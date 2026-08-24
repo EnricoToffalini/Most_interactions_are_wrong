@@ -34,4 +34,4 @@ renv/lock/
 
 /simulation-atlas/raw/*
 !/simulation-atlas/raw/.gitkeep
-
+.rsync-backup/
