@@ -1,51 +1,51 @@
 "scenario","diagnostic","model_specification","n_attempted","n_successful","flagging_rate","ci_low","ci_high"
-"Count errors","DHARMa uniformity","Correct link",300,300,0,0,0.012642971224546
-"Count errors","DHARMa dispersion","Correct link",300,300,0.0466666666666667,0.027998933682334,0.0767973602279211
-"Count errors","DHARMa residual quantiles over fitted values","Correct link",300,300,0.0166666666666667,0.00713947735063333,0.0384153948330945
-"Count errors","DHARMa residual quantiles over focal predictor","Correct link",300,300,0.0266666666666667,0.0135730698086471,0.0517289429505898
-"Count errors","Pregibon-style added-term link check","Correct link",300,300,0.0533333333333333,0.0330919125190965,0.0848691417748313
-"Count errors","DHARMa uniformity","Wrong link",300,281,0,0,0.0134863051067025
-"Count errors","DHARMa dispersion","Wrong link",300,281,0.249110320284698,0.202153842760445,0.302833947346477
-"Count errors","DHARMa residual quantiles over fitted values","Wrong link",300,281,0.604982206405694,0.546777787734074,0.66035498094459
-"Count errors","DHARMa residual quantiles over focal predictor","Wrong link",300,281,0.882562277580071,0.839661411869738,0.915144440094884
-"Count errors","Pregibon-style added-term link check","Wrong link",300,281,0.98576512455516,0.963977116293466,0.994450779456962
-"Chance-floor accuracy","DHARMa uniformity","Correct link",300,300,0,0,0.012642971224546
-"Chance-floor accuracy","DHARMa dispersion","Correct link",300,300,0.00666666666666667,0.00183014835791179,0.023977583250307
-"Chance-floor accuracy","DHARMa residual quantiles over fitted values","Correct link",300,300,0.0166666666666667,0.00713947735063333,0.0384153948330945
-"Chance-floor accuracy","DHARMa residual quantiles over focal predictor","Correct link",300,300,0.0133333333333333,0.00519696173935885,0.0337755302525326
-"Chance-floor accuracy","Pregibon-style added-term link check","Correct link",300,300,0.0433333333333333,0.0254964480844072,0.0727174656340114
-"Chance-floor accuracy","DHARMa uniformity","Wrong link",300,300,0,0,0.012642971224546
-"Chance-floor accuracy","DHARMa dispersion","Wrong link",300,300,0,0,0.012642971224546
-"Chance-floor accuracy","DHARMa residual quantiles over fitted values","Wrong link",300,300,0.0133333333333333,0.00519696173935885,0.0337755302525326
-"Chance-floor accuracy","DHARMa residual quantiles over focal predictor","Wrong link",300,300,0.06,0.0382863695246921,0.0928394451529084
-"Chance-floor accuracy","Pregibon-style added-term link check","Wrong link",300,300,0.316666666666667,0.266628350685736,0.371340738763264
-"Binary repeated trials","DHARMa uniformity","Correct link",300,300,0.00666666666666667,0.00183014835791179,0.023977583250307
-"Binary repeated trials","DHARMa dispersion","Correct link",300,300,0,0,0.012642971224546
-"Binary repeated trials","DHARMa residual quantiles over fitted values","Correct link",300,300,0,0,0.012642971224546
-"Binary repeated trials","DHARMa residual distribution across design cells","Correct link",300,300,0,0,0.012642971224546
-"Binary repeated trials","Pregibon-style added-term link check","Correct link",300,0,NA,NA,NA
-"Binary repeated trials","DHARMa uniformity","Wrong link",300,300,0.01,0.00340661843771528,0.0289834933623398
-"Binary repeated trials","DHARMa dispersion","Wrong link",300,300,0,0,0.012642971224546
-"Binary repeated trials","DHARMa residual quantiles over fitted values","Wrong link",300,300,0.0133333333333333,0.00519696173935885,0.0337755302525326
-"Binary repeated trials","DHARMa residual distribution across design cells","Wrong link",300,300,0.00333333333333333,0.000588657721851156,0.0186366936945312
-"Binary repeated trials","Pregibon-style added-term link check","Wrong link",300,0,NA,NA,NA
-"Binary continuous predictor","DHARMa uniformity","Correct link",300,300,0.01,0.00340661843771528,0.0289834933623398
-"Binary continuous predictor","DHARMa dispersion","Correct link",300,300,0,0,0.012642971224546
-"Binary continuous predictor","DHARMa residual quantiles over fitted values","Correct link",300,300,0.0133333333333333,0.00519696173935885,0.0337755302525326
-"Binary continuous predictor","DHARMa residual quantiles over focal predictor","Correct link",300,300,0.01,0.00340661843771528,0.0289834933623398
-"Binary continuous predictor","Pregibon-style added-term link check","Correct link",300,300,0.0433333333333333,0.0254964480844072,0.0727174656340114
-"Binary continuous predictor","DHARMa uniformity","Wrong link",300,300,0.00333333333333333,0.000588657721851156,0.0186366936945312
-"Binary continuous predictor","DHARMa dispersion","Wrong link",300,300,0,0,0.012642971224546
-"Binary continuous predictor","DHARMa residual quantiles over fitted values","Wrong link",300,300,0.00333333333333333,0.000588657721851156,0.0186366936945312
-"Binary continuous predictor","DHARMa residual quantiles over focal predictor","Wrong link",300,300,0,0,0.012642971224546
-"Binary continuous predictor","Pregibon-style added-term link check","Wrong link",300,300,0.0433333333333333,0.0254964480844072,0.0727174656340114
-"Gamma mean response time","DHARMa uniformity","Correct link",300,300,0,0,0.012642971224546
-"Gamma mean response time","DHARMa dispersion","Correct link",300,300,0.00333333333333333,0.000588657721851156,0.0186366936945312
-"Gamma mean response time","DHARMa residual quantiles over fitted values","Correct link",300,300,0.01,0.00340661843771528,0.0289834933623398
-"Gamma mean response time","DHARMa residual quantiles over focal predictor","Correct link",300,300,0.0133333333333333,0.00519696173935885,0.0337755302525326
-"Gamma mean response time","Pregibon-style added-term link check","Correct link",300,300,0.0533333333333333,0.0330919125190965,0.0848691417748313
-"Gamma mean response time","DHARMa uniformity","Wrong link",300,300,0,0,0.012642971224546
-"Gamma mean response time","DHARMa dispersion","Wrong link",300,300,0.00333333333333333,0.000588657721851156,0.0186366936945312
-"Gamma mean response time","DHARMa residual quantiles over fitted values","Wrong link",300,300,0.0166666666666667,0.00713947735063333,0.0384153948330945
-"Gamma mean response time","DHARMa residual quantiles over focal predictor","Wrong link",300,300,0.0633333333333333,0.0409168823839153,0.0967913124855216
-"Gamma mean response time","Pregibon-style added-term link check","Wrong link",300,300,0.34,0.288720204096493,0.395325546695362
+"Count errors","DHARMa uniformity","Correct link",3000,0,NA,NA,NA
+"Count errors","DHARMa dispersion","Correct link",3000,0,NA,NA,NA
+"Count errors","DHARMa residual quantiles over fitted values","Correct link",3000,0,NA,NA,NA
+"Count errors","DHARMa residual quantiles over focal predictor","Correct link",3000,0,NA,NA,NA
+"Count errors","Pregibon-style added-term link check","Correct link",3000,3000,0.0486666666666667,0.0415275354722075,0.0569601719771868
+"Count errors","DHARMa uniformity","Wrong link",3000,0,NA,NA,NA
+"Count errors","DHARMa dispersion","Wrong link",3000,0,NA,NA,NA
+"Count errors","DHARMa residual quantiles over fitted values","Wrong link",3000,0,NA,NA,NA
+"Count errors","DHARMa residual quantiles over focal predictor","Wrong link",3000,0,NA,NA,NA
+"Count errors","Pregibon-style added-term link check","Wrong link",3000,2774,0.99351117519827,0.989765876835019,0.995891526796069
+"Chance-floor accuracy","DHARMa uniformity","Correct link",3000,0,NA,NA,NA
+"Chance-floor accuracy","DHARMa dispersion","Correct link",3000,0,NA,NA,NA
+"Chance-floor accuracy","DHARMa residual quantiles over fitted values","Correct link",3000,0,NA,NA,NA
+"Chance-floor accuracy","DHARMa residual quantiles over focal predictor","Correct link",3000,0,NA,NA,NA
+"Chance-floor accuracy","Pregibon-style added-term link check","Correct link",3000,3000,0.053,0.0455396173166764,0.061603673443765
+"Chance-floor accuracy","DHARMa uniformity","Wrong link",3000,0,NA,NA,NA
+"Chance-floor accuracy","DHARMa dispersion","Wrong link",3000,0,NA,NA,NA
+"Chance-floor accuracy","DHARMa residual quantiles over fitted values","Wrong link",3000,0,NA,NA,NA
+"Chance-floor accuracy","DHARMa residual quantiles over focal predictor","Wrong link",3000,0,NA,NA,NA
+"Chance-floor accuracy","Pregibon-style added-term link check","Wrong link",3000,3000,0.289333333333333,0.273384578738846,0.305820909524091
+"Binary repeated trials","DHARMa uniformity","Correct link",3000,0,NA,NA,NA
+"Binary repeated trials","DHARMa dispersion","Correct link",3000,0,NA,NA,NA
+"Binary repeated trials","DHARMa residual quantiles over fitted values","Correct link",3000,0,NA,NA,NA
+"Binary repeated trials","DHARMa residual distribution across design cells","Correct link",3000,0,NA,NA,NA
+"Binary repeated trials","Pregibon-style added-term link check","Correct link",3000,0,NA,NA,NA
+"Binary repeated trials","DHARMa uniformity","Wrong link",3000,0,NA,NA,NA
+"Binary repeated trials","DHARMa dispersion","Wrong link",3000,0,NA,NA,NA
+"Binary repeated trials","DHARMa residual quantiles over fitted values","Wrong link",3000,0,NA,NA,NA
+"Binary repeated trials","DHARMa residual distribution across design cells","Wrong link",3000,0,NA,NA,NA
+"Binary repeated trials","Pregibon-style added-term link check","Wrong link",3000,0,NA,NA,NA
+"Binary continuous predictor","DHARMa uniformity","Correct link",3000,0,NA,NA,NA
+"Binary continuous predictor","DHARMa dispersion","Correct link",3000,0,NA,NA,NA
+"Binary continuous predictor","DHARMa residual quantiles over fitted values","Correct link",3000,0,NA,NA,NA
+"Binary continuous predictor","DHARMa residual quantiles over focal predictor","Correct link",3000,0,NA,NA,NA
+"Binary continuous predictor","Pregibon-style added-term link check","Correct link",3000,3000,0.05,0.0427603367645592,0.0583906270882342
+"Binary continuous predictor","DHARMa uniformity","Wrong link",3000,0,NA,NA,NA
+"Binary continuous predictor","DHARMa dispersion","Wrong link",3000,0,NA,NA,NA
+"Binary continuous predictor","DHARMa residual quantiles over fitted values","Wrong link",3000,0,NA,NA,NA
+"Binary continuous predictor","DHARMa residual quantiles over focal predictor","Wrong link",3000,0,NA,NA,NA
+"Binary continuous predictor","Pregibon-style added-term link check","Wrong link",3000,3000,0.0513333333333333,0.043994659229371,0.0598195610268215
+"Gamma mean response time","DHARMa uniformity","Correct link",3000,0,NA,NA,NA
+"Gamma mean response time","DHARMa dispersion","Correct link",3000,0,NA,NA,NA
+"Gamma mean response time","DHARMa residual quantiles over fitted values","Correct link",3000,0,NA,NA,NA
+"Gamma mean response time","DHARMa residual quantiles over focal predictor","Correct link",3000,0,NA,NA,NA
+"Gamma mean response time","Pregibon-style added-term link check","Correct link",3000,3000,0.0483333333333333,0.0412195796839997,0.0566023136645448
+"Gamma mean response time","DHARMa uniformity","Wrong link",3000,0,NA,NA,NA
+"Gamma mean response time","DHARMa dispersion","Wrong link",3000,0,NA,NA,NA
+"Gamma mean response time","DHARMa residual quantiles over fitted values","Wrong link",3000,0,NA,NA,NA
+"Gamma mean response time","DHARMa residual quantiles over focal predictor","Wrong link",3000,0,NA,NA,NA
+"Gamma mean response time","Pregibon-style added-term link check","Wrong link",3000,3000,0.338,0.321289933877051,0.355124413109955
