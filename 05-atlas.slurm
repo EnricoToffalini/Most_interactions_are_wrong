@@ -20,7 +20,7 @@ export NUMEXPR_NUM_THREADS=1
 
 # Configurazione Atlas via variabili d'ambiente (default: MODE="full", RUN_DHARMA="FALSE")
 export ATLAS_MODE="full"
-export ATLAS_RUN_DHARMA="FALSE"
+export ATLAS_RUN_DHARMA="TRUE"
 
 # Attiva l'ambiente Conda
 source ~/miniconda3/etc/profile.d/conda.sh
