@@ -588,17 +588,23 @@ aic_table <- function() {
   ]
   dat <- diagnostic_expand_slices(base)
 
-  out <- data.frame(
-    Case = unname(diagnostic_family_title[dat$family]),
-    Slice = dat$slice_label,
-    Value = dat$x_value,
-    `Pseudo-interaction detection` = pct(dat$pseudo_interaction_detection_rate),
-    `AIC favors generating link` = pct(dat$detection_rate),
-    `Median delta AIC` = num(dat$aic_delta_median, 2),
-    `Delta AIC IQR` = paste0("[", num(dat$aic_delta_q25, 2), ", ", num(dat$aic_delta_q75, 2), "]"),
-    `Absolute delta AIC < 2` = pct(dat$aic_delta_within_two_rate),
-    check.names = FALSE
-  )
+setting_value <- ifelse(
+  dat$slice_label == "Sample size",
+  formatC(dat$x_value, format = "f", digits = 0),
+  formatC(dat$x_value, format = "f", digits = 2)
+)
+
+out <- data.frame(
+  Case = unname(diagnostic_family_title[dat$family]),
+  Setting = paste0(dat$slice_label, " = ", setting_value),
+  `Pseudo-interaction detection` = pct(dat$pseudo_interaction_detection_rate),
+  `AIC favors generating link` = pct(dat$detection_rate),
+  `Median delta AIC` = num(dat$aic_delta_median, 2),
+  `Delta AIC IQR` = paste0("[", num(dat$aic_delta_q25, 2), ", ", num(dat$aic_delta_q75, 2), "]"),
+  `Absolute delta AIC < 2` = pct(dat$aic_delta_within_two_rate),
+  check.names = FALSE
+)
+  
   rownames(out) <- NULL
   out
 }
@@ -633,7 +639,9 @@ dharma_complete <- any(
 
 # Purpose and scope
 
-This document reports the extended simulation atlas for *The Link Function Problem in Psychological Interaction Testing*. It follows the terminology and simulation numbering of the manuscript version dated 2026-08-11. The manuscript keeps a small number of transparent worked scenarios. The atlas asks how far those results extend when selected design and data-generating parameters are varied around the manuscript anchors. It is designed to be read independently of the interactive application: the relevant design settings, coefficients, fitted models, and outcome summaries are reported here, while references to the manuscript identify the corresponding conceptual examples.
+This document reports the extended simulation atlas for *The Link Function Problem in Psychological Interaction Testing*. It follows the terminology and simulation numbering of the main manuscript. The manuscript keeps a small number of transparent worked scenarios. The atlas asks how far those results extend when selected design and data-generating parameters are varied around the manuscript anchors. It is designed to be read independently of the interactive application: the relevant design settings, coefficients, fitted models, and outcome summaries are reported here, while references to the manuscript identify the corresponding conceptual examples.
+
+The manuscript-anchor scenarios use the same data-generating settings as the corresponding manuscript simulations, but they are independently rerun as part of the atlas. Their Monte Carlo rejection rates can therefore differ slightly from those reported in the manuscript and Supplement A, whereas the underlying generating parameters and deterministic scale contrasts are the same.
 
 The atlas is a structured sensitivity analysis, not an exhaustive map of psychological settings. It uses prespecified one-dimensional slices and a small main-effect surface instead of a full Cartesian product. In every scenario, the interaction term is **exactly zero on the generating scale**. Therefore, a rejection under the matched generating model estimates the nominal generating-scale rejection rate, while a rejection under another scale is described as a **pseudo-interaction detection rate**. As in the manuscript, *pseudo-interaction* is a simulation term. It is available here because the generating scale is known.
 
@@ -895,7 +903,7 @@ The rates in this figure answer different questions. Pseudo-interaction detectio
 #| label: tbl-atlas-aic
 #| tbl-cap: "AIC comparison across the diagnostic atlas. Positive delta AIC favors the generating link. The within-two column reports the proportion of finite comparisons with absolute delta AIC below 2."
 
-knitr::kable(aic_table(), align = c("l", "l", "r", "r", "r", "r", "r", "r"))
+knitr::kable(aic_table(), align = c("l", "l", "r", "r", "r", "r", "r"))
 ```
 
 The AIC win rate is reported together with the magnitude of the difference because these describe different situations. A generating link that wins frequently by a very small margin is weaker evidence than one that wins by a large margin. As in the manuscript, these comparisons rank a limited candidate set. They do not identify the substantively correct scale by themselves.

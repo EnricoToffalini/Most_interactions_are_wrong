@@ -372,7 +372,7 @@ so that performance saturates below $1$ when occasional lapses are plausible [@w
 
 # S4. Data-generating processes and estimation details
 
-This section gives the formal generative models and the estimation internals for the simulations. The main paper describes the purpose and interpretation of each simulation; here we state the equations, the fixed parameter values, and the fitting procedures needed to reproduce the reported behaviour. Unless noted otherwise, each scenario used $B = 300$ Monte Carlo replications with a significance level of $\alpha = .05$, and each simulation set a fixed random seed.
+This section gives the formal generative models and the estimation internals for the simulations. The main paper describes the purpose and interpretation of each simulation; here we state the equations, the fixed parameter values, and the fitting procedures needed to reproduce the reported behaviour. Unless noted otherwise, each scenario used a significance level of $\alpha = .05$, and each simulation set a fixed random seed.
 
 ## Generative parameters of the illustrative figures
 
