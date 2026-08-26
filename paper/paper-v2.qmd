@@ -597,10 +597,6 @@ forced_choice_sim_raw <- read_required_table(
   "simulation-summary-forced-choice.csv",
   "scripts/03a-simulation-forced-choice.R"
 )
-forced_choice_cc_raw <- read_required_table(
-  "simulation-summary-forced-choice-common-convergence.csv",
-  "scripts/03a-simulation-forced-choice.R"
-)
 within_family_sim_raw <- read_required_table(
   "simulation-summary-within-family-links.csv",
   "scripts/03b-simulation-within-family-links.R"
@@ -761,6 +757,7 @@ forced_choice_sim <- select_required_columns(
     "rate_type",
     "ci_low",
     "ci_high",
+    "sd_interaction_coef",
     "median_change_in_group_difference_outcome_units"
   )
 )
@@ -775,6 +772,7 @@ forced_choice_sim <- rename_columns(
     rate_type = "Rate type",
     ci_low = "CI low",
     ci_high = "CI high",
+    sd_interaction_coef = "Monte Carlo SD interaction coefficient",
     median_change_in_group_difference_outcome_units = "Median change in group gap, correct-response units"
   )
 )
@@ -990,36 +988,14 @@ fc_lookup <- function(scn, mdl, col) {
   )
 }
 fc_rejection_rate <- function(scn, mdl) round(100 * fc_lookup(scn, mdl, "Rejection rate"))
-fc_fit <- function(scn, mdl) fc_lookup(scn, mdl, "Successful fits")
-
-# Common-convergence subset: every model restricted to the replications in which
-# all four returned a usable interaction test, so the four columns are computed
-# on identical datasets.
-fc_cc_lookup <- function(scn, mdl, col) {
-  require_single(
-    forced_choice_cc_raw[
-      forced_choice_cc_raw$scenario == scn & forced_choice_cc_raw$model == mdl,
-      col, drop = TRUE
-    ],
-    paste0("forced_choice_cc_raw[", scn, " / ", mdl, " / ", col, "]")
+fc_interaction_sd <- function(
+    scn,
+    mdl = "Chance-corrected binomial logit"
+) {
+  fmt_num(
+    fc_lookup(scn, mdl, "Monte Carlo SD interaction coefficient"),
+    3
   )
-}
-fc_cc_n <- function(scn, mdl = "Chance-corrected binomial logit") {
-  fc_cc_lookup(scn, mdl, "n_common_convergence_replications")
-}
-fc_cc_rate <- function(scn, mdl) round(100 * fc_cc_lookup(scn, mdl, "rejection_rate"))
-fc_cc_alt_models <- c(
-  "Gaussian identity",
-  "Standard binomial logit",
-  "Standard binomial probit"
-)
-fc_cc_rate_range <- function(scn) {
-  rates <- vapply(
-    fc_cc_alt_models,
-    function(m) 100 * fc_cc_lookup(scn, m, "rejection_rate"),
-    numeric(1)
-  )
-  sprintf("%d%% to %d%%", round(min(rates)), round(max(rates)))
 }
 matched_nominal_rate <- forced_choice_sim$`Rejection rate`[
   forced_choice_sim$Model == "Chance-corrected binomial logit"
@@ -1028,13 +1004,13 @@ matched_nominal_min <- round(100 * min(matched_nominal_rate))
 matched_nominal_max <- round(100 * max(matched_nominal_rate))
 ```
 
-In each of `r n_rep` replications we generated accuracy for $N = `r sim_N`$ participants with $k = `r sim_k`$ trials each, from a chance-corrected logit model with a .50 floor, a positive age effect, a group difference, and no age-by-group product term on the generating scale. Three scenarios differ only in overall performance, set by shifting the intercept: in the *lower-performance* scenario the two groups lie close to the .50 floor (expected accuracies roughly .53 to .80 across ages 6 to 10), in the *middle-performance* scenario they occupy the middle of the above-chance range (roughly .55 to .88), and in the *higher-performance* scenario they approach the ceiling (roughly .61 to .94). Each simulated dataset was analyzed with four models: a Gaussian linear model on the observed proportions, standard binomial-logit and binomial-probit GLMs on the correct-response counts, and the chance-corrected binomial-logit GLM that matches the generating scale. We recorded how often each product-term test rejected at $\alpha = .05$. The matching model supplies the nominal rejection rate, while the three alternative scales supply pseudo-interaction detection rates. @fig-forced-choice-simulation shows the simulation results; the per-scenario rates and the convergence counts are tabulated in Supplement A.
+In each of `r n_rep` replications we generated accuracy for $N = `r sim_N`$ participants with $k = `r sim_k`$ trials each, from a chance-corrected logit model with a .50 floor, a positive age effect, a group difference, and no age-by-group product term on the generating scale. Three scenarios differ only in overall performance, set by shifting the intercept: in the *lower-performance* scenario the two groups lie close to the .50 floor (expected accuracies roughly .53 to .80 across ages 6 to 10), in the *middle-performance* scenario they occupy the middle of the above-chance range (roughly .55 to .88), and in the *higher-performance* scenario they approach the ceiling (roughly .61 to .94). Each simulated dataset was analyzed with four models: a Gaussian linear model on the observed proportions, standard binomial-logit and binomial-probit GLMs on the correct-response counts, and the chance-corrected binomial-logit GLM that matches the generating scale. We recorded how often each product-term test rejected at $\alpha = .05$. The matching model supplies the nominal rejection rate, while the three alternative scales supply pseudo-interaction detection rates. @fig-forced-choice-simulation shows the simulation results; the per-scenario rates, fit-success counts, and coefficient variability are reported in Supplement A.
 
 ![Simulation 1: forced-choice accuracy with a chance floor. Data are generated with no age-by-group product term on the chance-corrected logit scale. Panel A shows the resulting accuracy curves across three performance levels; the grey region lies below the .50 chance floor. Panel B shows product-term rejection rates by fitted model and scenario. The matched chance-corrected model remains near nominal alpha, whereas the alternative scales produce pseudo-interactions. The dashed line marks alpha = .05.](../figs/forced-choice-simulation.pdf){#fig-forced-choice-simulation fig-pos="H"}
 
 The chance-corrected model rejects between `r matched_nominal_min`% and `r matched_nominal_max`% of the time across the three scenarios. Pseudo-interaction detection is highest where performance lies near the floor: in the lower-performance scenario the standard logit rejects `r fc_rejection_rate("Lower performance", "Standard binomial logit")`% of the time, the standard probit `r fc_rejection_rate("Lower performance", "Standard binomial probit")`%, and the Gaussian identity `r fc_rejection_rate("Lower performance", "Gaussian identity")`%. Detection falls as performance moves away from the floor, reaching `r fc_rejection_rate("Higher performance", "Standard binomial logit")`% for the logit, `r fc_rejection_rate("Higher performance", "Standard binomial probit")`% for the probit, and `r fc_rejection_rate("Higher performance", "Gaussian identity")`% for the Gaussian identity in the higher-performance scenario. The same qualitative sensitivity to the chance floor also appears at chance levels 0.25 and 0.33 (Supplement B).
 
-Although the chance-corrected model rejects in `r matched_nominal_min`% of the time in the lower-performance scenario, the product term there is weakly identified. As expected accuracy approaches chance, the curve that maps the above-chance scale onto observed accuracy flattens, so widely different values on that scale imply almost the same expected accuracies, and the data cannot distinguish them. Indeed, in the lower-performance scenario only `r fc_fit("Lower performance", "Chance-corrected binomial logit")` of the `r n_rep` replications produced a usable test of the product term. The rejection rate is therefore computed on those replications, and since failures concentrate where the data are least informative about above-chance differences, they are a selected subset. Restricting all four models to those `r fc_cc_n("Lower performance")` replications puts them on identical datasets and leaves the pattern unchanged. The chance-corrected model rejects in `r fc_cc_rate("Lower performance", "Chance-corrected binomial logit")`% of them, against `r fc_cc_rate("Lower performance", "Gaussian identity")`% for the Gaussian identity, `r fc_cc_rate("Lower performance", "Standard binomial logit")`% for the logit, and `r fc_cc_rate("Lower performance", "Standard binomial probit")`% for the probit. 
+All four models returned a usable product-term test in every replication, including the lower-performance scenario. Complete fit success does not imply equal precision: under the matched chance-corrected model, the Monte Carlo standard deviation of the estimated age-by-group coefficient was `r fc_interaction_sd("Lower performance")` in the lower-performance scenario, compared with `r fc_interaction_sd("Middle performance")` in the middle-performance scenario and `r fc_interaction_sd("Higher performance")` in the higher-performance scenario. This greater sampling variability is consistent with less information about link-scale changes when expected accuracy lies closer to the chance floor. Because the four rejection rates are now computed on identical simulated datasets, the elevated rates under the alternative links cannot be attributed to selective convergence or Hessian failure.
 
 ## Within-Family Link Choice
 

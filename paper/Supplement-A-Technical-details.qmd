@@ -442,11 +442,11 @@ $$
 
 The generating scale is the chance-corrected logit with a fixed floor of $.50$, and the age-by-group product term is exactly zero on that scale. Three scenarios move the same structure along the accuracy range through the intercept: lower performance ($\beta_0 = -0.80$), middle performance ($\beta_0 = 0.00$), and higher performance ($\beta_0 = 0.80$). Each replication samples $N = 250$ participants.
 
-Four candidate models are fitted to each replication with the same `age_c * group` interaction formula: (1) a Gaussian identity model on the accuracy proportion; (2) a standard binomial logit on successes out of trials; (3) a standard binomial probit; and (4) a chance-corrected binomial logit fitted by direct maximum likelihood on the binomial likelihood with mean $p = c + (1-c)\,\mathrm{logistic}(\eta)$ and $c = .50$ fixed by design. For the chance-corrected fit, starting values come from a standard binomial fit, optimization uses BFGS with a numerically computed Hessian, and Wald $p$-values are derived from the inverse Hessian. A Wald test is retained only when that Hessian is positive definite and well conditioned, since a flat likelihood can otherwise return a negative variance or one small enough to make the normal tail underflow, both of which would enter the summary as an artificially significant product term. Replications in which optimization fails, or in which the Hessian fails those checks, are recorded as failed fits and summarized over successful fits only. The chance-corrected model can fail when observed performance sits close to the floor, where the likelihood carries little information about above-chance changes; the main paper treats this as information about the design rather than as a numerical nuisance.
+Four candidate models are fitted to each replication with the same `age_c * group` interaction formula: (1) a Gaussian identity model on the accuracy proportion; (2) a standard binomial logit on successes out of trials; (3) a standard binomial probit; and (4) a chance-corrected binomial logit fitted by direct maximum likelihood on the binomial likelihood with mean $p = c + (1-c)\,\mathrm{logistic}(\eta)$ and $c = .50$ fixed by design. To avoid false convergence on the flat region of the likelihood near the chance floor, the chance-corrected fit uses three starting values: a zero vector, coefficients from the corresponding standard binomial-logit fit, and coefficients obtained by regressing the empirical above-chance proportions on the model matrix after logit transformation. Each start is optimized with BFGS using an analytic gradient, and the solution with the highest likelihood is retained. The observed Hessian is then computed at that solution and supplies the variance-covariance matrix for the Wald tests. A test is retained only when the optimizer converges, the Hessian is positive definite and sufficiently well conditioned, and the covariance matrix and Wald $p$-values are finite. Replications failing any of these checks are recorded as unusable fits. With this procedure, all four models returned usable tests in all 3,000 replications of each performance scenario.
 
 ```{r}
 #| label: tbl-rejection-forced-choice
-#| tbl-cap: "Product-term rejection rates by forced-choice performance scenario and fitted model. The matched chance-corrected model shows nominal rejection; alternative scales show pseudo-interaction detection. Fits = converged replications; Reject = rejected product-term tests; CI = Wilson 95%."
+#| tbl-cap: "Product-term rejection rates by forced-choice performance scenario and fitted model. The matched chance-corrected model shows nominal rejection; alternative scales show pseudo-interaction detection. Fits = replications with a usable Wald test; Reject = rejected product-term tests; CI = Wilson 95%."
 #| disable-apaquarto-processing: true
 #| results: asis
 
@@ -465,43 +465,7 @@ print_table_if_exists(
 )
 ```
 
-```{r}
-#| label: forced-choice-convergence-inline
-#| include: false
-
-fc_summary_tbl <- read_csv_if_exists("tables", "simulation-summary-forced-choice.csv")
-fc_lower_matched_fits <- if (is.null(fc_summary_tbl)) {
-  "the"
-} else {
-  fc_summary_tbl$n_successful_fits[
-    fc_summary_tbl$scenario == "Lower performance" &
-      fc_summary_tbl$model == "Chance-corrected binomial logit"
-  ]
-}
-```
-
-Because the chance-corrected model is the only one that can fail to converge, the rates in @tbl-rejection-forced-choice are not all computed on the same replications: in the lower-performance scenario the three alternative models use all 300 replications while the matched model uses the `r fc_lower_matched_fits` that converged. @tbl-rejection-forced-choice-common repeats all four models on the replications in which *every* model returned a usable interaction test, so that within each scenario the four rates describe identical datasets. The middle- and higher-performance scenarios are unaffected, because all four models converged everywhere there. In the lower-performance scenario the rates shift slightly, and the ordering of the four models is unchanged, with the standard logit highest, followed by the standard probit, the Gaussian identity, and the matched chance-corrected model, which under-rejects because the floor leaves little information about above-chance differences. The selective convergence therefore does not create the pattern reported in the main paper.
-
-```{r}
-#| label: tbl-rejection-forced-choice-common
-#| tbl-cap: "Product-term rejection rates for the forced-choice simulation, restricted to the replications in which all four models converged. Common reps = replications retained in the scenario, identical for the four models by construction; Reject is computed within that subset. CI = Wilson 95%."
-#| disable-apaquarto-processing: true
-#| results: asis
-
-print_table_if_exists(
-  note_if_missing = "Common-convergence forced-choice summary not available in this build.",
-  "tables", "simulation-summary-forced-choice-common-convergence.csv",
-  transform = function(d) data.frame(
-    Scenario = d$scenario,
-    Model = d$model,
-    `Rate type` = d$rate_type,
-    `Common reps` = d$n_common_convergence_replications,
-    Reject = d$n_rejections,
-    `Rejection rate [95% CI]` = fmt_rate_ci(d$rejection_rate, d$ci_low, d$ci_high),
-    check.names = FALSE
-  )
-)
-```
+All four models returned usable Wald tests in all 3,000 replications of every scenario, so a separate common-convergence table would duplicate @tbl-rejection-forced-choice. Complete fit success does not imply equal precision, however. For the matched chance-corrected model, the Monte Carlo standard deviation of the estimated age-by-group coefficient was 0.180 in the lower-performance scenario, 0.115 in the middle-performance scenario, and 0.099 in the higher-performance scenario. Thus, performance closer to the chance floor provides less precise information about changes on the above-chance link scale, even though the robust optimization procedure yields a usable test throughout. The lower-performance result should therefore be interpreted as reduced precision rather than selective convergence or widespread non-identification.
 
 ## Simulation 2: within-family link choice
 
@@ -669,7 +633,7 @@ The diagnostic simulation ties each of the five link-misspecification scenarios 
 
 *The Pregibon-style added-term link check* [@pregibon1980] extracts the fitted linear predictor, adds its square to the model formula, and tests the significance of the added term while retaining the family, link, base formula, and random-effects structure of the model being diagnosed. For GLMMs, the constructed term uses the population-level linear predictor, with the estimated random effects set to zero; this avoids feeding outcome-derived empirical Bayes estimates back into the model as an ordinary covariate. The check is reported as not applicable when the squared predictor does not increase the rank of the fixed-effects design matrix. In particular, the $2 \times 2$ interaction model is saturated over its four design cells, so its squared fitted linear predictor is exactly collinear with the existing fixed effects.
 
-*The chance-corrected fits in D2* are the only ones estimated outside a standard model-fitting function, and they use a more defensive procedure than Simulation 1, because here the target-link model is one of the two candidates in the AIC comparison and a failed fit would silently remove a replication from that comparison. The model is fitted by direct maximum likelihood with $c = .50$ fixed by design. Five starting values are tried: a vector of zeros, three derived from the corresponding standard-logit fit, and one from a linear fit on the empirical above-chance proportions, which is the scale the likelihood actually works on. Each start is optimized with both BFGS and Nelder--Mead, the solution with the highest likelihood is retained, and it is then polished with a tighter BFGS run. Because `optim()` reports only that a stopping rule was met, and that rule is easily met far from the maximum on the flat region near the chance floor, the retained solution is additionally checked against the score and the curvature of the log-likelihood; the same Hessian supplies the variance-covariance matrix used for the Wald test. Replications that fail these checks are recorded as failed fits.
+*The chance-corrected fits in D2* are the only ones estimated outside a standard model-fitting function, and they use an extended version of the same defensive direct-likelihood procedure used in Simulation 1, because here the target-link model is one of the two candidates in the AIC comparison and a failed fit would silently remove a replication from that comparison. The model is fitted by direct maximum likelihood with $c = .50$ fixed by design. Five starting values are tried: a vector of zeros, three derived from the corresponding standard-logit fit, and one from a linear fit on the empirical above-chance proportions, which is the scale the likelihood actually works on. Each start is optimized with both BFGS and Nelder--Mead, the solution with the highest likelihood is retained, and it is then polished with a tighter BFGS run. Because `optim()` reports only that a stopping rule was met, and that rule is easily met far from the maximum on the flat region near the chance floor, the retained solution is additionally checked against the score and the curvature of the log-likelihood; the same Hessian supplies the variance-covariance matrix used for the Wald test. Replications that fail these checks are recorded as failed fits.
 
 *The same-formula AIC comparison* contrasts the target-link and the misspecified-link interaction models, holding the response data, the likelihood family, and the structural formula fixed, so only the mean-link mapping varies. No inconclusive $\Delta$AIC category is used, so the two AIC rows in @tbl-diagnostic-breakdown are complementary whenever both AIC values are available.
 

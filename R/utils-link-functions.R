@@ -103,8 +103,7 @@ fit_chance_binom <- function(formula, data, y_col = "y", k_col = "k",
     stop("Invalid binomial counts in chance-corrected fit.", call. = FALSE)
   }
 
-  start <- rep(0, ncol(X))
-  names(start) <- colnames(X)
+  zero <- stats::setNames(rep(0, ncol(X)), colnames(X))
 
   start_fit <- try(
     stats::glm.fit(
@@ -115,9 +114,10 @@ fit_chance_binom <- function(formula, data, y_col = "y", k_col = "k",
     silent = TRUE
   )
 
-  if (!inherits(start_fit, "try-error") && length(stats::coef(start_fit)) == length(start)) {
+  from_standard <- zero
+  if (!inherits(start_fit, "try-error") && length(stats::coef(start_fit)) == length(zero)) {
     cf <- stats::coef(start_fit)
-    if (all(is.finite(cf))) start <- cf
+    if (all(is.finite(cf))) from_standard[] <- cf
   }
 
   nll <- function(beta) {
@@ -127,18 +127,57 @@ fit_chance_binom <- function(formula, data, y_col = "y", k_col = "k",
     -sum(stats::dbinom(y, size = k, prob = p, log = TRUE))
   }
 
-  opt <- try(
-    stats::optim(
-      start,
-      nll,
-      method = "BFGS",
-      hessian = TRUE,
-      control = list(maxit = 1000)
-    ),
-    silent = TRUE
+  gradient <- function(beta) {
+    eta <- drop(X %*% beta)
+    q <- inv_link(eta, link = link)
+    p <- chance + (1 - chance) * q
+    p <- clip_probability(p, eps = 1e-10)
+
+    # This score is analytic for the chance-corrected logit used by the
+    # manuscript simulation. Other links retain the previous numerical
+    # optimization path rather than silently using the wrong derivative.
+    if (link != "logit") return(NULL)
+
+    weight <- ((y - k * p) / (p * (1 - p))) *
+      (1 - chance) * q * (1 - q)
+    -drop(crossprod(X, weight))
+  }
+
+  # A standard-logit fit is on the wrong scale when chance > 0. Use it as one
+  # candidate start, together with zero and a start estimated directly on the
+  # observed above-chance proportions. This mirrors the robust Atlas fitter and
+  # avoids false convergence on the flat likelihood region near the chance
+  # floor.
+  above <- (y / k - chance) / (1 - chance)
+  above <- clip_probability(above, eps = 0.02)
+  from_above <- zero
+  above_fit <- try(stats::lm.fit(X, stats::qlogis(above)), silent = TRUE)
+  if (!inherits(above_fit, "try-error") && all(is.finite(stats::coef(above_fit)))) {
+    from_above[] <- stats::coef(above_fit)
+  }
+
+  starts <- list(zero, from_standard, from_above)
+  candidates <- lapply(starts, function(start) {
+    try(
+      stats::optim(
+        start,
+        nll,
+        gr = if (link == "logit") gradient else NULL,
+        method = "BFGS",
+        control = list(maxit = 1500, reltol = 1e-10)
+      ),
+      silent = TRUE
+    )
+  })
+  ok <- vapply(
+    candidates,
+    function(x) {
+      !inherits(x, "try-error") && is.finite(x$value) && all(is.finite(x$par))
+    },
+    logical(1)
   )
 
-  if (inherits(opt, "try-error") || !is.finite(opt$value)) {
+  if (!any(ok)) {
     return(list(
       coefficients = stats::setNames(rep(NA_real_, ncol(X)), colnames(X)),
       vcov = matrix(NA_real_, ncol(X), ncol(X), dimnames = list(colnames(X), colnames(X))),
@@ -149,10 +188,32 @@ fit_chance_binom <- function(formula, data, y_col = "y", k_col = "k",
       chance = chance,
       link = link,
       converged = FALSE,
+      optimizer_convergence = NA_integer_,
+      gradient_max = NA_real_,
+      hessian_min_eigen = NA_real_,
+      hessian_eigen_ratio = NA_real_,
       model_matrix_names = colnames(X),
       nll = NA_real_
     ))
   }
+
+  valid_candidates <- candidates[ok]
+  best <- valid_candidates[[which.min(vapply(
+    valid_candidates,
+    `[[`,
+    numeric(1),
+    "value"
+  ))]]
+  names(best$par) <- colnames(X)
+
+  hessian <- try(
+    stats::optimHess(
+      best$par,
+      nll,
+      gr = if (link == "logit") gradient else NULL
+    ),
+    silent = TRUE
+  )
 
   # A Wald test is only defined when the observed information matrix is positive
   # definite and well conditioned. Near the chance floor the likelihood can be
@@ -160,15 +221,26 @@ fit_chance_binom <- function(formula, data, y_col = "y", k_col = "k",
   # that are negative (clamped to zero, giving an infinite z) or implausibly
   # small (giving a z large enough to underflow the normal tail to exactly 0).
   # Both are recorded as missing, so the fit counts as unusable.
-  hess_sym <- (opt$hessian + t(opt$hessian)) / 2
-  eig <- try(
-    eigen(hess_sym, symmetric = TRUE, only.values = TRUE)$values,
-    silent = TRUE
-  )
+  hess_sym <- if (!inherits(hessian, "try-error") && all(is.finite(hessian))) {
+    (hessian + t(hessian)) / 2
+  } else {
+    NULL
+  }
+  eig <- if (is.null(hess_sym)) {
+    structure("Hessian calculation failed", class = "try-error")
+  } else {
+    try(eigen(hess_sym, symmetric = TRUE, only.values = TRUE)$values, silent = TRUE)
+  }
+  hessian_min_eigen <- if (inherits(eig, "try-error")) NA_real_ else min(eig)
+  hessian_eigen_ratio <- if (inherits(eig, "try-error")) {
+    NA_real_
+  } else {
+    min(eig) / max(eig)
+  }
   well_conditioned <- !inherits(eig, "try-error") &&
     all(is.finite(eig)) &&
-    min(eig) > 0 &&
-    (min(eig) / max(eig)) > sqrt(.Machine$double.eps)
+    hessian_min_eigen > 1e-7 &&
+    hessian_eigen_ratio > sqrt(.Machine$double.eps)
 
   V <- if (well_conditioned) try(solve(hess_sym), silent = TRUE) else NULL
   if (is.null(V) || inherits(V, "try-error") || any(!is.finite(V))) {
@@ -178,15 +250,19 @@ fit_chance_binom <- function(formula, data, y_col = "y", k_col = "k",
   variances <- diag(V)
   variances[!is.finite(variances) | variances <= 0] <- NA_real_
   se <- sqrt(variances)
-  z <- opt$par / se
+  z <- best$par / se
   pval <- 2 * stats::pnorm(abs(z), lower.tail = FALSE)
 
-  names(opt$par) <- colnames(X)
   names(pval) <- colnames(X)
   dimnames(V) <- list(colnames(X), colnames(X))
 
+  optimizer_converged <- isTRUE(best$convergence == 0)
+  usable <- optimizer_converged && well_conditioned &&
+    all(is.finite(V)) && all(is.finite(pval))
+  if (!usable) pval[] <- NA_real_
+
   list(
-    coefficients = opt$par,
+    coefficients = best$par,
     vcov = V,
     p_value = pval,
     formula = formula,
@@ -194,9 +270,13 @@ fit_chance_binom <- function(formula, data, y_col = "y", k_col = "k",
     xlevels = stats::.getXlevels(stats::terms(formula), mf),
     chance = chance,
     link = link,
-    converged = isTRUE(opt$convergence == 0),
+    converged = usable,
+    optimizer_convergence = best$convergence,
+    gradient_max = if (link == "logit") max(abs(gradient(best$par))) else NA_real_,
+    hessian_min_eigen = hessian_min_eigen,
+    hessian_eigen_ratio = hessian_eigen_ratio,
     model_matrix_names = colnames(X),
-    nll = opt$value
+    nll = best$value
   )
 }
 
