@@ -1,36 +1,62 @@
-# Offline Monte Carlo runner. The Shiny app never sources this file.
+# Offline Monte Carlo runner (Parallel SLURM version).
 # Run from the repository root, after building the grid.
 
 # ==========================================================================
-#  SETTINGS - this is the only block you need to edit.
+#  SETTINGS - parallel execution settings block
 # ==========================================================================
+
+project_settings_path <- if (file.exists("R/project-settings.R")) {
+  "R/project-settings.R"
+} else {
+  file.path("..", "R", "project-settings.R")
+}
+source(project_settings_path)
 
 # "smoke" = quick check: one manuscript anchor per family, 2-3 replications.
 # "full"  = the real simulation: every scenario in the grid.
-MODE <- "smoke"
+if (!exists("MODE", inherits = FALSE)) {
+  MODE <- Sys.getenv("ATLAS_MODE", "full")
+}
 
 # FALSE = skip the DHARMa residual checks. They dominate the runtime, and the
 #         AIC and Pregibon diagnostics are still computed. You can add DHARMa
 #         later by setting this to TRUE and re-running this script.
 # TRUE  = also run the DHARMa residual checks.
-RUN_DHARMA <- FALSE
+if (!exists("RUN_DHARMA", inherits = FALSE)) {
+  RUN_DHARMA <- as.logical(Sys.getenv("ATLAS_RUN_DHARMA", "FALSE"))
+}
 
-# Scenarios computed in parallel. 1 = no parallelism.
-N_CORES <- 1
+settings <- list(
+  B = if (tolower(MODE) == "smoke" && !nzchar(Sys.getenv("N_SIM"))) {
+    NA_integer_
+  } else {
+    default_B
+  },
+  n_cores = as.integer(Sys.getenv(
+    "SLURM_CPUS_PER_TASK",
+    Sys.getenv("N_CORES", max(1, parallel::detectCores() - 1))
+  ))
+)
+
+# Scenarios computed in parallel. Automatically reads SLURM_CPUS_PER_TASK or N_CORES environment variable.
+if (!exists("N_CORES", inherits = FALSE)) N_CORES <- settings$n_cores
 
 # TRUE re-computes scenarios whose raw file is already complete.
 # FALSE skips them, so an interrupted run can simply be started again.
-OVERWRITE <- FALSE
+if (!exists("OVERWRITE", inherits = FALSE)) {
+  OVERWRITE <- as.logical(Sys.getenv("ATLAS_OVERWRITE", "FALSE"))
+}
 
-# Replications per scenario. Leave NA to use the default for the chosen MODE:
-#   smoke -> 3 replications (2 for the slower within-family scenarios)
-#   full  -> 500 replications (300 for the within-family scenarios)
-B <- NA
-B_WITHIN <- NA
+# Replications per scenario. In full mode this matches the scripts in scripts/ through
+# default_B, which can be changed from the shell with N_SIM. Smoke mode keeps
+# the atlas smoke defaults unless N_SIM is explicitly set.
+# B_WITHIN can still be set separately before sourcing/running this script.
+if (!exists("B", inherits = FALSE)) B <- settings$B
+if (!exists("B_WITHIN", inherits = FALSE)) B_WITHIN <- settings$B
 
 # Simulated data sets per DHARMa check; only used when RUN_DHARMA = TRUE.
 # Leave NA for the default: 25 in smoke mode, 250 in full mode.
-DHARMA_N_SIM <- NA
+if (!exists("DHARMA_N_SIM", inherits = FALSE)) DHARMA_N_SIM <- NA
 
 # ==========================================================================
 #  Nothing below here needs to be edited.
@@ -204,11 +230,6 @@ atlas_apply_jobs <- function(rows, worker, n_cores) {
     NULL
   })
   parallel::clusterExport(cluster, varlist = ls(envir = .GlobalEnv), envir = .GlobalEnv)
-  # Scenario cost is very uneven: one within-family replication costs roughly
-  # twenty to forty times a forced-choice or sum-score one, and the grid is
-  # ordered by family. Static chunking would leave whole workers idle while a
-  # few finish the within-family block, so dispatch one scenario at a time.
-  # Seeds are per scenario and replication, so results do not depend on order.
   parallel::clusterApplyLB(cluster, indices, worker)
 }
 

@@ -1,5 +1,5 @@
 # scripts/03a-simulation-forced-choice.R
-# Simulation 1: forced-choice accuracy with a non-zero chance floor.
+# Parallelized version of Simulation 1: forced-choice accuracy with a non-zero chance floor.
 #
 # This script first shows the deterministic scenario, then simulates data,
 # then quantifies nominal rejection on the known generating scale and
@@ -7,6 +7,8 @@
 # parameters stay here, not in R/.
 
 rm(list = ls())
+
+library(ggplot2)
 
 # ---------------------------------------------------------------------
 # 0. Project setup
@@ -20,7 +22,9 @@ source("R/utils-plots.R")
 ensure_output_dirs()
 set.seed(20260525)
 
-report_header("Simulation 1: forced-choice accuracy with chance floor")
+report_header(
+  "Simulation 1: forced-choice accuracy with chance floor (Parallel)"
+)
 
 # ---------------------------------------------------------------------
 # 1. User-tunable scenario block
@@ -36,11 +40,14 @@ settings <- list(
   beta_age_group = 0.00,
   generating_link = "logit",
   B = default_B,
+  n_cores = as.integer(Sys.getenv(
+    "SLURM_CPUS_PER_TASK",
+    Sys.getenv("N_CORES", max(1, parallel::detectCores() - 1))
+  )),
   alpha = default_alpha,
   output_scenario_table = "tables/scenario-table-forced-choice.csv",
   output_summary_table = "tables/simulation-summary-forced-choice.csv",
-  output_common_convergence_table =
-    "tables/simulation-summary-forced-choice-common-convergence.csv",
+  output_common_convergence_table = "tables/simulation-summary-forced-choice-common-convergence.csv",
   output_figure_base = "figs/forced-choice-simulation",
   output_inspection_base = "outputs/inspection/forced-choice-effect-size-inspection",
   output_rds = "outputs/simulation-forced-choice.rds"
@@ -53,8 +60,16 @@ settings$age_summary_values <- c(
   settings$age_center,
   settings$age_range[2]
 )
-settings$age_plot_values <- seq(settings$age_range[1], settings$age_range[2], length.out = 200)
-settings$age_bin_breaks <- seq(settings$age_range[1], settings$age_range[2], length.out = 9)
+settings$age_plot_values <- seq(
+  settings$age_range[1],
+  settings$age_range[2],
+  length.out = 200
+)
+settings$age_bin_breaks <- seq(
+  settings$age_range[1],
+  settings$age_range[2],
+  length.out = 9
+)
 
 scenarios <- data.frame(
   scenario = c("Lower performance", "Middle performance", "Higher performance"),
@@ -103,14 +118,22 @@ simulate_one <- function(beta_intercept) {
   age <- stats::runif(settings$N, settings$age_range[1], settings$age_range[2])
   age_c <- age - settings$age_center
   eta <- eta_fun(age, group_num, beta_intercept)
-  p <- chance_linkinv(eta, chance = settings$chance, link = settings$generating_link)
+  p <- chance_linkinv(
+    eta,
+    chance = settings$chance,
+    link = settings$generating_link
+  )
   y <- stats::rbinom(settings$N, size = settings$k_trials, prob = p)
-  
+
   data.frame(
     age = age,
     age_c = age_c,
     group_num = group_num,
-    group = factor(group_num, levels = c(0, 1), labels = c("Group 0", "Group 1")),
+    group = factor(
+      group_num,
+      levels = c(0, 1),
+      labels = c("Group 0", "Group 1")
+    ),
     y = y,
     k = settings$k_trials,
     accuracy = y / settings$k_trials,
@@ -121,59 +144,77 @@ simulate_one <- function(beta_intercept) {
 # ---------------------------------------------------------------------
 # 3. Compact scenario table
 # ---------------------------------------------------------------------
-scenario_values <- do.call(rbind, lapply(seq_len(nrow(scenarios)), function(i) {
-  s <- scenarios[i, ]
-  g <- expand.grid(
-    age = settings$age_summary_values,
-    group_num = c(0, 1)
-  )
-  g$scenario <- s$scenario
-  g$group <- ifelse(g$group_num == 0, "Group 0", "Group 1")
-  g$linear_predictor <- eta_fun(g$age, g$group_num, s$beta_intercept)
-  g$expected_accuracy <- p_fun(g$age, g$group_num, s$beta_intercept)
-  g$expected_correct_out_of_k_trials <- g$expected_accuracy * settings$k_trials
-  
-  g[, c(
-    "scenario", "age", "group", "linear_predictor",
-    "expected_accuracy", "expected_correct_out_of_k_trials"
-  )]
-}))
+scenario_values <- do.call(
+  rbind,
+  lapply(seq_len(nrow(scenarios)), function(i) {
+    s <- scenarios[i, ]
+    g <- expand.grid(
+      age = settings$age_summary_values,
+      group_num = c(0, 1)
+    )
+    g$scenario <- s$scenario
+    g$group <- ifelse(g$group_num == 0, "Group 0", "Group 1")
+    g$linear_predictor <- eta_fun(g$age, g$group_num, s$beta_intercept)
+    g$expected_accuracy <- p_fun(g$age, g$group_num, s$beta_intercept)
+    g$expected_correct_out_of_k_trials <- g$expected_accuracy *
+      settings$k_trials
 
-scenario_contrasts <- do.call(rbind, lapply(seq_len(nrow(scenarios)), function(i) {
-  s <- scenarios[i, ]
-  age_low <- settings$age_range[1]
-  age_high <- settings$age_range[2]
-  
-  p00 <- p_fun(age_low, 0, s$beta_intercept)
-  p01 <- p_fun(age_low, 1, s$beta_intercept)
-  p10 <- p_fun(age_high, 0, s$beta_intercept)
-  p11 <- p_fun(age_high, 1, s$beta_intercept)
-  
-  response_scale_values <- c(
-    group_difference(p00, p01),
-    group_difference(p10, p11),
-    p10 - p00,
-    p11 - p01,
-    change_in_group_difference(p00, p01, p10, p11),
-    NA_real_
-  )
-  
-  data.frame(
-    scenario = s$scenario,
-    contrast = c(
-      "Group difference at youngest age: Group 1 minus Group 0",
-      "Group difference at oldest age: Group 1 minus Group 0",
-      "Age-related change in Group 0: oldest minus youngest",
-      "Age-related change in Group 1: oldest minus youngest",
-      "Change in group difference from youngest to oldest age",
-      "Generating link-scale age-by-group product term"
-    ),
-    value_probability_points = response_scale_values,
-    value_correct_out_of_k_trials = response_scale_values * settings$k_trials,
-    link_scale_value = c(NA_real_, NA_real_, NA_real_, NA_real_, NA_real_, settings$beta_age_group),
-    stringsAsFactors = FALSE
-  )
-}))
+    g[, c(
+      "scenario",
+      "age",
+      "group",
+      "linear_predictor",
+      "expected_accuracy",
+      "expected_correct_out_of_k_trials"
+    )]
+  })
+)
+
+scenario_contrasts <- do.call(
+  rbind,
+  lapply(seq_len(nrow(scenarios)), function(i) {
+    s <- scenarios[i, ]
+    age_low <- settings$age_range[1]
+    age_high <- settings$age_range[2]
+
+    p00 <- p_fun(age_low, 0, s$beta_intercept)
+    p01 <- p_fun(age_low, 1, s$beta_intercept)
+    p10 <- p_fun(age_high, 0, s$beta_intercept)
+    p11 <- p_fun(age_high, 1, s$beta_intercept)
+
+    response_scale_values <- c(
+      group_difference(p00, p01),
+      group_difference(p10, p11),
+      p10 - p00,
+      p11 - p01,
+      change_in_group_difference(p00, p01, p10, p11),
+      NA_real_
+    )
+
+    data.frame(
+      scenario = s$scenario,
+      contrast = c(
+        "Group difference at youngest age: Group 1 minus Group 0",
+        "Group difference at oldest age: Group 1 minus Group 0",
+        "Age-related change in Group 0: oldest minus youngest",
+        "Age-related change in Group 1: oldest minus youngest",
+        "Change in group difference from youngest to oldest age",
+        "Generating link-scale age-by-group product term"
+      ),
+      value_probability_points = response_scale_values,
+      value_correct_out_of_k_trials = response_scale_values * settings$k_trials,
+      link_scale_value = c(
+        NA_real_,
+        NA_real_,
+        NA_real_,
+        NA_real_,
+        NA_real_,
+        settings$beta_age_group
+      ),
+      stringsAsFactors = FALSE
+    )
+  })
+)
 
 scenario_table <- rbind(
   data.frame(
@@ -201,7 +242,11 @@ scenario_table <- rbind(
   )
 )
 
-utils::write.csv(scenario_table, settings$output_scenario_table, row.names = FALSE)
+utils::write.csv(
+  scenario_table,
+  settings$output_scenario_table,
+  row.names = FALSE
+)
 
 report_section("Implied scenario values")
 print_compact(scenario_values)
@@ -215,55 +260,76 @@ report_sign_convention(
 # ---------------------------------------------------------------------
 # 4. Deterministic plotting data
 # ---------------------------------------------------------------------
-plot_grid <- do.call(rbind, lapply(seq_len(nrow(scenarios)), function(i) {
-  s <- scenarios[i, ]
-  g <- expand.grid(
-    age = settings$age_plot_values,
-    group_num = c(0, 1)
-  )
-  g$scenario <- s$scenario
-  g$group <- factor(g$group_num, levels = c(0, 1), labels = c("Group 0", "Group 1"))
-  g$age_c <- g$age - settings$age_center
-  g$eta <- eta_fun(g$age, g$group_num, s$beta_intercept)
-  g$expected_accuracy <- chance_linkinv(g$eta, chance = settings$chance, link = settings$generating_link)
-  g
-}))
+plot_grid <- do.call(
+  rbind,
+  lapply(seq_len(nrow(scenarios)), function(i) {
+    s <- scenarios[i, ]
+    g <- expand.grid(
+      age = settings$age_plot_values,
+      group_num = c(0, 1)
+    )
+    g$scenario <- s$scenario
+    g$group <- factor(
+      g$group_num,
+      levels = c(0, 1),
+      labels = c("Group 0", "Group 1")
+    )
+    g$age_c <- g$age - settings$age_center
+    g$eta <- eta_fun(g$age, g$group_num, s$beta_intercept)
+    g$expected_accuracy <- chance_linkinv(
+      g$eta,
+      chance = settings$chance,
+      link = settings$generating_link
+    )
+    g
+  })
+)
 plot_grid$scenario <- factor(plot_grid$scenario, levels = scenarios$scenario)
 
-# Predicted group difference over age, using Group 1 minus Group 0.
-# This is retained for tables/RDS and for the inspection plot, but no longer
-# shown as a main manuscript panel because it largely repeats Panel A.
-gap_data <- do.call(rbind, lapply(split(plot_grid, plot_grid$scenario), function(dat) {
-  wide0 <- dat[dat$group_num == 0, c("scenario", "age", "expected_accuracy")]
-  wide1 <- dat[dat$group_num == 1, c("scenario", "age", "expected_accuracy")]
-  gap <- group_difference(wide0$expected_accuracy, wide1$expected_accuracy)
-  
-  data.frame(
-    scenario = wide0$scenario,
-    age = wide0$age,
-    group_gap = gap,
-    group_difference_correct_out_of_k_trials = gap * settings$k_trials,
-    stringsAsFactors = FALSE
-  )
-}))
+gap_data <- do.call(
+  rbind,
+  lapply(split(plot_grid, plot_grid$scenario), function(dat) {
+    wide0 <- dat[dat$group_num == 0, c("scenario", "age", "expected_accuracy")]
+    wide1 <- dat[dat$group_num == 1, c("scenario", "age", "expected_accuracy")]
+    gap <- group_difference(wide0$expected_accuracy, wide1$expected_accuracy)
+
+    data.frame(
+      scenario = wide0$scenario,
+      age = wide0$age,
+      group_gap = gap,
+      group_difference_correct_out_of_k_trials = gap * settings$k_trials,
+      stringsAsFactors = FALSE
+    )
+  })
+)
 gap_data$scenario <- factor(gap_data$scenario, levels = scenarios$scenario)
 
 # ---------------------------------------------------------------------
 # 5. One illustrative dataset per scenario
 # ---------------------------------------------------------------------
-example_data <- do.call(rbind, lapply(seq_len(nrow(scenarios)), function(i) {
-  d <- simulate_one(scenarios$beta_intercept[i])
-  d$scenario <- scenarios$scenario[i]
-  d
-}))
-example_data$scenario <- factor(example_data$scenario, levels = scenarios$scenario)
+example_data <- do.call(
+  rbind,
+  lapply(seq_len(nrow(scenarios)), function(i) {
+    d <- simulate_one(scenarios$beta_intercept[i])
+    d$scenario <- scenarios$scenario[i]
+    d
+  })
+)
+example_data$scenario <- factor(
+  example_data$scenario,
+  levels = scenarios$scenario
+)
 
 example_data$age_bin <- cut(
   example_data$age,
   breaks = settings$age_bin_breaks,
   include.lowest = TRUE
 )
-example_binned <- stats::aggregate(accuracy ~ scenario + age_bin + group, example_data, mean)
+example_binned <- stats::aggregate(
+  accuracy ~ scenario + age_bin + group,
+  example_data,
+  mean
+)
 example_binned$age_mid <- bin_midpoints(example_binned$age_bin)
 
 report_section("One example dataset per scenario")
@@ -310,22 +376,38 @@ fit_models <- function(d) {
 }
 
 model_p <- function(fit, model_name) {
-  if (inherits(fit, "try-error")) return(NA_real_)
-  if (model_name == "Gaussian identity") return(interaction_p_from_lm(fit))
-  if (model_name == "Chance-corrected binomial logit") return(interaction_p_from_chance(fit))
+  if (inherits(fit, "try-error")) {
+    return(NA_real_)
+  }
+  if (model_name == "Gaussian identity") {
+    return(interaction_p_from_lm(fit))
+  }
+  if (model_name == "Chance-corrected binomial logit") {
+    return(interaction_p_from_chance(fit))
+  }
   interaction_p_from_glm(fit)
 }
 
 model_coef <- function(fit, model_name) {
-  if (inherits(fit, "try-error")) return(NA_real_)
-  if (model_name == "Gaussian identity") return(interaction_coef_from_lm(fit))
-  if (model_name == "Chance-corrected binomial logit") return(interaction_coef_from_chance(fit))
+  if (inherits(fit, "try-error")) {
+    return(NA_real_)
+  }
+  if (model_name == "Gaussian identity") {
+    return(interaction_coef_from_lm(fit))
+  }
+  if (model_name == "Chance-corrected binomial logit") {
+    return(interaction_coef_from_chance(fit))
+  }
   interaction_coef_from_glm(fit)
 }
 
 model_predict <- function(fit, model_name, newdata) {
-  if (inherits(fit, "try-error")) return(rep(NA_real_, nrow(newdata)))
-  if (model_name == "Gaussian identity") return(stats::predict(fit, newdata = newdata))
+  if (inherits(fit, "try-error")) {
+    return(rep(NA_real_, nrow(newdata)))
+  }
+  if (model_name == "Gaussian identity") {
+    return(stats::predict(fit, newdata = newdata))
+  }
   if (model_name == "Chance-corrected binomial logit") {
     return(predict_chance_binom(fit, newdata = newdata, type = "response"))
   }
@@ -338,16 +420,16 @@ model_did <- function(fit, model_name) {
     group = factor(c("Group 0", "Group 1"), levels = c("Group 0", "Group 1"))
   )
   nd$age_c <- nd$age - settings$age_center
-  
+
   pred <- model_predict(fit, model_name, nd)
   low <- settings$age_range[1]
   high <- settings$age_range[2]
-  
+
   p_low_g0 <- pred[nd$age == low & nd$group == "Group 0"]
   p_low_g1 <- pred[nd$age == low & nd$group == "Group 1"]
   p_high_g0 <- pred[nd$age == high & nd$group == "Group 0"]
   p_high_g1 <- pred[nd$age == high & nd$group == "Group 1"]
-  
+
   change_in_group_difference(p_low_g0, p_low_g1, p_high_g0, p_high_g1)
 }
 
@@ -355,114 +437,183 @@ run_replication <- function(scenario_label, beta_intercept, replication) {
   d <- simulate_one(beta_intercept)
   fits <- fit_models(d)
 
-  do.call(rbind, lapply(model_names, function(m) {
-    fit <- fits[[m]]
-    did <- model_did(fit, m)
+  do.call(
+    rbind,
+    lapply(model_names, function(m) {
+      fit <- fits[[m]]
+      did <- model_did(fit, m)
 
-    data.frame(
-      scenario = scenario_label,
-      replication = replication,
-      model = m,
-      p_value = model_p(fit, m),
-      interaction_coef = model_coef(fit, m),
-      change_in_group_difference_response_scale = did,
-      change_in_group_difference_outcome_units = did * settings$k_trials,
-      stringsAsFactors = FALSE
-    )
-  }))
+      data.frame(
+        scenario = scenario_label,
+        replication = replication,
+        model = m,
+        p_value = model_p(fit, m),
+        interaction_coef = model_coef(fit, m),
+        change_in_group_difference_response_scale = did,
+        change_in_group_difference_outcome_units = did * settings$k_trials,
+        stringsAsFactors = FALSE
+      )
+    })
+  )
 }
 
 # ---------------------------------------------------------------------
 # 7. Repeated simulation
 # ---------------------------------------------------------------------
 report_section("Monte Carlo simulation")
-cat("Running B = ", settings$B, " replications per scenario.\n", sep = "")
-cat("This can be changed with Sys.setenv(N_SIM = '...') or by editing settings$B.\n")
+cat(
+  "Running B = ",
+  settings$B,
+  " replications per scenario (n_cores = ",
+  settings$n_cores,
+  ").\n",
+  sep = ""
+)
+cat(
+  "This can be changed with Sys.setenv(N_SIM = '...') or Sys.setenv(N_CORES = '...').\n"
+)
 
-simulation_results <- do.call(rbind, lapply(seq_len(nrow(scenarios)), function(i) {
-  s <- scenarios[i, ]
-  cat("Scenario: ", s$scenario, "\n", sep = "")
-  
-  do.call(rbind, lapply(seq_len(settings$B), function(b) {
-    progress_tick(b, settings$B, label = "  replication ")
-    run_replication(s$scenario, s$beta_intercept, replication = b)
-  }))
-}))
+simulation_results <- do.call(
+  rbind,
+  lapply(seq_len(nrow(scenarios)), function(i) {
+    s <- scenarios[i, ]
+    cat("Scenario: ", s$scenario, "\n", sep = "")
 
-simulation_summary <- do.call(rbind, lapply(
-  split(simulation_results, list(simulation_results$scenario, simulation_results$model), drop = TRUE),
-  function(dat) {
-    sm <- summarise_model_simulation(dat, alpha = settings$alpha)
-    data.frame(
-      scenario = dat$scenario[1],
-      model = dat$model[1],
-      sm,
-      stringsAsFactors = FALSE
-    )
-  }
-))
-simulation_summary$scenario <- factor(simulation_summary$scenario, levels = scenarios$scenario)
-simulation_summary$model <- factor(simulation_summary$model, levels = model_names)
+    if (settings$n_cores > 1 && .Platform$OS.type == "unix") {
+      do.call(
+        rbind,
+        parallel::mclapply(
+          seq_len(settings$B),
+          function(b) {
+            run_replication(s$scenario, s$beta_intercept, replication = b)
+          },
+          mc.cores = settings$n_cores,
+          mc.set.seed = TRUE
+        )
+      )
+    } else {
+      do.call(
+        rbind,
+        lapply(seq_len(settings$B), function(b) {
+          progress_tick(b, settings$B, label = "  replication ")
+          run_replication(s$scenario, s$beta_intercept, replication = b)
+        })
+      )
+    }
+  })
+)
+
+simulation_summary <- do.call(
+  rbind,
+  lapply(
+    split(
+      simulation_results,
+      list(simulation_results$scenario, simulation_results$model),
+      drop = TRUE
+    ),
+    function(dat) {
+      sm <- summarise_model_simulation(dat, alpha = settings$alpha)
+      data.frame(
+        scenario = dat$scenario[1],
+        model = dat$model[1],
+        sm,
+        stringsAsFactors = FALSE
+      )
+    }
+  )
+)
+simulation_summary$scenario <- factor(
+  simulation_summary$scenario,
+  levels = scenarios$scenario
+)
+simulation_summary$model <- factor(
+  simulation_summary$model,
+  levels = model_names
+)
 simulation_summary$rate_type <- ifelse(
   as.character(simulation_summary$model) == "Chance-corrected binomial logit",
   "Nominal rejection rate",
   "Pseudo-interaction detection rate"
 )
-simulation_summary <- simulation_summary[order(simulation_summary$scenario, simulation_summary$model), ]
+simulation_summary <- simulation_summary[
+  order(simulation_summary$scenario, simulation_summary$model),
+]
 
-utils::write.csv(simulation_summary, settings$output_summary_table, row.names = FALSE)
+utils::write.csv(
+  simulation_summary,
+  settings$output_summary_table,
+  row.names = FALSE
+)
 
 report_section("Simulation summary")
 print_compact(simulation_summary)
-cat("\nThe generating age-by-group product term is zero on the chance-corrected logit scale.\n")
+cat(
+  "\nThe generating age-by-group product term is zero on the chance-corrected logit scale.\n"
+)
 cat("The matching chance-corrected model supplies nominal rejection rates.\n")
-cat("Models fitted on alternative scales supply pseudo-interaction detection rates.\n")
-cat("\nInterpretation aid: median_change_in_group_difference_outcome_units is NOT an observed count.\n")
+cat(
+  "Models fitted on alternative scales supply pseudo-interaction detection rates.\n"
+)
+cat(
+  "\nInterpretation aid: median_change_in_group_difference_outcome_units is NOT an observed count.\n"
+)
 cat(
   "It is the median model-implied change in the predicted group difference from age ",
-  settings$age_range[1], " to age ", settings$age_range[2], ",\n",
+  settings$age_range[1],
+  " to age ",
+  settings$age_range[2],
+  ",\n",
   sep = ""
 )
-cat("expressed as correct-response units out of ", settings$k_trials, " trials.\n", sep = "")
+cat(
+  "expressed as correct-response units out of ",
+  settings$k_trials,
+  " trials.\n",
+  sep = ""
+)
 
 # ---------------------------------------------------------------------
 # 7b. Common-convergence subset
 # ---------------------------------------------------------------------
-# The chance-corrected model can fail to converge near the floor, so its rate
-# is computed on a different (and non-random) set of replications than the
-# other three models. This second summary restricts every model to the
-# replications in which all four models returned a usable interaction test,
-# so that the four rates are directly comparable within a scenario.
-common_convergence_results <- do.call(rbind, lapply(
-  split(simulation_results, simulation_results$scenario, drop = TRUE),
-  function(dat) {
-    usable <- stats::aggregate(
-      list(all_models_converged = is.finite(dat$p_value)),
-      by = list(replication = dat$replication),
-      FUN = all
-    )
-    keep <- usable$replication[usable$all_models_converged]
-    dat[dat$replication %in% keep, , drop = FALSE]
-  }
-))
+common_convergence_results <- do.call(
+  rbind,
+  lapply(
+    split(simulation_results, simulation_results$scenario, drop = TRUE),
+    function(dat) {
+      usable <- stats::aggregate(
+        list(all_models_converged = is.finite(dat$p_value)),
+        by = list(replication = dat$replication),
+        FUN = all
+      )
+      keep <- usable$replication[usable$all_models_converged]
+      dat[dat$replication %in% keep, , drop = FALSE]
+    }
+  )
+)
 
-common_convergence_summary <- do.call(rbind, lapply(
-  split(
-    common_convergence_results,
-    list(common_convergence_results$scenario, common_convergence_results$model),
-    drop = TRUE
-  ),
-  function(dat) {
-    sm <- summarise_model_simulation(dat, alpha = settings$alpha)
-    data.frame(
-      scenario = dat$scenario[1],
-      model = dat$model[1],
-      n_common_convergence_replications = length(unique(dat$replication)),
-      sm,
-      stringsAsFactors = FALSE
-    )
-  }
-))
+common_convergence_summary <- do.call(
+  rbind,
+  lapply(
+    split(
+      common_convergence_results,
+      list(
+        common_convergence_results$scenario,
+        common_convergence_results$model
+      ),
+      drop = TRUE
+    ),
+    function(dat) {
+      sm <- summarise_model_simulation(dat, alpha = settings$alpha)
+      data.frame(
+        scenario = dat$scenario[1],
+        model = dat$model[1],
+        n_common_convergence_replications = length(unique(dat$replication)),
+        sm,
+        stringsAsFactors = FALSE
+      )
+    }
+  )
+)
 common_convergence_summary$scenario <- factor(
   common_convergence_summary$scenario,
   levels = scenarios$scenario
@@ -472,7 +623,8 @@ common_convergence_summary$model <- factor(
   levels = model_names
 )
 common_convergence_summary$rate_type <- ifelse(
-  as.character(common_convergence_summary$model) == "Chance-corrected binomial logit",
+  as.character(common_convergence_summary$model) ==
+    "Chance-corrected binomial logit",
   "Nominal rejection rate",
   "Pseudo-interaction detection rate"
 )
@@ -488,7 +640,9 @@ utils::write.csv(
 
 report_section("Simulation summary, common-convergence subset")
 print_compact(common_convergence_summary)
-cat("\nEvery model is restricted to the replications in which all four models converged,\n")
+cat(
+  "\nEvery model is restricted to the replications in which all four models converged,\n"
+)
 cat("so the four rates within a scenario are computed on identical datasets.\n")
 
 # ---------------------------------------------------------------------
@@ -519,7 +673,10 @@ chance_link_grid <- data.frame(
   )
 )
 
-pA <- ggplot2::ggplot(plot_grid, ggplot2::aes(age, expected_accuracy, linetype = group, color = group)) +
+pA <- ggplot2::ggplot(
+  plot_grid,
+  ggplot2::aes(age, expected_accuracy, linetype = group, color = group)
+) +
   ggplot2::geom_rect(
     data = floor_band,
     ggplot2::aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
@@ -548,9 +705,12 @@ pA <- ggplot2::ggplot(plot_grid, ggplot2::aes(age, expected_accuracy, linetype =
     size = 3,
     color = "grey25"
   ) +
-  ggplot2::facet_wrap(~ scenario) +
+  ggplot2::facet_wrap(~scenario) +
   ggplot2::coord_cartesian(ylim = c(settings$chance - 0.05, 1.00)) +
-  ggplot2::scale_y_continuous(labels = percent_labels(1), breaks = seq(settings$chance, 1, by = 0.10)) +
+  ggplot2::scale_y_continuous(
+    labels = percent_labels(1),
+    breaks = seq(settings$chance, 1, by = 0.10)
+  ) +
   link_scale_color_discrete(name = NULL) +
   link_scale_linetype_discrete(name = NULL) +
   ggplot2::labs(
@@ -561,24 +721,40 @@ pA <- ggplot2::ggplot(plot_grid, ggplot2::aes(age, expected_accuracy, linetype =
     color = NULL,
     linetype = NULL
   ) +
-  link_theme()+
+  link_theme() +
   ggplot2::theme(
     panel.grid.major.y = ggplot2::element_blank(),
     panel.grid.minor.y = ggplot2::element_blank()
   )
 
-pB <- ggplot2::ggplot(simulation_summary, ggplot2::aes(x = model, y = rejection_rate, shape = model)) +
-  ggplot2::geom_hline(yintercept = settings$alpha, linetype = "dashed", color = "grey35") +
-  ggplot2::geom_pointrange(ggplot2::aes(ymin = ci_low, ymax = ci_high), linewidth = 0.45) +
+pB <- ggplot2::ggplot(
+  simulation_summary,
+  ggplot2::aes(x = model, y = rejection_rate, shape = model)
+) +
+  ggplot2::geom_hline(
+    yintercept = settings$alpha,
+    linetype = "dashed",
+    color = "grey35"
+  ) +
+  ggplot2::geom_pointrange(
+    ggplot2::aes(ymin = ci_low, ymax = ci_high),
+    linewidth = 0.45
+  ) +
   ggplot2::coord_flip() +
-  ggplot2::facet_wrap(~ scenario) +
-  ggplot2::scale_y_continuous(labels = percent_labels(1), breaks = seq(0, 1, by = 0.25), limits = c(0, 1)) +
-  ggplot2::scale_shape_manual(values = c(
-    "Gaussian identity" = 16,
-    "Standard binomial logit" = 15,
-    "Standard binomial probit" = 18,
-    "Chance-corrected binomial logit" = 17
-  )) +
+  ggplot2::facet_wrap(~scenario) +
+  ggplot2::scale_y_continuous(
+    labels = percent_labels(1),
+    breaks = seq(0, 1, by = 0.25),
+    limits = c(0, 1)
+  ) +
+  ggplot2::scale_shape_manual(
+    values = c(
+      "Gaussian identity" = 16,
+      "Standard binomial logit" = 15,
+      "Standard binomial probit" = 18,
+      "Chance-corrected binomial logit" = 17
+    )
+  ) +
   ggplot2::labs(
     title = "B. Product-term rejection rate",
     subtitle = "Matched generating-scale model: nominal rejection; alternative scales: pseudo-interaction detection. Dashed line: nominal alpha",
@@ -598,21 +774,26 @@ save_plot_grid(
   dpi = default_dpi
 )
 
-# Extra inspection plot: model-implied effect sizes.
 p_effect <- ggplot2::ggplot(
   simulation_summary,
-  ggplot2::aes(x = model, y = median_change_in_group_difference_outcome_units, shape = model)
+  ggplot2::aes(
+    x = model,
+    y = median_change_in_group_difference_outcome_units,
+    shape = model
+  )
 ) +
   ggplot2::geom_hline(yintercept = 0, linetype = "dashed") +
   ggplot2::geom_point(size = 2) +
   ggplot2::coord_flip() +
-  ggplot2::facet_wrap(~ scenario) +
-  ggplot2::scale_shape_manual(values = c(
-    "Gaussian identity" = 16,
-    "Standard binomial logit" = 15,
-    "Standard binomial probit" = 18,
-    "Chance-corrected binomial logit" = 17
-  )) +
+  ggplot2::facet_wrap(~scenario) +
+  ggplot2::scale_shape_manual(
+    values = c(
+      "Gaussian identity" = 16,
+      "Standard binomial logit" = 15,
+      "Standard binomial probit" = 18,
+      "Chance-corrected binomial logit" = 17
+    )
+  ) +
   ggplot2::labs(
     title = "Inspection: median model-implied change in the group difference",
     subtitle = "Values are contrasts, not possible observed counts",

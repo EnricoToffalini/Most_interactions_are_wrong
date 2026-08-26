@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name="sim_forced_choice"
+#SBATCH --job-name="sim_diagnostic"
 #SBATCH --partition="queue1"
 #SBATCH --mem-per-cpu=2G
 #SBATCH --mail-user=filippo.gambarota@unipd.it
@@ -21,4 +21,4 @@ export NUMEXPR_NUM_THREADS=1
 # Attiva l'ambiente Conda
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate r460
-srun Rscript --vanilla scripts/03a-simulation-forced-choice_par.R
+srun Rscript --vanilla scripts/04-diagnostic-worked-example.R
