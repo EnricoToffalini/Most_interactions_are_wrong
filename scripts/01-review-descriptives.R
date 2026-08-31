@@ -266,9 +266,9 @@ review_summary_table <- rbind(
   flag_row("eligible_empirical", "Eligible empirical articles", n_eligible, n_eligible),
   flag_row("testing_interactions", "Eligible empirical articles testing at least one interaction", n_interactions, n_eligible),
   flag_row("non_identity_link", "Interaction-testing articles using at least one non-identity link", n_non_identity, n_interactions),
-  flag_row("explicit_link", "Interaction-testing articles explicitly reporting the link function", n_explicit, n_interactions),
-  flag_row("incorrect_identity", "Interaction-testing articles with formally incorrect identity-link analyses of constrained observed outcomes", n_incorrect_identity, n_interactions),
-  flag_row("significant_incorrect_identity", "Formally incorrect identity-link cases with at least one significant interaction", n_significant_incorrect_identity, n_incorrect_identity),
+  flag_row("explicit_link", "Interaction-testing articles with clearly identifiable link function", n_explicit, n_interactions),
+  flag_row("incorrect_identity", "Interaction-testing articles with Gaussian-identity analyses on constrained observed outcomes", n_incorrect_identity, n_interactions),
+  flag_row("significant_incorrect_identity", "Gaussian-identity cases with at least one significant interaction", n_significant_incorrect_identity, n_incorrect_identity),
   flag_row("eligible_not_testing_interactions", "Eligible empirical articles not testing interactions", n_non_interactions, n_eligible)
 )
 
@@ -363,7 +363,7 @@ agreement_spec <- data.frame(
   label = c(
     "Uses non-identity link function",
     "Explicit link function",
-    "Formally incorrect identity-link analyses of constrained observed outcomes",
+    "Gaussian-identity analyses on constrained observed outcomes",
     "Finds significant interaction"
   ),
   stringsAsFactors = FALSE

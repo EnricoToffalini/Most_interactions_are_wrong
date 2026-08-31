@@ -161,7 +161,7 @@ short_item <- function(x) {
   out <- x
   out[grepl("non-identity", out, ignore.case = TRUE)] <- "Uses non-identity link"
   out[grepl("Explicit link", out, ignore.case = TRUE)] <- "Explicit link reported"
-  out[grepl("incorrect", out, ignore.case = TRUE)] <- "Identity link flagged"
+  out[grepl("Gaussian-identity|incorrect", out, ignore.case = TRUE)] <- "Gaussian-identity flagged"
   out[grepl("significant", out, ignore.case = TRUE)] <- "Significant flagged interaction"
   out
 }
@@ -209,7 +209,7 @@ compact_by_journal <- function(d) {
     `Interaction / eligible` = fmt_percent(d$interaction_testing_percent_of_eligible),
     `Non-identity link` = fmt_percent(d$non_identity_link_percent_interaction),
     `Explicit link` = fmt_percent(d$explicit_link_percent_interaction),
-    `Identity flagged` = fmt_percent(d$incorrect_identity_percent_interaction),
+    `Gaussian-identity flagged` = fmt_percent(d$incorrect_identity_percent_interaction),
     check.names = FALSE
   )
 }
@@ -285,8 +285,8 @@ Beyond these definitions, the coders applied a small set of operational rules fo
 |---|------------|------------|
 | Non-identity link used | at least one tested interaction is fitted with a model implying a non-identity link, that is, any GLM or GLMM beyond the Gaussian-identity default (ANOVA, ordinary regression, linear mixed model). | A model named "logistic", "probit", "Poisson", "negative binomial", "ordinal"/"cumulative", or "Gamma" regression implies a non-identity link. |
 | Explicit link function | the link is identifiable from the report, either stated in words or named through a link-specific model. | "Logistic regression" (logit), "probit regression" (probit), and "Poisson" or "log-linear" (log) count as explicit. Naming only a family, a "generalized linear model", or a "GLMM" does not. |
-| Formally incorrect identity-link analysis | an interaction is tested with an identity-link model (ANOVA, ordinary regression, linear mixed model, or a test on cell means) applied to an outcome with formal constraints: bounded, discrete, positive-only, or with a known chance level. | Flagged only when the constraint is clear from the report. Not flagged when the analysis is explicitly justified as an observed-score estimand, or when the outcome is plausibly continuous and far from any bound. |
-| Significant interaction | at least one interaction already flagged as incorrect identity-link is reported as statistically significant, or is interpreted analogously (for example, a credible interval excluding zero) in a Bayesian analysis. | Restricted to interactions already flagged in the row above. |
+| Gaussian-identity analysis on a constrained outcome | an interaction is tested with an identity-link model (ANOVA, ordinary regression, linear mixed model, or a test on cell means) applied to an outcome with formal constraints: bounded, discrete, positive-only, or with a known chance level. | Flagged only when the constraint is clear from the report. Not flagged when the analysis is explicitly justified as an observed-score estimand, or when the outcome is plausibly continuous and far from any bound. |
+| Significant interaction | at least one interaction already flagged as a Gaussian-identity analysis on a constrained outcome is reported as statistically significant, or is interpreted analogously (for example, a credible interval excluding zero) in a Bayesian analysis. | Restricted to interactions already flagged in the row above. |
 | Response-variable types | — | Non-exclusive: one article can contribute several types (sum score, accuracy or proportion, error count, response time, ordinal/Likert, neural or physiological, difference score, correlation). |
 
 : Operational rules the coders applied for the decisions that most affect the reported counts, condensed from the coding sheet. The preregistered variable definitions are in @tbl-variables. {#tbl-coding-rules disable-apaquarto-processing=true}
@@ -384,7 +384,7 @@ $$
 \log \mu_i = 2.60 - 0.55\,(\text{age}_i - 6) + 0.65\,\text{group}_i,
 $$
 
-with no age-by-group product term on the log scale. The figure plots a Poisson-log model fitted to one such sample, on the count scale and on the log scale. The count scenario of the diagnostic simulation uses the same structure with a slightly lower intercept ($2.20$) and group effect ($0.45$).
+with no age-by-group product term on the log scale. The figure plots a Poisson-log model fitted to one such sample, on the count scale and on the log scale. The count scenario of the diagnostic simulation (D1) adapts this coefficient pattern rather than reproducing it exactly: it keeps the same generating structure but uses a smaller sample ($N = 180$), a slightly lower intercept ($2.20$), and a smaller group effect ($0.45$); its full specification is given below under *Diagnostic simulation: data-generating processes*.
 
 The motivating $2 \times 2$ figure is fully deterministic: it evaluates four cell probabilities, without sampling. They are generated additively on the chance-corrected logit scale with $c = .50$,
 
@@ -551,28 +551,28 @@ print_table_if_exists(
 
 The main paper introduces the five diagnostic scenarios in prose. Their formal generating models are given here. In every scenario the product term is exactly zero on the generating link scale, and the fitted model keeps the outcome family and the interaction formula while changing only the link.
 
-*D1, count errors (Poisson log, fitted with identity).* For $N = 250$ children with age uniform on $[6, 10]$ and a balanced group factor, errors are Poisson with
+*D1, count errors (Poisson log, fitted with identity).* For $N = 180$ children with age uniform on $[6, 10]$ and a balanced group factor, errors are Poisson with
 
 $$
 \log \mu_i = 2.20 - 0.55\,(\text{age}_i - 6) + 0.45\,\text{group}_i .
 $$
 
-*D2, chance-floor accuracy (chance-corrected logit, fitted with standard logit).* The lower-performance scenario of Simulation 1: $k = 20$ trials per participant and
+*D2, chance-floor accuracy (chance-corrected logit, fitted with standard logit).* The lower-performance scenario of Simulation 1: $N = 250$ participants, $k = 20$ trials per participant, and
 
 $$
 p_i = .50 + .50\,\mathrm{logistic}(\eta_i), \qquad
 \eta_i = -0.80 + 0.60\,\text{age}_{c,i} - 0.90\,\text{group}_i .
 $$
 
-*D3, binary repeated trials (probit, fitted with logit).* A two-group, two-condition design with $15$ trials per participant-condition cell, a subject random intercept, and a latent ICC of $.30$:
+*D3, binary repeated trials (probit, fitted with logit).* A two-group, two-condition design with $N = 300$ participants, $15$ trials per participant-condition cell, a subject random intercept, and a latent ICC of $.30$:
 
 $$
 \Pr(y_{ij} = 1) = \Phi\!\left(1.50 - 1.00\,\text{group}_i - 1.00\,\text{condition}_{j} + u_i\right).
 $$
 
-*D4, binary with a continuous predictor (probit, fitted with logit).* The same structure as D3, with the two-level condition replaced by a continuous predictor $x \sim \mathrm{Uniform}(0, 1)$, so that the contrast from $x = 0$ to $x = 1$ has the same probit-scale size as the condition contrast in D3. This scenario exists because residual checks over a focal predictor are better identified when the predictor has many unique values.
+*D4, binary with a continuous predictor (probit, fitted with logit).* The same structure as D3 --- $N = 300$ participants, $30$ trials each --- with the two-level condition replaced by a continuous predictor $x \sim \mathrm{Uniform}(0, 1)$, so that the contrast from $x = 0$ to $x = 1$ has the same probit-scale size as the condition contrast in D3. This scenario exists because residual checks over a focal predictor are better identified when the predictor has many unique values.
 
-*D5, Gamma mean response time (log, fitted with inverse).* Response times are Gamma with shape $8$ and
+*D5, Gamma mean response time (log, fitted with inverse).* For $N = 220$ participants, response times are Gamma with shape $8$ and
 
 $$
 \log \mu_i = \log(400) + 0.25\,x_i + 0.25\,\text{group}_i ,
