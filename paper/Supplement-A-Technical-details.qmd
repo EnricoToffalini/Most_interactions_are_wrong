@@ -217,7 +217,7 @@ compact_by_journal <- function(d) {
 
 # S1. Scope of this supplement
 
-This supplement contains extended review methods and reliability, the chance-corrected-link algebra, the generative parameters behind the illustrative figures of the main paper, full simulation specifications and estimation details for the three worked simulations and for the diagnostic simulation, and fine-grained supplementary results.
+This supplement reports extended review methods and reliability, followed by the chance-corrected-link algebra and the generative parameters behind the illustrative figures. It then gives full specifications and estimation details for the three worked simulations and the diagnostic simulation, together with supplementary results.
 
 # S2. Preregistered review: extended methods and reliability
 
@@ -231,11 +231,11 @@ Article records were retrieved from Elsevier's Scopus database for all articles 
 
 Eligible articles were empirical articles presenting original psychological research. The following were excluded, per protocol: reviews and meta-analyses; editorials, commentaries, opinion papers, and theoretical articles without empirical data; qualitative-only articles; replication-only studies; and psychometric validation studies. Articles were coded in detail only if they tested at least one interaction, through statistical modeling or ANOVA. The coding scheme targeted observed-outcome analyses; articles whose relevant tests were conducted only at the latent-variable level, or whose empirical analyses relied only on structural equation models, were excluded from detailed coding.
 
-The resulting screening flow is reported in @tbl-screening-flow. The table is generated from the saved review-descriptives output, so that rerendering the supplement uses the current repository values.
+The resulting screening flow is reported in @tbl-screening-flow.
 
 ```{r}
 #| label: tbl-screening-flow
-#| tbl-cap: "Screening flow for the preregistered review, generated from the saved review-descriptives output."
+#| tbl-cap: "Screening flow for the preregistered review."
 #| disable-apaquarto-processing: true
 #| results: asis
 
@@ -253,16 +253,12 @@ print_table_if_exists(
       N = d$n,
       check.names = FALSE
     )
-    optional_cols <- setdiff(names(d), c("step", "n"))
-    for (col in optional_cols) {
-      out[[col]] <- d[[col]]
-    }
     out
   }
 )
 ```
 
-Each interaction-testing article was independently coded by two researchers. Discrepancies were resolved through discussion or, if needed, by consulting the other coauthors. Generative AI tools were used only as an optional aid to locate relevant passages within an article; all coding used in the review is human. The preregistered variable definitions are reproduced below.
+Each interaction-testing article was independently coded by two researchers. Discrepancies were resolved through discussion or, if needed, by consulting the other coauthors. Generative AI tools were used only as an optional aid to locate relevant passages within an article; all coding used in the review is human.
 
 <!-- The coded variable names use underscores in the coding sheet and in the R
      code. Underscores are unbreakable in the PDF table, so the names are
@@ -446,7 +442,7 @@ Four candidate models are fitted to each replication with the same `age_c * grou
 
 ```{r}
 #| label: tbl-rejection-forced-choice
-#| tbl-cap: "Product-term rejection rates by forced-choice performance scenario and fitted model. The matched chance-corrected model shows nominal rejection; alternative scales show pseudo-interaction detection. Fits = replications with a usable Wald test; Reject = rejected product-term tests; CI = Wilson 95%."
+#| tbl-cap: "Product-term rejection rates by forced-choice performance scenario and fitted model. The matched chance-corrected model shows nominal rejection; alternative scales show pseudo-interaction detection. Reject = rejected product-term tests; CI = Wilson 95%. All scenarios used 3,000 replications."
 #| disable-apaquarto-processing: true
 #| results: asis
 
@@ -457,7 +453,6 @@ print_table_if_exists(
     Scenario = d$scenario,
     Model = d$model,
     `Rate type` = d$rate_type,
-    Fits = d$n_successful_fits,
     Reject = d$n_rejections,
     `Rejection rate [95% CI]` = fmt_rate_ci(d$rejection_rate, d$ci_low, d$ci_high),
     check.names = FALSE
@@ -465,7 +460,7 @@ print_table_if_exists(
 )
 ```
 
-All four models returned usable Wald tests in all 3,000 replications of every scenario, so a separate common-convergence table would duplicate @tbl-rejection-forced-choice. Complete fit success does not imply equal precision, however. For the matched chance-corrected model, the Monte Carlo standard deviation of the estimated age-by-group coefficient was 0.180 in the lower-performance scenario, 0.115 in the middle-performance scenario, and 0.099 in the higher-performance scenario. Thus, performance closer to the chance floor provides less precise information about changes on the above-chance link scale, even though the robust optimization procedure yields a usable test throughout. The lower-performance result should therefore be interpreted as reduced precision rather than selective convergence or widespread non-identification.
+For the matched chance-corrected model, the Monte Carlo standard deviation of the estimated age-by-group coefficient was 0.180 in the lower-performance scenario, 0.115 in the middle-performance scenario, and 0.099 in the higher-performance scenario. Performance closer to the chance floor therefore provides less precise information about changes on the above-chance link scale.
 
 ## Simulation 2: within-family link choice
 
@@ -475,7 +470,7 @@ Generating and fitted links are fully crossed (logit and probit in both roles), 
 
 ```{r}
 #| label: tbl-rejection-within-family
-#| tbl-cap: "Product-term rejection rates for the within-family link simulation. Matched links show nominal rejection; wrong links show pseudo-interaction detection. The median coefficient and SE are on the fitted link scale. CI = Wilson 95%."
+#| tbl-cap: "Product-term rejection rates for the within-family link simulation. Matched links show nominal rejection; wrong links show pseudo-interaction detection. The median coefficient and SE are on the fitted link scale. CI = Wilson 95%. All scenarios used 3,000 replications."
 #| disable-apaquarto-processing: true
 #| results: asis
 
@@ -487,7 +482,6 @@ print_table_if_exists(
     Fitted = d$fitted_link,
     Status = d$link_match,
     `Rate type` = d$rate_type,
-    Fits = d$n_successful_fits,
     Reject = d$n_rejections,
     `Rejection rate [95% CI]` = fmt_rate_ci(d$rejection_rate, d$ci_low, d$ci_high),
     `Median beta` = fmt_num(d$median_interaction_coef, 3),
@@ -512,7 +506,7 @@ Three analyses are fitted with the same `x * group` formula, to separate the rel
 
 ```{r}
 #| label: tbl-rejection-sum-score
-#| tbl-cap: "Product-term rejection rates by sum-score scenario and analysis scale. The latent generating-scale benchmark shows nominal rejection; observed-score models show pseudo-interaction detection. The latent benchmark is available only because theta is known. CI = Wilson 95%."
+#| tbl-cap: "Product-term rejection rates by sum-score scenario and analysis scale. The latent generating-scale benchmark shows nominal rejection; observed-score models show pseudo-interaction detection. The latent benchmark is available only because theta is known. CI = Wilson 95%. All scenarios used 3,000 replications."
 #| disable-apaquarto-processing: true
 #| results: asis
 
@@ -538,7 +532,6 @@ print_table_if_exists(
       Scenario = d$scenario,
       Model = d$model,
       `Rate type` = d$rate_type,
-      Fits = d$n_successful_fits,
       Reject = d$n_rejections,
       `Rejection rate [95% CI]` = fmt_rate_ci(d$rejection_rate, d$ci_low, d$ci_high),
       check.names = FALSE
@@ -929,6 +922,9 @@ if (is.null(diag_long) || is.null(diag_rep)) {
 
   count_rate <- function(n, denominator) {
     if (is.na(denominator) || denominator == 0) return("--")
+    if (denominator == 3000) {
+      return(paste0(n, " (", fmt_percent(100 * n / denominator), ")"))
+    }
     paste0(n, "/", denominator, " (", fmt_percent(100 * n / denominator), ")")
   }
 
@@ -978,7 +974,7 @@ if (is.null(diag_long) || is.null(diag_rep)) {
 }
 ```
 
-Pseudo-interaction denominators are replications with an available interaction test. “Missed” means that none of the applicable prespecified DHARMa checks had $p < .05$; pseudo-interactions for which all five DHARMa p-values were missing are excluded from this conditional denominator. $\Delta\mathrm{AIC} = \mathrm{AIC}(\text{wrong link}) - \mathrm{AIC}(\text{target link})$, so positive values favor the target link and negative values favor the wrong link. The sample size shown with the median and the denominator for $|\Delta\mathrm{AIC}| < 2$ are the finite AIC comparisons. N.A. indicates that the Pregibon-style added term is not identifiable in the saturated $2 \times 2$ interaction model.
+All rates are based on 3,000 usable replications unless otherwise noted. “Missed” means that none of the applicable prespecified DHARMa checks had $p < .05$; pseudo-interactions for which all five DHARMa p-values were missing are excluded from this conditional denominator. $\Delta\mathrm{AIC} = \mathrm{AIC}(\text{wrong link}) - \mathrm{AIC}(\text{target link})$, so positive values favor the target link and negative values favor the wrong link. The sample size shown with the median and the denominator for $|\Delta\mathrm{AIC}| < 2$ are the finite AIC comparisons. N.A. indicates that the Pregibon-style added term is not identifiable in the saturated $2 \times 2$ interaction model.
 
 ## Distribution of the AIC difference
 
@@ -1023,7 +1019,7 @@ The correct-link column provides the baseline needed to interpret detection unde
 
 ```{r}
 #| label: tbl-diagnostic-calibration
-#| tbl-cap: "Diagnostic calibration under correctly specified and misspecified links. Each cell gives the flagging rate with its Wilson 95% confidence interval and the number of successful diagnostic fits over attempts."
+#| tbl-cap: "Diagnostic calibration under correctly specified and misspecified links. Each cell gives the flagging rate with its Wilson 95% confidence interval and the number of successful diagnostic fits. Each cell had 3,000 attempted replications."
 #| disable-apaquarto-processing: true
 #| results: asis
 
@@ -1084,11 +1080,11 @@ if (is.null(diag_calibration)) {
   ]
 
   calibration_cell <- function(rate, low, high, successful, attempted) {
-    if (is.na(rate)) return(paste0("-- (", successful, "/", attempted, ")"))
-    paste0(
-      fmt_rate_ci(rate, low, high),
-      " (", successful, "/", attempted, ")"
-    )
+    if (is.na(rate)) return(paste0("-- (n = ", successful, ")"))
+    if (successful == attempted && attempted == 3000) {
+      return(fmt_rate_ci(rate, low, high))
+    }
+    paste0(fmt_rate_ci(rate, low, high), " (n = ", successful, ")")
   }
 
   out <- data.frame(

@@ -229,7 +229,6 @@ anchor_table <- function(family) {
     `Rejection rate` = pct(dat$false_positive_rate),
     `95% CI` = ci_text(dat$false_positive_ci_low, dat$false_positive_ci_high),
     `Deterministic pseudo-interaction` = num(dat$deterministic_pseudo_interaction),
-    `Fit success` = pct(dat$fit_success_rate),
     check.names = FALSE
   )
   rownames(out) <- NULL
@@ -464,7 +463,6 @@ compact_core_table <- function(family) {
     `Fitted model/scale` = as.character(dat$model_label),
     `Rejection rate` = pct(dat$false_positive_rate),
     `Deterministic pseudo-interaction` = num(dat$deterministic_pseudo_interaction),
-    `Fit success` = pct(dat$fit_success_rate),
     check.names = FALSE
   )
   rownames(out) <- NULL
@@ -532,8 +530,7 @@ make_diagnostic_plot_data <- function() {
   names(pseudo)[names(pseudo) == "pseudo_interaction_ci_high"] <- "high"
   pseudo$quantity <- "Pseudo-interaction detection"
 
-  # Only checks actually computed in this run. Applicable-but-uncomputed rows
-  # remain visible in the status table below.
+  # Retain diagnostics that were used for the relevant scenario.
   checks <- dat[dat$applicable %in% TRUE & dat$computed %in% TRUE, , drop = FALSE]
   checks <- checks[, c(
     "scenario_id", "family", "family_label", "slice_label", "x_value",
@@ -609,55 +606,46 @@ out <- data.frame(
   out
 }
 
-diagnostic_status_table <- function() {
-  dat <- diagnostic[diagnostic$family %in% c("forced_choice", "within_family"), , drop = FALSE]
-  key <- interaction(dat$family, dat$diagnostic, drop = TRUE)
-  parts <- split(dat, key)
+diagnostic_used_table <- function() {
+  dat <- diagnostic[
+    diagnostic$family %in% c("forced_choice", "within_family") &
+      diagnostic$applicable %in% TRUE & diagnostic$computed %in% TRUE,
+    ,
+    drop = FALSE
+  ]
+  parts <- split(dat, dat$family)
   out <- do.call(rbind, lapply(parts, function(x) {
     data.frame(
-      Case = unname(diagnostic_family_title[x$family[1]]),
-      Diagnostic = x$diagnostic[1],
-      Applicable = ifelse(any(x$applicable %in% TRUE), "Yes", "No"),
-      Computed = ifelse(any(x$computed %in% TRUE), "Yes", "No"),
-      stringsAsFactors = FALSE
+      `Diagnostic case` = unname(diagnostic_family_title[x$family[1]]),
+      `Diagnostics used` = paste(unique(x$diagnostic), collapse = "; "),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
     )
   }))
   rownames(out) <- NULL
   out
 }
 
-# Run metadata used in the text.
-run_type <- paste(unique(core$run_type), collapse = ", ")
-atlas_version <- paste(unique(core$atlas_version), collapse = ", ")
 scenario_counts <- table(grid$family)
-B_core <- sort(unique(core$B_requested[core$family != "within_family"]))
-B_within <- sort(unique(core$B_requested[core$family == "within_family"]))
-dharma_complete <- any(
-  diagnostic$computed %in% TRUE & startsWith(diagnostic$diagnostic, "DHARMa")
-)
 ```
 
 # Purpose and scope
 
-This document reports the extended simulation atlas for *The Link Function Problem in Psychological Interaction Testing*. It follows the terminology and simulation numbering of the main manuscript. The manuscript keeps a small number of transparent worked scenarios. The atlas asks how far those results extend when selected design and data-generating parameters are varied around the manuscript anchors. It is designed to be read independently of the interactive application: the relevant design settings, coefficients, fitted models, and outcome summaries are reported here, while references to the manuscript identify the corresponding conceptual examples.
+Supplement B extends the three manuscript simulations by varying selected parameters while keeping the true interaction equal to zero on the generating scale. It uses one-dimensional sensitivity slices and small main-effect surfaces rather than a full Cartesian design.
 
-The manuscript-anchor scenarios use the same data-generating settings as the corresponding manuscript simulations, but they are independently rerun as part of the atlas. Their Monte Carlo rejection rates can therefore differ slightly from those reported in the manuscript and Supplement A, whereas the underlying generating parameters and deterministic scale contrasts are the same.
-
-The atlas is a structured sensitivity analysis, not an exhaustive map of psychological settings. It uses prespecified one-dimensional slices and a small main-effect surface instead of a full Cartesian product. In every scenario, the interaction term is **exactly zero on the generating scale**. Therefore, a rejection under the matched generating model estimates the nominal generating-scale rejection rate, while a rejection under another scale is described as a **pseudo-interaction detection rate**. As in the manuscript, *pseudo-interaction* is a simulation term. It is available here because the generating scale is known.
-
-The current compact summaries come from atlas run type `r run_type`, atlas version `r atlas_version`. The atlas contains `r nrow(grid)` unique generating scenarios: `r scenario_counts[["forced_choice"]]` for forced-choice accuracy, `r scenario_counts[["within_family"]]` for the logit-probit comparison, and `r scenario_counts[["sum_scores"]]` for sum scores. The forced-choice and sum-score scenarios use `r paste(B_core, collapse = "/")` Monte Carlo replications per scenario; the more expensive within-family GLMM scenarios use `r paste(B_within, collapse = "/")`.
+Reference scenarios retain the generating settings of the corresponding manuscript simulations. In every scenario, a rejection under the matched generating model estimates the nominal generating-scale rejection rate; under another scale, it is a **pseudo-interaction detection rate**. All scenarios used 3,000 Monte Carlo replications.
 
 ## How to read the figures
 
-All rejection-rate figures use the same interpretation. The horizontal dashed line at .05 marks nominal alpha. Rates close to .05 under the generating scale provide a calibration check. Elevated rates under an alternative fitted scale show how often the scale difference becomes a statistically significant product term at the stated sample size and design. Error bars are shown for the manuscript anchors. The sensitivity plots omit error bars to keep the larger set of scenarios readable; Wilson 95% intervals are available in the numerical tables and in `data/atlas-summary.csv`.
+All rejection-rate figures use the same interpretation. The horizontal dashed line at .05 marks nominal alpha. Rates close to .05 under the generating scale provide a calibration check. Elevated rates under an alternative fitted scale show how often the scale difference becomes a statistically significant product term at the stated sample size and design. Error bars are shown for the reference scenarios. The sensitivity plots omit error bars to keep the larger set of scenarios readable; Wilson 95% intervals are available in the numerical tables and in `data/atlas-summary.csv`.
 
-The deterministic pseudo-interaction reported in the tables is computed from the expected values before sampling. It describes the interaction contrast implied by evaluating the generating pattern on the fitted scale. The Monte Carlo rejection rate adds sampling variability, standard errors, and sample size to that deterministic discrepancy.
+The deterministic pseudo-interaction reported in the tables is calculated from expected values before sampling. It describes the interaction contrast implied by evaluating the generating pattern on the fitted scale. The Monte Carlo rejection rate adds sampling variability, standard errors, and sample size to that deterministic discrepancy.
 
 # Atlas design
 
 ```{r}
 #| label: tbl-atlas-design
-#| tbl-cap: "Structure of the simulation atlas. Each family contains the manuscript anchor scenarios plus prespecified sensitivity slices."
+#| tbl-cap: "Structure of the simulation atlas. Each family contains reference scenarios plus prespecified sensitivity slices."
 
 design_table <- data.frame(
   `Manuscript case` = c(
@@ -670,11 +658,6 @@ design_table <- data.frame(
     scenario_counts[["within_family"]],
     scenario_counts[["sum_scores"]]
   ),
-  `Monte Carlo replications` = c(
-    paste(B_core, collapse = "/"),
-    paste(B_within, collapse = "/"),
-    paste(B_core, collapse = "/")
-  ),
   `Sensitivity slices` = c(
     "Main effects; sample size; intercept; trials; chance level",
     "Main effects; sample size; trials; intercept; ICC",
@@ -683,10 +666,10 @@ design_table <- data.frame(
   check.names = FALSE
 )
 
-knitr::kable(design_table, align = c("l", "r", "r", "l"))
+knitr::kable(design_table, align = c("l", "r", "l"))
 ```
 
-The one-dimensional slices change one named parameter while holding the remaining settings at the central manuscript anchor. The main-effect surfaces vary the two additive main-effect coefficients jointly. The actual coefficients are reported directly on the figure axes and in the table below. Duplicate anchor combinations are stored once and can belong to several slices.
+The one-dimensional slices change one named parameter while holding the remaining settings at the central reference scenario. The main-effect surfaces vary the two additive main-effect coefficients jointly. The actual coefficients are reported on the figure axes and in the table below.
 
 ```{r}
 #| label: tbl-atlas-main-effect-coefficients
@@ -700,13 +683,13 @@ For Simulation 2, logit and probit coefficients are on different generating-link
 
 # Simulation 1: Forced-choice accuracy and the non-zero chance floor
 
-The manuscript generates accuracy from a chance-corrected binomial logit model with a .50 floor and no age-by-group product term on that scale. It compares the matched chance-corrected model with a standard binomial logit, a standard binomial probit, and a Gaussian identity model. The atlas keeps this comparison and extends the paper scenarios across sample size, overall performance, number of trials, chance level, and the joint values of the age and group coefficients. In the main-effect surface, the generating-scale age coefficients are `r coefficient_values_text("forced_choice", "beta_age", digits = 2)` and the group coefficients are `r coefficient_values_text("forced_choice", "beta_group", digits = 2)`.
+Forced-choice accuracy is generated from a chance-corrected binomial logit model with a .50 floor and no age-by-group product term on that scale. The fitted models are the matched chance-corrected model, standard binomial logit and probit models, and a Gaussian identity model; the figures and Table 1 show the sensitivity design.
 
-## Manuscript anchors
+## Reference scenarios
 
 ```{r}
 #| label: fig-atlas-fc-anchor
-#| fig-cap: "Forced-choice manuscript anchors reproduced within the atlas. The product term is zero on the chance-corrected logit generating scale. The dashed line marks alpha = .05."
+#| fig-cap: "Forced-choice reference scenarios. The product term is zero on the chance-corrected logit generating scale. The dashed line marks alpha = .05."
 #| fig-width: 8
 #| fig-height: 4.8
 
@@ -715,9 +698,9 @@ plot_anchor_rates("forced_choice")
 
 ```{r}
 #| label: tbl-atlas-fc-anchor
-#| tbl-cap: "Forced-choice manuscript anchors. The deterministic pseudo-interaction is evaluated on each fitted scale before sampling."
+#| tbl-cap: "Forced-choice reference scenarios. The deterministic pseudo-interaction is evaluated on each fitted scale before sampling."
 
-knitr::kable(anchor_table("forced_choice"), align = c("l", "l", "l", "l", "r", "r", "r", "r"))
+knitr::kable(anchor_table("forced_choice"), align = c("l", "l", "l", "l", "r", "r", "r"))
 ```
 
 Across all forced-choice atlas scenarios, the matched chance-corrected model remains close to nominal alpha, with rejection rates from `r rate_range_text("forced_choice", model = "Chance-corrected binomial logit")`. The standard binomial logit ranges from `r rate_range_text("forced_choice", model = "Standard binomial logit")`, and the standard binomial probit from `r rate_range_text("forced_choice", model = "Standard binomial probit")`. These ranges are sensitivity results, not prevalence estimates. They show that the inferential consequence of placing the lower asymptote at 0 instead of the task-implied chance level can be small in some regions and very large in others.
@@ -726,7 +709,7 @@ Across all forced-choice atlas scenarios, the matched chance-corrected model rem
 
 ```{r}
 #| label: fig-atlas-fc-slices
-#| fig-cap: "Forced-choice sensitivity slices. One parameter varies at a time around the central manuscript anchor. The dashed line marks alpha = .05."
+#| fig-cap: "Forced-choice sensitivity slices. One parameter varies at a time around the central reference scenario. The dashed line marks alpha = .05."
 #| fig-width: 9
 #| fig-height: 7
 
@@ -757,13 +740,13 @@ The surface directly targets the mechanism emphasized in the manuscript. Two add
 
 # Simulation 2: Within-family link choice, logit versus probit
 
-The manuscript crosses logit and probit as generating and fitted links in repeated-trial random-intercept GLMMs. Both links use the binomial family and the same 0-to-1 bounds. The difference is the scale on which additivity is imposed. The atlas extends this comparison across sample size, trials per participant-condition cell, the intercept, latent ICC, and the joint values of the group and condition coefficients. In the main-effect surface, the probit generating coefficients for both effects are `r coefficient_values_text("within_family", "beta_group", "probit", digits = 2)`, whereas the corresponding logit coefficients are `r coefficient_values_text("within_family", "beta_group", "logit", digits = 3)`.
+Repeated-trial random-intercept GLMMs cross logit and probit generating and fitted links. Both use the binomial family and the same 0-to-1 bounds, but impose additivity on different scales; the figures and Table 1 show the sensitivity design.
 
-## Manuscript anchors
+## Reference scenarios
 
 ```{r}
 #| label: fig-atlas-wf-anchor
-#| fig-cap: "Logit-probit manuscript anchors reproduced within the atlas. The product term is zero on the generating link scale. The dashed line marks alpha = .05."
+#| fig-cap: "Logit-probit reference scenarios. The product term is zero on the generating link scale. The dashed line marks alpha = .05."
 #| fig-width: 8
 #| fig-height: 4.8
 
@@ -772,18 +755,18 @@ plot_anchor_rates("within_family")
 
 ```{r}
 #| label: tbl-atlas-wf-anchor
-#| tbl-cap: "Within-family manuscript anchors for logit and probit generating links."
+#| tbl-cap: "Within-family reference scenarios for logit and probit generating links."
 
-knitr::kable(anchor_table("within_family"), align = c("l", "l", "l", "l", "r", "r", "r", "r"))
+knitr::kable(anchor_table("within_family"), align = c("l", "l", "l", "l", "r", "r", "r"))
 ```
 
-Across the atlas, matched logit/probit fits remain near the nominal rejection rate. The wrong-link rows range from `r pct(min(family_rows("within_family")$false_positive_rate[family_rows("within_family")$rate_type == "Pseudo-interaction detection rate"], na.rm = TRUE))` to `r pct(max(family_rows("within_family")$false_positive_rate[family_rows("within_family")$rate_type == "Pseudo-interaction detection rate"], na.rm = TRUE))`. The range is wider than the manuscript anchor alone suggests because the atlas deliberately varies information and the region of the latent scale. The result remains conditional on these declared slices and should not be read as a general frequency for logit-probit disagreement.
+Across the atlas, matched logit/probit fits remain near the nominal rejection rate. The wrong-link rows range from `r pct(min(family_rows("within_family")$false_positive_rate[family_rows("within_family")$rate_type == "Pseudo-interaction detection rate"], na.rm = TRUE))` to `r pct(max(family_rows("within_family")$false_positive_rate[family_rows("within_family")$rate_type == "Pseudo-interaction detection rate"], na.rm = TRUE))`. The range is wider than the reference scenarios alone suggest because the atlas deliberately varies information and the region of the latent scale. The result remains conditional on these declared slices and should not be read as a general frequency for logit-probit disagreement.
 
 ## One-dimensional sensitivity slices
 
 ```{r}
 #| label: fig-atlas-wf-slices
-#| fig-cap: "Logit-probit sensitivity slices. Rows identify the generating link. Within each panel the fitted logit and probit models are compared as one parameter varies around the manuscript anchor."
+#| fig-cap: "Logit-probit sensitivity slices. Rows identify the generating link. Within each panel the fitted logit and probit models are compared as one parameter varies around the reference scenario."
 #| fig-width: 10
 #| fig-height: 7
 
@@ -814,13 +797,13 @@ The matched-link panels provide the calibration reference. The off-diagonal pane
 
 # Simulation 3: Sum scores
 
-The manuscript treats sum scores as a measurement case. Data are generated on a latent continuous scale with no x-by-group interaction, converted into ordinal item responses, and summed. The atlas compares the latent generating scale, the observed sum-score identity model, and the Gaussian-probit bounded-score sensitivity model. It extends the manuscript scenarios across sample size, item-threshold location, number of items, latent dispersion, and the joint values of the predictor and group coefficients. In the main-effect surface, the latent-scale predictor coefficients are `r coefficient_values_text("sum_scores", "beta_x", digits = 3)` and the group coefficients are `r coefficient_values_text("sum_scores", "beta_group", digits = 2)`.
+Sum-score data are generated on a latent continuous scale with no x-by-group interaction, converted to ordinal item responses, and summed. Analyses compare the latent generating scale, observed sum-score identity model, and Gaussian-probit bounded-score sensitivity model; the figures and Table 1 show the sensitivity design.
 
-## Manuscript anchors
+## Reference scenarios
 
 ```{r}
 #| label: fig-atlas-ss-anchor
-#| fig-cap: "Sum-score manuscript anchors reproduced within the atlas. The product term is zero on the latent generating scale. The dashed line marks alpha = .05."
+#| fig-cap: "Sum-score reference scenarios. The product term is zero on the latent generating scale. The dashed line marks alpha = .05."
 #| fig-width: 8
 #| fig-height: 4.8
 
@@ -829,9 +812,9 @@ plot_anchor_rates("sum_scores")
 
 ```{r}
 #| label: tbl-atlas-ss-anchor
-#| tbl-cap: "Sum-score manuscript anchors. The latent generating scale is available only in simulation."
+#| tbl-cap: "Sum-score reference scenarios. The latent generating scale is available only in simulation."
 
-knitr::kable(anchor_table("sum_scores"), align = c("l", "l", "l", "l", "r", "r", "r", "r"))
+knitr::kable(anchor_table("sum_scores"), align = c("l", "l", "l", "l", "r", "r", "r"))
 ```
 
 Across the atlas, the latent generating scale rejects from `r rate_range_text("sum_scores", model = "Latent generating scale")`. The observed sum-score identity model ranges from `r rate_range_text("sum_scores", model = "Observed sum-score identity")`, while the Gaussian-probit bounded-score sensitivity model ranges from `r rate_range_text("sum_scores", model = "Gaussian-probit bounded score")`. The latter remains a model of the manifest total. It does not recover the latent construct and should be read as a sensitivity analysis for the scale on which additivity is imposed.
@@ -840,7 +823,7 @@ Across the atlas, the latent generating scale rejects from `r rate_range_text("s
 
 ```{r}
 #| label: fig-atlas-ss-slices
-#| fig-cap: "Sum-score sensitivity slices. One parameter varies at a time around the central manuscript anchor. The dashed line marks alpha = .05."
+#| fig-cap: "Sum-score sensitivity slices. One parameter varies at a time around the central reference scenario. The dashed line marks alpha = .05."
 #| fig-width: 9
 #| fig-height: 7
 
@@ -871,24 +854,24 @@ The surface shows how the mapping from latent values to a bounded total can turn
 
 # Diagnostic atlas
 
-The diagnostic atlas extends two of the manuscript's five diagnostic scenarios: the forced-choice chance-floor case and the probit-generated, logit-fitted repeated-trial case. It is narrower than the main diagnostic simulation in the paper. Its purpose is to ask whether the relation between pseudo-interaction risk and diagnostic detection changes as sample size and the intercept vary.
+The diagnostic analyses cover the forced-choice chance-floor case and the probit-generated, logit-fitted repeated-trial case. They examine how pseudo-interaction risk and diagnostic detection change with sample size and intercept.
 
 Diagnostics are applied to the **misspecified interaction model**, matching the manuscript's post-estimation question: once the fitted model has produced the product-term finding, does that same model show enough evidence of misspecification to warn the analyst? AIC compares prespecified candidate mean models with the same structural interaction formula. Positive delta AIC, defined as AIC of the misspecified model minus AIC of the generating model, favors the generating link.
 
 ```{r}
 #| label: tbl-atlas-diagnostic-status
-#| tbl-cap: "Diagnostic coverage in the current atlas summary. Applicable and computed are separate: a check can be structurally applicable but deferred in the current run."
+#| tbl-cap: "Diagnostics used for each diagnostic case."
 
-knitr::kable(diagnostic_status_table(), align = c("l", "l", "c", "c"))
+knitr::kable(diagnostic_used_table(), align = c("l", "l"))
 ```
 
-`r if (!dharma_complete) "The current diagnostic summary does not yet contain computed DHARMa results. Those checks are retained as applicable but not computed, so they are not treated as negative findings. If the diagnostic atlas is re-run with DHARMa enabled and the summary files are replaced, the figure below will include the additional computed checks automatically." else "The current diagnostic summary includes the applicable DHARMa checks."`
+Checks not listed were not applicable to the design. In particular, the design-cell residual check is used only for the categorical repeated-trial case, whereas residual quantile checks over a focal predictor require a continuous predictor.
 
 ## Detection across sensitivity slices
 
 ```{r}
 #| label: fig-atlas-diagnostics
-#| fig-cap: "Diagnostic atlas. Pseudo-interaction detection is shown together with each diagnostic or candidate-model comparison computed in the current run. Sample-size and scale-location slices are shown separately."
+#| fig-cap: "Diagnostic atlas. Pseudo-interaction detection is shown together with each diagnostic or candidate-model comparison. Sample-size and scale-location slices are shown separately."
 #| fig-width: 10
 #| fig-height: 7
 
@@ -908,41 +891,39 @@ knitr::kable(aic_table(), align = c("l", "l", "r", "r", "r", "r", "r"))
 
 The AIC win rate is reported together with the magnitude of the difference because these describe different situations. A generating link that wins frequently by a very small margin is weaker evidence than one that wins by a large margin. As in the manuscript, these comparisons rank a limited candidate set. They do not identify the substantively correct scale by themselves.
 
-# What the atlas adds, and what it does not
+# Scope and interpretation
 
-The atlas strengthens the simulation evidence in three ways. First, it shows whether the manuscript anchors sit inside broader patterns or depend narrowly on one tuned configuration. Second, it separates parameters that change the **deterministic scale discrepancy**, such as the intercept and main-effect magnitude, from parameters that mainly change **detectability**, such as sample size and trial count. Third, the diagnostic extension places pseudo-interaction detection and model-checking performance on the same sensitivity slices.
+The sensitivity results show whether the reference scenarios reflect broader patterns or depend on a narrow configuration. They also distinguish parameters that change the **deterministic scale discrepancy**, such as the intercept and main-effect magnitude, from parameters that mainly change **detectability**, such as sample size and trial count. The diagnostic analyses place pseudo-interaction detection and model-checking performance on the same sensitivity slices.
 
 The atlas does not estimate how often link misspecification occurs in psychological research. It does not cover every plausible outcome family, link, random-effects structure, measurement model, or predictor distribution. It also does not turn model diagnostics into a decision rule for the scientifically correct scale. Its role is narrower: to show how the mechanisms developed in the paper change across a declared set of nearby scenarios.
 
-The Shiny companion can be used for optional exploration of these results. This document is the stable reporting layer: every figure and table is generated from the compact atlas summaries stored in `simulation-atlas/data/`.
-
 # Numerical appendix
 
-The tables below provide a compact scenario-level record of the core atlas. The machine-readable CSV files remain the authoritative full output and contain additional design, Monte Carlo, convergence, and response-scale columns.
+The tables below provide scenario-level results for the core sensitivity analyses. All scenarios used 3,000 Monte Carlo replications.
 
 ## Forced-choice accuracy
 
 ```{r}
 #| label: tbl-atlas-fc-full
-#| tbl-cap: "Compact scenario-level results for the forced-choice atlas."
+#| tbl-cap: "Scenario-level results for the forced-choice atlas."
 
-report_kable(compact_core_table("forced_choice"), align = c("l", "l", "l", "l", "l", "r", "r", "r"), long = TRUE)
+report_kable(compact_core_table("forced_choice"), align = c("l", "l", "l", "l", "l", "r", "r"), long = TRUE)
 ```
 
 ## Logit versus probit
 
 ```{r}
 #| label: tbl-atlas-wf-full
-#| tbl-cap: "Compact scenario-level results for the within-family logit-probit atlas."
+#| tbl-cap: "Scenario-level results for the within-family logit-probit atlas."
 
-report_kable(compact_core_table("within_family"), align = c("l", "l", "l", "l", "l", "r", "r", "r"), long = TRUE)
+report_kable(compact_core_table("within_family"), align = c("l", "l", "l", "l", "l", "r", "r"), long = TRUE)
 ```
 
 ## Sum scores
 
 ```{r}
 #| label: tbl-atlas-ss-full
-#| tbl-cap: "Compact scenario-level results for the sum-score atlas."
+#| tbl-cap: "Scenario-level results for the sum-score atlas."
 
-report_kable(compact_core_table("sum_scores"), align = c("l", "l", "l", "l", "l", "r", "r", "r"), long = TRUE)
+report_kable(compact_core_table("sum_scores"), align = c("l", "l", "l", "l", "l", "r", "r"), long = TRUE)
 ```
