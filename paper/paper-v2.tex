@@ -357,24 +357,27 @@ Padova, Via Venezia
 
 We start with a very simplified example. Two populations of children
 (e.g., clinical vs neurotypical) differ in their overall error rates on
-a task, and errors decrease with age in both.
-Figure~\ref{fig-simple-count-example} samples simulated data from such a
-scenario. In the left panel (observed response), errors decline with age
-in both groups, and the difference between groups is much larger at age
-six than at age ten. Is there an age-by-group interaction here?
+a task, and errors decrease with age in both. Imagine a researcher who
+collects error counts from children aged 6 to 10 and analyzes them, as
+is common, with a Gaussian linear model that includes an age-by-group
+interaction. The fitted lines in Figure~\ref{fig-simple-count-example}
+(linear model) decline at different rates, and the gap between the
+groups is much wider at age six than at age ten. The natural reading is
+that the group difference shrinks with age, that is, that age and group
+interact.
 
 \begin{figure}[h]
 
 \caption{\label{fig-simple-count-example}Simulated error counts for two
-groups of children aged 6 to 10, shown on the observed count scale
-(left) and on the log scale (right). The two groups have exactly the
-same age effect on the log of the expected error count, so on the log
-scale the two fitted lines are parallel, with a constant group gap at
-every age. Mapped back onto the count scale, the same model produces
-converging curves, so the group difference shrinks with age. Whether
-this pattern is an interaction depends on the scale on which effects are
-assumed to add: on the count scale the group difference changes with
-age; on the log scale it does not.}
+groups of children aged 6 to 10, generated with the same age effect in
+both groups on the log of the expected error count. A Gaussian linear
+model fitted to the counts produces straight lines with different
+slopes, which suggests an age-by-group interaction. A Poisson model with
+a log link fitted to the same data produces curves that converge with
+age on the count scale and parallel lines on the log scale, so the group
+gap shrinks on the count scale and stays constant on the log scale.
+Whether the pattern is an interaction depends on the scale on which
+effects are assumed to add.}
 
 \centering{
 
@@ -385,18 +388,21 @@ age; on the log scale it does not.}
 \end{figure}%
 
 Because an interaction is a difference between differences, the question
-is whether the group difference itself changes with age. On the observed
-count scale, the group effect does appear to shrink as age increases, so
-it looks like an interaction. But looking at the same data on the
-log-scale (Figure~\ref{fig-simple-count-example}, right panel), both
-groups have the same age slope, meaning their fitted lines are parallel.
-A constant difference on the log scale corresponds to a constant ratio
-on the count scale, so the absolute gap between groups is proportional
-to the baseline and shrinks as errors decline with age. Whether we call
-this an interaction is not a fact about the data, it depends on which
-scale we assume effects add up linearly on. Additive on the log scale
-means multiplicative (and non-parallel) on the count scale, and vice
-versa.
+is whether the group difference itself changes with age. The data in
+Figure~\ref{fig-simple-count-example}, however, were generated without
+any interaction. Errors follow a Poisson process in which age and group
+add on the log scale, so the two groups share the same age slope on that
+scale. A Poisson model with a log link recovers this structure, and on
+the log scale its fitted lines are parallel. Mapped back onto the count
+scale, the same model produces two curves that converge with age,
+because a constant difference on the log scale is a constant ratio on
+the count scale, and the absolute gap between the groups therefore
+narrows as errors decline. The linear model registers this narrowing and
+reads it as an interaction. Whether an interaction is present thus
+depends on the scale on which effects are assumed to add. Additivity on
+the log scale implies non-parallel curves on the count scale, and
+additivity on the count scale would imply non-parallel lines on the log
+scale.
 
 This ambiguity extends far beyond this single illustration, as
 interaction hypotheses are widespread in psychological research and
@@ -432,7 +438,7 @@ Nelder, 1989}; \citeproc{ref-nelderwedderburn1972}{Nelder \& Wedderburn,
 outcome family, which describes the response, and (2) the link function,
 which sets the scale on which effects combine (Box 1).
 
-\begin{tcolorbox}[enhanced jigsaw, bottomrule=.15mm, bottomtitle=1mm, rightrule=.15mm, leftrule=.75mm, arc=.35mm, colbacktitle=quarto-callout-note-color!10!white, titlerule=0mm, opacitybacktitle=0.6, breakable, colframe=quarto-callout-note-color-frame, colback=white, title={Box 1: Generalized linear models: outcome family and link function}, toptitle=1mm, toprule=.15mm, left=2mm, opacityback=0, coltitle=black]
+\begin{tcolorbox}[enhanced jigsaw, title={Box 1: Generalized linear models: outcome family and link function}, colback=white, colframe=quarto-callout-note-color-frame, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, opacitybacktitle=0.6, left=2mm, rightrule=.15mm, bottomrule=.15mm, toprule=.15mm, opacityback=0, toptitle=1mm, bottomtitle=1mm, titlerule=0mm, arc=.35mm, breakable, leftrule=.75mm]
 
 The \emph{outcome family} is the distribution assumed for the response.
 It defines which values the outcome can take and how observations vary
@@ -538,9 +544,9 @@ formats predominate. We then develop a framework that separates outcome
 family, link function, and target metric, and work it through three
 common response formats, namely forced-choice accuracy with a chance
 floor, sum scores, and within-family link choices such as logit versus
-probit, using simulations to quantify how often an inadequate link turns
-a purely additive structure into a statistically significant interaction
-and whether standard diagnostics detect the misspecification.
+probit. Simulations quantify how often an inadequate link turns a purely
+additive structure into a statistically significant interaction, and
+whether standard diagnostics detect the misspecification.
 
 These simulations take up the case in which the outcome family is
 already broadly plausible and the link alone sets a disputable
@@ -558,15 +564,7 @@ property of that scale (\citeproc{ref-cox1984}{Cox, 1984};
 \citeproc{ref-mccabe2022}{McCabe et al., 2022}), correct where it was
 computed and troublesome only when the claim is carried to a different
 scale. Because the generating scale is known in a simulation, we can
-call such a result a pseudo-interaction, an interaction that is zero on
-the generating scale and nonzero on another fitted scale because the two
-encode different additivity baselines (this is narrower and more focused
-than removability, as we consider only a specified set of alternative
-link functions). In empirical data, where the generating scale is
-unknown, we describe interaction conclusions as link-sensitive,
-conditional on the fitted scale, or unstable across plausible links.
-Table~\ref{tbl-link-aware-workflow} summarizes these insights into a
-practical workflow for applied research.
+call such a result a pseudo-interaction.
 
 Technical details are reported in Supplement A; a broader precomputed
 sensitivity atlas varying sample size, main-effect magnitude, the
@@ -1000,14 +998,14 @@ The same qualitative sensitivity to the chance floor also appears at
 chance levels 0.25 and 0.33 (Supplement B).
 
 All four models returned a usable product-term test in every
-replication, including the lower-performance scenario. Complete fit
-success does not imply equal precision: under the matched
-chance-corrected model, the Monte Carlo standard deviation of the
-estimated age-by-group coefficient was 0.180 in the lower-performance
-scenario, compared with 0.115 in the middle-performance scenario and
-0.099 in the higher-performance scenario. This greater sampling
-variability is consistent with less information about link-scale changes
-when expected accuracy lies closer to the chance floor.
+replication, including the lower-performance scenario. However under the
+matched chance-corrected model, the Monte Carlo standard deviation of
+the estimated age-by-group coefficient was 0.180 in the
+lower-performance scenario, compared with 0.115 in the
+middle-performance scenario and 0.099 in the higher-performance
+scenario. This greater sampling variability is consistent with less
+information about link-scale changes when expected accuracy lies closer
+to the chance floor.
 
 \subsection{Within-Family Link Choice}\label{within-family-link-choice}
 
