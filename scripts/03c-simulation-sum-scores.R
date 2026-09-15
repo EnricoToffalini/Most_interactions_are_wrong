@@ -1,21 +1,33 @@
-# scripts/03b-simulation-sum-scores.R
+# scripts/03c-simulation-sum-scores.R
 # Simulation 2: sum scores as bounded and discrete outcomes.
 #
 # Scientific choices for this simulation live in this script.
-# Project-level defaults and reusable functions live in R/.
+# Computational settings and scientific calculations are local to this script.
 
 rm(list = ls())
 
-source("R/project-settings.R")
-source("R/utils-reporting.R")
-source("R/utils-link-functions.R")
-source("R/utils-summaries.R")
+# Run from the repository root. Publication runs use 3000 replications.
+B <- as.integer(Sys.getenv("N_SIM", "3000"))
+default_alpha <- as.numeric(Sys.getenv("ALPHA", "0.05"))
+default_dpi <- 300
+figure_width <- 7.2
+figure_height <- 7.0
+
+
+
 source("R/utils-plots.R")
 
-ensure_output_dirs()
+for (path in c("tables", "figs", "outputs", "outputs/inspection")) {
+  dir.create(path, recursive = TRUE, showWarnings = FALSE)
+}
+group_difference <- function(group0, group1) group1 - group0
+change_in_group_difference <- function(low_group0, low_group1, high_group0, high_group1) {
+  (high_group1 - high_group0) - (low_group1 - low_group0)
+}
+
 set.seed(20260526)
 
-report_header("Simulation 2: sum scores")
+cat("\n", "Simulation 2: sum scores", "\n")
 
 # ---------------------------------------------------------------------
 # 1. User-tunable scenario block
@@ -31,10 +43,10 @@ settings <- list(
   x_summary_values = c(-1, 0, 1),
   x_plot_range = c(-2.5, 2.5),
   x_bin_breaks = seq(-2.5, 2.5, length.out = 11),
-  B = default_B,
+  B = B,
   n_cores = as.integer(Sys.getenv(
-    "SLURM_CPUS_PER_TASK",
-    Sys.getenv("N_CORES", max(1, parallel::detectCores() - 1))
+    "N_CORES",
+    Sys.getenv("SLURM_CPUS_PER_TASK", max(1, parallel::detectCores() - 1))
   )),
   alpha = default_alpha,
   scenario_table_path = "tables/scenario-table-sum-scores.csv",
@@ -57,10 +69,10 @@ scenarios <- data.frame(
   stringsAsFactors = FALSE
 )
 
-report_section("Scenario parameters")
-print_compact(list_to_table(settings))
+cat("\n", "Scenario parameters", "\n")
+print(settings)
 cat("\nScenario-specific threshold shifts:\n")
-print_compact(scenarios)
+print(scenarios)
 
 x_low <- min(settings$x_summary_values)
 x_high <- max(settings$x_summary_values)
@@ -79,33 +91,15 @@ latent_mean <- function(x, group_num) {
 }
 
 # Expected item score for a given theta and thresholds.
-expected_item_score_at_theta <- function(theta, thresholds) {
-  # Category is 0, 1, 2, 3.
-  # Expected score is P(Y >= 1) + P(Y >= 2) + P(Y >= 3).
-  rowSums(stats::plogis(outer(theta, thresholds, "-")))
-}
+
 
 # Expected sum score after integrating over individual latent residuals.
 expected_sum_given_mu <- function(mu, thresholds) {
   q <- stats::qnorm((seq_len(201) - 0.5) / 201) * settings$theta_sd
-  mean(vapply(mu + q, function(th) sum(expected_item_score_at_theta(th, thresholds)), numeric(1)))
+  mean(vapply(mu + q, function(th) sum(stats::plogis(th - as.vector(thresholds))), numeric(1)))
 }
 
-simulate_items <- function(theta, thresholds) {
-  N <- length(theta)
-  J <- nrow(thresholds)
-  out <- matrix(NA_integer_, nrow = N, ncol = J)
-  
-  for (j in seq_len(J)) {
-    p_ge_1 <- stats::plogis(theta - thresholds[j, 1])
-    p_ge_2 <- stats::plogis(theta - thresholds[j, 2])
-    p_ge_3 <- stats::plogis(theta - thresholds[j, 3])
-    u <- stats::runif(N)
-    out[, j] <- 0L + (u < p_ge_1) + (u < p_ge_2) + (u < p_ge_3)
-  }
-  
-  out
-}
+
 
 # ---------------------------------------------------------------------
 # 2. Compact scenario table
@@ -196,11 +190,11 @@ scenario_table <- rbind(
 
 utils::write.csv(scenario_table, settings$scenario_table_path, row.names = FALSE)
 
-report_section("Implied scenario values")
-print_compact(scenario_values)
-report_section("Derived contrasts implied by each scenario")
-print_compact(scenario_contrasts)
-report_sign_convention(paste0("x = ", x_low), paste0("x = ", x_high))
+cat("\n", "Implied scenario values", "\n")
+print(scenario_values)
+cat("\n", "Derived contrasts implied by each scenario", "\n")
+print(scenario_contrasts)
+cat("\nGroup gaps are Group 1 minus Group 0; changes are high minus low.\n")
 
 # ---------------------------------------------------------------------
 # 3. Deterministic scenario plotting data
@@ -252,12 +246,25 @@ threshold_data <- do.call(rbind, lapply(seq_len(nrow(scenarios)), function(i) {
 # ---------------------------------------------------------------------
 # 4. Simulate one example dataset per scenario
 # ---------------------------------------------------------------------
-simulate_one <- function(threshold_shift) {
-  x <- stats::rnorm(settings$N, 0, 1)
+
+
+example_data <- do.call(rbind, lapply(seq_len(nrow(scenarios)), function(i) {
+  threshold_shift <- scenarios$threshold_shift[i]
+x <- stats::rnorm(settings$N, 0, 1)
   group_num <- stats::rbinom(settings$N, 1, 0.5)
-  mu <- latent_mean(x, group_num)
+  mu <- settings$beta_x * x + settings$beta_group * group_num +
+    settings$beta_x_group * x * group_num
   theta <- mu + stats::rnorm(settings$N, 0, settings$theta_sd)
-  items <- simulate_items(theta, make_thresholds(threshold_shift))
+  thresholds <- matrix(rep(c(-1, 0, 1), each = settings$J), nrow = settings$J) +
+    seq(-0.45, 0.45, length.out = settings$J) + threshold_shift
+  items <- matrix(NA_integer_, nrow = settings$N, ncol = settings$J)
+  for (j in seq_len(settings$J)) {
+    p_ge_1 <- stats::plogis(theta - thresholds[j, 1])
+    p_ge_2 <- stats::plogis(theta - thresholds[j, 2])
+    p_ge_3 <- stats::plogis(theta - thresholds[j, 3])
+    u <- stats::runif(settings$N)
+    items[, j] <- 0L + (u < p_ge_1) + (u < p_ge_2) + (u < p_ge_3)
+  }
   sum_score <- rowSums(items)
   
   # The Gaussian-probit model below requires responses strictly inside (0, 1).
@@ -268,7 +275,7 @@ simulate_one <- function(threshold_shift) {
   score_prop <- sum_score / settings$max_score
   score_prop_probit <- (sum_score + 0.5) / (settings$max_score + 1)
   
-  data.frame(
+  d <- data.frame(
     x = x,
     group_num = group_num,
     group = factor(group_num, levels = c(0, 1), labels = c("Group 0", "Group 1")),
@@ -280,10 +287,6 @@ simulate_one <- function(threshold_shift) {
     max_score = settings$max_score,
     stringsAsFactors = FALSE
   )
-}
-
-example_data <- do.call(rbind, lapply(seq_len(nrow(scenarios)), function(i) {
-  d <- simulate_one(scenarios$threshold_shift[i])
   d$scenario <- scenarios$scenario[i]
   d
 }))
@@ -293,16 +296,16 @@ example_data$x_bin <- cut(example_data$x, breaks = settings$x_bin_breaks, includ
 example_binned <- stats::aggregate(sum_score ~ scenario + x_bin + group, example_data, mean)
 example_binned$x_mid <- bin_midpoints(example_binned$x_bin)
 
-report_section("One example dataset per scenario")
+cat("\n", "One example dataset per scenario", "\n")
 cat("Observed mean sum score by scenario and group:\n")
-print_compact(stats::aggregate(sum_score ~ scenario + group, example_data, mean))
+print(stats::aggregate(sum_score ~ scenario + group, example_data, mean))
 
 # ---------------------------------------------------------------------
-# 5. Model fitting helpers
+# 5. Models fitted explicitly in each Monte Carlo replication
 # ---------------------------------------------------------------------
 # The intermediate bounded-score model is deliberately not a binomial model.
 # It is a Gaussian GLM with a probit link, fitted to the continuity-corrected
-# score proportion defined in simulate_one(). Thus it constrains fitted means
+# score proportion defined above. Thus it constrains fitted means
 # to the 0-1 interval before rescaling predictions to the sum-score metric,
 # but it does not assume binomial variance or independent item-level successes.
 model_names <- c(
@@ -311,131 +314,170 @@ model_names <- c(
   "Latent generating scale"
 )
 
-fit_models <- function(d) {
-  list(
-    "Observed sum-score identity" = try(
-      stats::lm(sum_score ~ x * group, data = d),
-      silent = TRUE
-    ),
-    "Gaussian-probit bounded score" = try(
-      stats::glm(
-        score_prop_probit ~ x * group,
-        family = stats::gaussian(link = stats::make.link("probit")),
-        data = d
-      ),
-      silent = TRUE
-    ),
-    "Latent generating scale" = try(
-      stats::lm(theta ~ x * group, data = d),
-      silent = TRUE
-    )
-  )
-}
 
-model_p <- function(fit, model_name) {
-  if (inherits(fit, "try-error")) return(NA_real_)
-  if (model_name %in% c("Observed sum-score identity", "Latent generating scale")) {
-    return(interaction_p_from_lm(fit))
-  }
-  interaction_p_from_glm(fit)
-}
 
-model_coef <- function(fit, model_name) {
-  if (inherits(fit, "try-error")) return(NA_real_)
-  if (model_name %in% c("Observed sum-score identity", "Latent generating scale")) {
-    return(interaction_coef_from_lm(fit))
-  }
-  interaction_coef_from_glm(fit)
-}
 
-model_predict_response <- function(fit, model_name, newdata) {
-  if (inherits(fit, "try-error")) return(rep(NA_real_, nrow(newdata)))
-  if (model_name == "Observed sum-score identity") return(stats::predict(fit, newdata = newdata))
-  if (model_name == "Latent generating scale") return(stats::predict(fit, newdata = newdata))
-  stats::predict(fit, newdata = newdata, type = "response") * settings$max_score
-}
 
-model_did <- function(fit, model_name) {
-  nd <- expand.grid(
-    x = c(x_low, x_high),
-    group = factor(c("Group 0", "Group 1"), levels = c("Group 0", "Group 1"))
-  )
-  nd$max_score <- settings$max_score
-  
-  pred <- model_predict_response(fit, model_name, nd)
-  
-  p_low_g0 <- pred[nd$x == x_low & nd$group == "Group 0"]
-  p_low_g1 <- pred[nd$x == x_low & nd$group == "Group 1"]
-  p_high_g0 <- pred[nd$x == x_high & nd$group == "Group 0"]
-  p_high_g1 <- pred[nd$x == x_high & nd$group == "Group 1"]
-  
-  change_in_group_difference(p_low_g0, p_low_g1, p_high_g0, p_high_g1)
-}
+
+
+
+
+
 
 # ---------------------------------------------------------------------
 # 6. Repeated simulation
 # ---------------------------------------------------------------------
-report_section("Monte Carlo simulation")
+cat("\n", "Monte Carlo simulation", "\n")
 cat("Running B = ", settings$B, " replications per scenario.\n", sep = "")
 
 Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = "1")
 
-run_replication <- function(scenario_name, threshold_shift, replication) {
-  d <- simulate_one(threshold_shift)
-  fits <- fit_models(d)
-  
-  do.call(rbind, lapply(model_names, function(m) {
-    fit <- fits[[m]]
-    did <- model_did(fit, m)
-    
-    data.frame(
-      scenario = scenario_name,
-      model = m,
-      replication = replication,
-      p_value = model_p(fit, m),
-      interaction_coef = model_coef(fit, m),
-      change_in_group_difference_response_scale = did / settings$max_score,
-      change_in_group_difference_outcome_units = did,
+run_replication <- function(replication, scenario_name, threshold_shift) {
+  x <- stats::rnorm(settings$N, 0, 1)
+    group_num <- stats::rbinom(settings$N, 1, 0.5)
+    mu <- settings$beta_x * x + settings$beta_group * group_num +
+      settings$beta_x_group * x * group_num
+    theta <- mu + stats::rnorm(settings$N, 0, settings$theta_sd)
+    thresholds <- matrix(rep(c(-1, 0, 1), each = settings$J), nrow = settings$J) +
+      seq(-0.45, 0.45, length.out = settings$J) + threshold_shift
+    items <- matrix(NA_integer_, nrow = settings$N, ncol = settings$J)
+    for (j in seq_len(settings$J)) {
+      p_ge_1 <- stats::plogis(theta - thresholds[j, 1])
+      p_ge_2 <- stats::plogis(theta - thresholds[j, 2])
+      p_ge_3 <- stats::plogis(theta - thresholds[j, 3])
+      u <- stats::runif(settings$N)
+      items[, j] <- 0L + (u < p_ge_1) + (u < p_ge_2) + (u < p_ge_3)
+    }
+    sum_score <- rowSums(items)
+
+    # The Gaussian-probit model below requires responses strictly inside (0, 1).
+    # We therefore use a continuity-corrected score proportion for that model:
+    # (sum_score + 0.5) / (max_score + 1).
+    # The raw sum score and raw score proportion are left unchanged for all
+    # descriptive summaries, plots, and the identity-link model.
+    score_prop <- sum_score / settings$max_score
+    score_prop_probit <- (sum_score + 0.5) / (settings$max_score + 1)
+
+    d <- data.frame(
+      x = x,
+      group_num = group_num,
+      group = factor(group_num, levels = c(0, 1), labels = c("Group 0", "Group 1")),
+      latent_mean = mu,
+      theta = theta,
+      sum_score = sum_score,
+      score_prop = score_prop,
+      score_prop_probit = score_prop_probit,
+      max_score = settings$max_score,
       stringsAsFactors = FALSE
     )
-  }))
+
+  fit_identity <- try(stats::lm(sum_score ~ x * group, data = d), silent = TRUE)
+  fit_probit <- try(stats::glm(score_prop_probit ~ x * group,
+                              family = stats::gaussian(link = stats::make.link("probit")),
+                              data = d), silent = TRUE)
+  fit_latent <- try(stats::lm(theta ~ x * group, data = d), silent = TRUE)
+  nd <- expand.grid(x = c(x_low, x_high),
+                    group = factor(c("Group 0", "Group 1"), levels = c("Group 0", "Group 1")))
+  nd$max_score <- settings$max_score
+  p_values <- coefficients <- did <- rep(NA_real_, 3)
+  if (!inherits(fit_identity, "try-error")) {
+    sm <- summary(fit_identity)$coefficients
+    if ("x:groupGroup 1" %in% rownames(sm)) {
+      p_values[1] <- sm["x:groupGroup 1", 4]
+      coefficients[1] <- sm["x:groupGroup 1", 1]
+    }
+    pred <- stats::predict(fit_identity, newdata = nd, type = "response")
+    did[1] <- (pred[4] - pred[2]) - (pred[3] - pred[1])
+  }
+  if (!inherits(fit_probit, "try-error")) {
+    sm <- summary(fit_probit)$coefficients
+    if ("x:groupGroup 1" %in% rownames(sm)) {
+      p_values[2] <- sm["x:groupGroup 1", 4]
+      coefficients[2] <- sm["x:groupGroup 1", 1]
+    }
+    pred <- stats::predict(fit_probit, newdata = nd, type = "response") * settings$max_score
+    did[2] <- (pred[4] - pred[2]) - (pred[3] - pred[1])
+  }
+  if (!inherits(fit_latent, "try-error")) {
+    sm <- summary(fit_latent)$coefficients
+    if ("x:groupGroup 1" %in% rownames(sm)) {
+      p_values[3] <- sm["x:groupGroup 1", 4]
+      coefficients[3] <- sm["x:groupGroup 1", 1]
+    }
+    pred <- stats::predict(fit_latent, newdata = nd, type = "response")
+    did[3] <- (pred[4] - pred[2]) - (pred[3] - pred[1])
+  }
+  data.frame(scenario = scenario_name, model = model_names, replication = replication,
+             p_value = p_values, interaction_coef = coefficients,
+             change_in_group_difference_response_scale = did / settings$max_score,
+             change_in_group_difference_outcome_units = did,
+             stringsAsFactors = FALSE)
 }
 
-if (settings$n_cores > 1 && .Platform$OS.type == "unix") {
-  simulation_results <- do.call(
-    rbind,
-    lapply(seq_len(nrow(scenarios)), function(i) {
-      s <- scenarios[i, ]
-      cat("Scenario: ", s$scenario, "\n", sep = "")
-      do.call(
-        rbind,
-        parallel::mclapply(
-          seq_len(settings$B),
-          function(b) run_replication(s$scenario, s$threshold_shift, b),
-          mc.cores = settings$n_cores,
-          mc.set.seed = TRUE
-        )
-      )
-    })
-  )
-} else {
-  simulation_results <- do.call(
-    rbind,
-    lapply(seq_len(nrow(scenarios)), function(i) {
-      s <- scenarios[i, ]
-      cat("Scenario: ", s$scenario, " ", sep = "")
-      do.call(rbind, lapply(seq_len(settings$B), function(b) {
-        progress_tick(b, settings$B)
-        run_replication(s$scenario, s$threshold_shift, b)
-      }))
-    })
-  )
+# N_CORES overrides the SLURM allocation; otherwise use SLURM_CPUS_PER_TASK.
+# Parallelize replications only. Each worker uses one BLAS/OpenMP thread.
+Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = "1")
+cluster <- NULL
+if (settings$n_cores > 1 && .Platform$OS.type != "unix") {
+  cluster <- parallel::makeCluster(settings$n_cores)
+  parallel::clusterSetRNGStream(cluster, iseed = 20260526)
+  parallel::clusterExport(cluster, c("settings", "model_names", "x_low", "x_high"))
 }
+scenario_results <- list()
+for (i in seq_len(nrow(scenarios))) {
+  s <- scenarios[i, ]
+  if (settings$n_cores > 1 && .Platform$OS.type == "unix") {
+    replications <- parallel::mclapply(seq_len(settings$B), run_replication,
+      scenario_name = s$scenario, threshold_shift = s$threshold_shift, mc.cores = settings$n_cores, mc.set.seed = TRUE)
+  } else if (!is.null(cluster)) {
+    replications <- parallel::parLapply(cluster, seq_len(settings$B), run_replication,
+      scenario_name = s$scenario, threshold_shift = s$threshold_shift)
+  } else {
+    replications <- lapply(seq_len(settings$B), run_replication, scenario_name = s$scenario, threshold_shift = s$threshold_shift)
+  }
+  scenario_results[[length(scenario_results) + 1L]] <- do.call(rbind, replications)
+}
+if (!is.null(cluster)) parallel::stopCluster(cluster)
+simulation_results <- do.call(rbind, scenario_results)
 
 simulation_summary <- do.call(rbind, lapply(
   split(simulation_results, list(simulation_results$scenario, simulation_results$model), drop = TRUE),
   function(dat) {
-    sm <- summarise_model_simulation(dat, alpha = settings$alpha)
+    ok <- is.finite(dat$p_value)
+  n <- sum(ok)
+  sig <- sum(dat$p_value[ok] < settings$alpha)
+  z <- stats::qnorm(0.975)
+  rate <- if (n == 0) NA_real_ else sig / n
+  denom <- 1 + z^2 / n
+  center <- (rate + z^2 / (2 * n)) / denom
+  half <- z * sqrt((rate * (1 - rate) + z^2 / (4 * n)) / n) / denom
+  ci <- if (n == 0) c(NA_real_, NA_real_) else c(center - half, center + half)
+
+  sm <- data.frame(
+    n_successful_fits = n,
+    n_rejections = sig,
+    rejection_rate = rate,
+    ci_low = ci[1],
+    ci_high = ci[2],
+    median_interaction_coef = stats::median(dat$interaction_coef, na.rm = TRUE),
+    mean_interaction_coef = mean((dat$interaction_coef)[is.finite(dat$interaction_coef)]),
+    sd_interaction_coef = stats::sd((dat$interaction_coef)[is.finite(dat$interaction_coef)]),
+    q25_interaction_coef = unname(stats::quantile((dat$interaction_coef)[is.finite(dat$interaction_coef)], 0.25, na.rm = TRUE)),
+    q75_interaction_coef = unname(stats::quantile((dat$interaction_coef)[is.finite(dat$interaction_coef)], 0.75, na.rm = TRUE)),
+    q025_interaction_coef = unname(stats::quantile((dat$interaction_coef)[is.finite(dat$interaction_coef)], 0.025, na.rm = TRUE)),
+    q975_interaction_coef = unname(stats::quantile((dat$interaction_coef)[is.finite(dat$interaction_coef)], 0.975, na.rm = TRUE)),
+    median_abs_coef_significant = stats::median(
+      abs(dat$interaction_coef[is.finite(dat$p_value) & dat$p_value < settings$alpha])
+    , na.rm = TRUE),
+    median_abs_coef_nonsignificant = stats::median(
+      abs(dat$interaction_coef[is.finite(dat$p_value) & dat$p_value >= settings$alpha])
+    , na.rm = TRUE),
+    median_change_in_group_difference_response_scale = stats::median(dat$change_in_group_difference_response_scale, na.rm = TRUE),
+    median_change_in_group_difference_outcome_units = stats::median(dat$change_in_group_difference_outcome_units, na.rm = TRUE),
+    mean_change_in_group_difference_outcome_units = mean((dat$change_in_group_difference_outcome_units)[is.finite(dat$change_in_group_difference_outcome_units)]),
+    sd_change_in_group_difference_outcome_units = stats::sd((dat$change_in_group_difference_outcome_units)[is.finite(dat$change_in_group_difference_outcome_units)]),
+    stringsAsFactors = FALSE
+  )
     data.frame(scenario = dat$scenario[1], model = dat$model[1], sm, stringsAsFactors = FALSE)
   }
 ))
@@ -454,8 +496,8 @@ simulation_summary$change_in_group_difference_units <- ifelse(
 
 utils::write.csv(simulation_summary, settings$simulation_summary_path, row.names = FALSE)
 
-report_section("Simulation summary")
-print_compact(simulation_summary)
+cat("\n", "Simulation summary", "\n")
+print(simulation_summary)
 cat("\nThe generating x-by-group product term is zero on the latent scale.\n")
 cat("The latent generating-scale benchmark supplies nominal rejection rates.\n")
 cat("Observed and bounded-score analyses supply pseudo-interaction detection rates.\n")
@@ -614,7 +656,7 @@ saveRDS(
   file = settings$rds_path
 )
 
-report_section("Saved files")
+cat("\n", "Saved files", "\n")
 cat("- ", settings$scenario_table_path, "\n", sep = "")
 cat("- ", settings$simulation_summary_path, "\n", sep = "")
 cat("- ", settings$figure_base, ".pdf/png\n", sep = "")

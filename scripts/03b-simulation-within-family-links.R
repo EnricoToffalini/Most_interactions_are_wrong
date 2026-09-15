@@ -1,4 +1,4 @@
-# scripts/03c-simulation-within-family-links.R
+# scripts/03b-simulation-within-family-links.R
 # Simulation 3: within-family link choice with repeated binary trials.
 # Logit coefficients are scaled so the logit DGP has cell probabilities close
 # to the probit reference scenario, while preserving zero product term on the
@@ -6,17 +6,23 @@
 
 rm(list = ls())
 
-source("R/project-settings.R")
-source("R/utils-reporting.R")
+# Run from the repository root. Publication runs use 3000 replications.
+B <- as.integer(Sys.getenv("N_SIM", "3000"))
+default_alpha <- as.numeric(Sys.getenv("ALPHA", "0.05"))
+default_dpi <- 300
+figure_width <- 7.2
+figure_height <- 7.0
+
 source("R/utils-plots.R")
 
-if (!requireNamespace("glmmTMB", quietly = TRUE)) {
-  stop("Please install glmmTMB to fit random-intercept GLMMs.", call. = FALSE)
-}
+library(glmmTMB)
+library(ggplot2)
 
-ensure_output_dirs()
+for (path in c("tables", "figs", "outputs", "outputs/inspection")) {
+  dir.create(path, recursive = TRUE, showWarnings = FALSE)
+}
 set.seed(20260528)
-report_header("Simulation 3: logit vs probit within the binomial family")
+cat("\n", "Simulation 3: logit vs probit within the binomial family", "\n")
 
 # ---------------------------------------------------------------------
 # 1. User-tunable settings
@@ -31,10 +37,10 @@ settings <- list(
   reference_beta_group_condition = 0,
   logit_probit_scale = 1.65,
   candidate_links = c("logit", "probit"),
-  B = default_B,
+  B = B,
   n_cores = as.integer(Sys.getenv(
-    "SLURM_CPUS_PER_TASK",
-    Sys.getenv("N_CORES", max(1, parallel::detectCores() - 1))
+    "N_CORES",
+    Sys.getenv("SLURM_CPUS_PER_TASK", max(1, parallel::detectCores() - 1))
   )),
   alpha = default_alpha,
   scenario_table_path = "tables/scenario-table-within-family-links.csv",
@@ -44,8 +50,8 @@ settings <- list(
   rds_path = "outputs/simulation-within-family-links.rds"
 )
 
-report_section("Simulation settings")
-print_compact(list_to_table(settings))
+cat("\n", "Simulation settings", "\n")
+print(settings)
 cat("\nThe true condition-by-group product term is zero on the generating link scale.\n")
 cat("Logit coefficients are scaled to make the logit DGP close to the probit reference scenario.\n")
 cat("All fitted models are random-intercept GLMMs fit with glmmTMB.\n")
@@ -68,8 +74,8 @@ link_fun <- function(p, link) {
 }
 
 link_label <- function(link) ifelse(link == "logit", "Logit", "Probit")
-latent_residual_variance <- function(link) ifelse(link == "logit", pi^2 / 3, 1)
-random_intercept_sd <- function(link) sqrt(settings$target_icc * latent_residual_variance(link) / (1 - settings$target_icc))
+
+
 
 scenario_parameters <- data.frame(
   generating_link = settings$candidate_links,
@@ -81,17 +87,9 @@ for (nm in c("intercept", "group", "condition", "group_condition")) {
     scenario_parameters$coefficient_scale * settings[[paste0("reference_beta_", nm)]]
 }
 
-get_scenario_parameters <- function(generating_link) {
-  out <- scenario_parameters[scenario_parameters$generating_link == generating_link, ]
-  if (nrow(out) != 1) stop("Could not find unique scenario parameters.", call. = FALSE)
-  out
-}
 
-linear_predictor_fixed <- function(group_num, condition_num, generating_link) {
-  p <- get_scenario_parameters(generating_link)
-  p$beta_intercept + p$beta_group * group_num + p$beta_condition * condition_num +
-    p$beta_group_condition * group_num * condition_num
-}
+
+
 
 interaction_contrast <- function(value, group_num, condition_num) {
   unname(
@@ -100,36 +98,38 @@ interaction_contrast <- function(value, group_num, condition_num) {
   )
 }
 
-make_cell_table <- function(generating_link) {
+
+
+
+
+cell_rows <- contrast_rows <- list()
+for (generating_link in settings$candidate_links) {
+  p <- scenario_parameters[scenario_parameters$generating_link == generating_link, ]
   g <- expand.grid(group_num = c(0, 1), condition_num = c(0, 1))
   g$generating_link <- generating_link
-  g$random_intercept_sd <- random_intercept_sd(generating_link)
-  g$linear_predictor_random_intercept_0 <- linear_predictor_fixed(g$group_num, g$condition_num, generating_link)
+  residual_variance <- if (generating_link == "logit") pi^2 / 3 else 1
+  g$random_intercept_sd <- sqrt(settings$target_icc * residual_variance / (1 - settings$target_icc))
+  g$linear_predictor_random_intercept_0 <- p$beta_intercept +
+    p$beta_group * g$group_num + p$beta_condition * g$condition_num +
+    p$beta_group_condition * g$group_num * g$condition_num
   g$expected_probability_random_intercept_0 <- inv_link(g$linear_predictor_random_intercept_0, generating_link)
   g$group <- factor(g$group_num, levels = c(0, 1), labels = c("Group 0", "Group 1"))
   g$condition <- factor(g$condition_num, levels = c(0, 1), labels = c("Condition 0", "Condition 1"))
-  g$generating_link_label <- paste0("Generated with ", link_label(g$generating_link), " link")
-  g
-}
-
-make_contrasts <- function(generating_link) {
-  g <- cell_probability_table[cell_probability_table$generating_link == generating_link, ]
-  do.call(rbind, lapply(settings$candidate_links, function(fitted_link) {
+  g$generating_link_label <- paste0("Generated with ", link_label(generating_link), " link")
+  cell_rows[[length(cell_rows) + 1L]] <- g
+  for (fitted_link in settings$candidate_links) {
     fitted_scale_value <- link_fun(g$expected_probability_random_intercept_0, fitted_link)
-    data.frame(
-      generating_link = generating_link,
-      fitted_link = fitted_link,
+    contrast_rows[[length(contrast_rows) + 1L]] <- data.frame(
+      generating_link = generating_link, fitted_link = fitted_link,
       link_match = ifelse(fitted_link == generating_link, "Matched link", "Wrong link"),
-      random_intercept_sd = random_intercept_sd(generating_link),
+      random_intercept_sd = g$random_intercept_sd[1],
       deterministic_product_on_fitted_link_scale = interaction_contrast(fitted_scale_value, g$group_num, g$condition_num),
       deterministic_response_scale_difference_in_differences = interaction_contrast(g$expected_probability_random_intercept_0, g$group_num, g$condition_num),
-      stringsAsFactors = FALSE
-    )
-  }))
+      stringsAsFactors = FALSE)
+  }
 }
-
-cell_probability_table <- do.call(rbind, lapply(settings$candidate_links, make_cell_table))
-scenario_contrasts <- do.call(rbind, lapply(settings$candidate_links, make_contrasts))
+cell_probability_table <- do.call(rbind, cell_rows)
+scenario_contrasts <- do.call(rbind, contrast_rows)
 scenario_table <- merge(cell_probability_table, scenario_contrasts, by = c("generating_link", "random_intercept_sd"), all.x = TRUE, sort = FALSE)
 scenario_table <- scenario_table[, c(
   "generating_link", "fitted_link", "link_match", "random_intercept_sd", "group", "condition",
@@ -138,144 +138,131 @@ scenario_table <- scenario_table[, c(
 )]
 utils::write.csv(scenario_table, settings$scenario_table_path, row.names = FALSE)
 
-report_section("Scenario parameters after link-specific scaling")
-print_compact(scenario_parameters)
-report_section("Cell probabilities at random intercept = 0")
-print_compact(cell_probability_table[, c(
+cat("\n", "Scenario parameters after link-specific scaling", "\n")
+print(scenario_parameters)
+cat("\n", "Cell probabilities at random intercept = 0", "\n")
+print(cell_probability_table[, c(
   "generating_link", "random_intercept_sd", "group", "condition",
   "linear_predictor_random_intercept_0", "expected_probability_random_intercept_0"
 )])
-report_section("Deterministic pseudo-interaction implied by link crossing")
-print_compact(scenario_contrasts)
+cat("\n", "Deterministic pseudo-interaction implied by link crossing", "\n")
+print(scenario_contrasts)
 
 # ---------------------------------------------------------------------
 # 3. Data generation and model fitting
 # ---------------------------------------------------------------------
-make_design <- function() {
-  n_per_group <- settings$n_subjects / 2
-  id <- rep(seq_len(settings$n_subjects), each = 2 * settings$k_trials)
-  group_by_subject <- rep(c(0, 1), each = n_per_group)
-  data.frame(
-    id = factor(id),
-    group_num = rep(group_by_subject, each = 2 * settings$k_trials),
-    condition_num = rep(rep(c(0, 1), each = settings$k_trials), times = settings$n_subjects),
-    stringsAsFactors = FALSE
-  )
-}
 
-simulate_one <- function(generating_link) {
-  d <- make_design()
-  u <- stats::rnorm(settings$n_subjects, 0, random_intercept_sd(generating_link))
-  eta <- linear_predictor_fixed(d$group_num, d$condition_num, generating_link) + u[as.integer(d$id)]
-  d$y <- stats::rbinom(nrow(d), 1, inv_link(eta, generating_link))
-  d$group <- factor(d$group_num, levels = c(0, 1), labels = c("Group 0", "Group 1"))
-  d$condition <- factor(d$condition_num, levels = c(0, 1), labels = c("Condition 0", "Condition 1"))
-  d
-}
 
-fit_glmm <- function(d, fitted_link) {
-  suppressWarnings(try(
-    glmmTMB::glmmTMB(y ~ group * condition + (1 | id), data = d, family = stats::binomial(link = fitted_link)),
-    silent = TRUE
-  ))
-}
 
-interaction_stats <- function(fit) {
-  out <- data.frame(interaction_coef = NA_real_, interaction_se = NA_real_, p_value = NA_real_)
-  if (inherits(fit, "try-error")) return(out)
-  s <- summary(fit)$coefficients$cond
-  row <- grep(":", rownames(s), value = TRUE)
-  if (length(row) != 1) return(out)
-  data.frame(interaction_coef = unname(s[row, "Estimate"]), interaction_se = unname(s[row, "Std. Error"]), p_value = unname(s[row, "Pr(>|z|)"]))
-}
 
-wilson_ci <- function(x, n, conf = .95) {
-  if (n == 0) return(c(low = NA_real_, high = NA_real_))
-  z <- stats::qnorm(1 - (1 - conf) / 2)
-  p <- x / n
-  denom <- 1 + z^2 / n
-  center <- (p + z^2 / (2 * n)) / denom
-  half <- z * sqrt((p * (1 - p) + z^2 / (4 * n)) / n) / denom
-  c(low = center - half, high = center + half)
-}
 
-summarise_cell <- function(dat) {
-  ok <- !is.na(dat$p_value)
-  n <- sum(ok)
-  n_rejections <- sum(dat$p_value[ok] < settings$alpha)
-  ci <- wilson_ci(n_rejections, n)
-  data.frame(
-    n_successful_fits = n,
-    n_rejections = n_rejections,
-    rejection_rate = n_rejections / n,
-    ci_low = unname(ci["low"]),
-    ci_high = unname(ci["high"]),
-    median_interaction_coef = stats::median(dat$interaction_coef, na.rm = TRUE),
-    median_interaction_se = stats::median(dat$interaction_se, na.rm = TRUE),
-    stringsAsFactors = FALSE
-  )
-}
+
+
+
+
+
+
 
 # ---------------------------------------------------------------------
 # 4. Monte Carlo simulation
 # ---------------------------------------------------------------------
-report_section("Monte Carlo simulation")
+cat("\n", "Monte Carlo simulation", "\n")
 cat("Running B = ", settings$B, " replications per generating-link cell.\n", sep = "")
 cat("Using n_cores = ", settings$n_cores, ".\n", sep = "")
 
-run_one_replication <- function(generating_link, b) {
-  d <- simulate_one(generating_link)
-  do.call(rbind, lapply(settings$candidate_links, function(fitted_link) {
-    data.frame(
-      generating_link = generating_link,
-      fitted_link = fitted_link,
-      link_match = ifelse(fitted_link == generating_link, "Matched link", "Wrong link"),
-      replication = b,
-      interaction_stats(fit_glmm(d, fitted_link)),
-      stringsAsFactors = FALSE
-    )
-  }))
+run_one_replication <- function(b, generating_link) {
+  p <- scenario_parameters[scenario_parameters$generating_link == generating_link, ]
+  n_per_group <- settings$n_subjects / 2
+  id <- rep(seq_len(settings$n_subjects), each = 2 * settings$k_trials)
+  group_by_subject <- rep(c(0, 1), each = n_per_group)
+  d <- data.frame(
+    id = factor(id),
+    group_num = rep(group_by_subject, each = 2 * settings$k_trials),
+    condition_num = rep(rep(c(0, 1), each = settings$k_trials), times = settings$n_subjects))
+  residual_variance <- if (generating_link == "logit") pi^2 / 3 else 1
+  u_sd <- sqrt(settings$target_icc * residual_variance / (1 - settings$target_icc))
+  u <- stats::rnorm(settings$n_subjects, 0, u_sd)
+  eta <- p$beta_intercept + p$beta_group * d$group_num +
+    p$beta_condition * d$condition_num + p$beta_group_condition * d$group_num * d$condition_num +
+    u[as.integer(d$id)]
+  probability <- if (generating_link == "logit") stats::plogis(eta) else stats::pnorm(eta)
+  d$y <- stats::rbinom(nrow(d), 1, probability)
+  d$group <- factor(d$group_num, levels = c(0, 1), labels = c("Group 0", "Group 1"))
+  d$condition <- factor(d$condition_num, levels = c(0, 1), labels = c("Condition 0", "Condition 1"))
+  fit_logit <- try(glmmTMB::glmmTMB(y ~ group * condition + (1 | id), data = d,
+                                 family = stats::binomial("logit")), silent = TRUE)
+  fit_probit <- try(glmmTMB::glmmTMB(y ~ group * condition + (1 | id), data = d,
+                                  family = stats::binomial("probit")), silent = TRUE)
+  coefficients <- standard_errors <- p_values <- rep(NA_real_, 2)
+  if (!inherits(fit_logit, "try-error")) {
+    sm <- summary(fit_logit)$coefficients$cond
+    if ("groupGroup 1:conditionCondition 1" %in% rownames(sm)) {
+      coefficients[1] <- sm["groupGroup 1:conditionCondition 1", "Estimate"]
+      standard_errors[1] <- sm["groupGroup 1:conditionCondition 1", "Std. Error"]
+      p_values[1] <- sm["groupGroup 1:conditionCondition 1", "Pr(>|z|)"]
+    }
+  }
+  if (!inherits(fit_probit, "try-error")) {
+    sm <- summary(fit_probit)$coefficients$cond
+    if ("groupGroup 1:conditionCondition 1" %in% rownames(sm)) {
+      coefficients[2] <- sm["groupGroup 1:conditionCondition 1", "Estimate"]
+      standard_errors[2] <- sm["groupGroup 1:conditionCondition 1", "Std. Error"]
+      p_values[2] <- sm["groupGroup 1:conditionCondition 1", "Pr(>|z|)"]
+    }
+  }
+  data.frame(generating_link = generating_link, fitted_link = c("logit", "probit"),
+             link_match = ifelse(c("logit", "probit") == generating_link, "Matched link", "Wrong link"),
+             replication = b, interaction_coef = coefficients,
+             interaction_se = standard_errors, p_value = p_values, stringsAsFactors = FALSE)
 }
 
-run_sequential <- function(generating_link) {
-  cat("DGP link: ", generating_link, "\n", sep = "")
-  do.call(rbind, lapply(seq_len(settings$B), function(b) {
-    progress_tick(b, settings$B, label = "  replication ")
-    run_one_replication(generating_link, b)
-  }))
-}
+
 
 Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = "1")
 
-if (settings$n_cores > 1 && .Platform$OS.type == "unix") {
-  simulation_results <- do.call(
-    rbind,
-    lapply(settings$candidate_links, function(generating_link) {
-      cat("DGP link: ", generating_link, "\n", sep = "")
-      do.call(
-        rbind,
-        parallel::mclapply(
-          seq_len(settings$B),
-          function(b) run_one_replication(generating_link, b),
-          mc.cores = settings$n_cores,
-          mc.set.seed = TRUE
-        )
-      )
-    })
-  )
-} else {
-  simulation_results <- do.call(rbind, lapply(settings$candidate_links, run_sequential))
+# N_CORES overrides the SLURM allocation; otherwise use SLURM_CPUS_PER_TASK.
+# Parallelize replications only. Each worker uses one BLAS/OpenMP thread.
+Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = "1")
+cluster <- NULL
+if (settings$n_cores > 1 && .Platform$OS.type != "unix") {
+  cluster <- parallel::makeCluster(settings$n_cores)
+  parallel::clusterSetRNGStream(cluster, iseed = 20260528)
+  parallel::clusterExport(cluster, c("settings", "scenario_parameters"))
 }
+scenario_results <- list()
+for (generating_link in settings$candidate_links) {
+  if (settings$n_cores > 1 && .Platform$OS.type == "unix") {
+    replications <- parallel::mclapply(seq_len(settings$B), run_one_replication,
+      generating_link = generating_link, mc.cores = settings$n_cores, mc.set.seed = TRUE)
+  } else if (!is.null(cluster)) {
+    replications <- parallel::parLapply(cluster, seq_len(settings$B), run_one_replication,
+      generating_link = generating_link)
+  } else {
+    replications <- lapply(seq_len(settings$B), run_one_replication, generating_link = generating_link)
+  }
+  scenario_results[[length(scenario_results) + 1L]] <- do.call(rbind, replications)
+}
+if (!is.null(cluster)) parallel::stopCluster(cluster)
+simulation_results <- do.call(rbind, scenario_results)
 
 simulation_summary <- do.call(rbind, lapply(
   split(simulation_results, list(simulation_results$generating_link, simulation_results$fitted_link), drop = TRUE),
-  function(dat) data.frame(
-    generating_link = dat$generating_link[1],
-    fitted_link = dat$fitted_link[1],
-    link_match = dat$link_match[1],
-    summarise_cell(dat),
-    stringsAsFactors = FALSE
-  )
+  function(dat) {
+    ok <- !is.na(dat$p_value)
+    n <- sum(ok)
+    n_rejections <- sum(dat$p_value[ok] < settings$alpha)
+    rate <- n_rejections / n
+    z <- stats::qnorm(0.975)
+    denom <- 1 + z^2 / n
+    center <- (rate + z^2 / (2 * n)) / denom
+    half <- z * sqrt((rate * (1 - rate) + z^2 / (4 * n)) / n) / denom
+    ci <- if (n == 0) c(NA_real_, NA_real_) else c(center - half, center + half)
+    data.frame(generating_link = dat$generating_link[1], fitted_link = dat$fitted_link[1],
+      link_match = dat$link_match[1], n_successful_fits = n, n_rejections = n_rejections,
+      rejection_rate = rate, ci_low = ci[1], ci_high = ci[2],
+      median_interaction_coef = stats::median(dat$interaction_coef, na.rm = TRUE),
+      median_interaction_se = stats::median(dat$interaction_se, na.rm = TRUE), stringsAsFactors = FALSE)
+  }
 ))
 
 simulation_summary <- merge(
@@ -299,8 +286,8 @@ simulation_summary$rate_type <- ifelse(
 simulation_summary <- simulation_summary[order(simulation_summary$generating_link, simulation_summary$fitted_link), ]
 utils::write.csv(simulation_summary, settings$simulation_summary_path, row.names = FALSE)
 
-report_section("Simulation summary")
-print_compact(simulation_summary)
+cat("\n", "Simulation summary", "\n")
+print(simulation_summary)
 
 # ---------------------------------------------------------------------
 # 5. Figure and inspection plot
@@ -312,7 +299,7 @@ link_grid <- do.call(
   rbind,
   lapply(settings$candidate_links, function(link) {
     
-    coefficient_scale <- get_scenario_parameters(link)$coefficient_scale
+    coefficient_scale <- scenario_parameters$coefficient_scale[scenario_parameters$generating_link == link]
     eta_step <- coefficient_scale / 2
     
     eta_values <- seq(
@@ -425,7 +412,7 @@ saveRDS(
   file = settings$rds_path
 )
 
-report_section("Saved files")
+cat("\n", "Saved files", "\n")
 cat("- ", settings$scenario_table_path, "\n", sep = "")
 cat("- ", settings$simulation_summary_path, "\n", sep = "")
 cat("- ", settings$figure_base, ".pdf/png\n", sep = "")
