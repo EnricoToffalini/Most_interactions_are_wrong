@@ -361,10 +361,9 @@ a task, and errors decrease with age in both. Imagine a researcher who
 collects error counts from children aged 6 to 10 and analyzes them, as
 is common, with a Gaussian linear model that includes an age-by-group
 interaction. The fitted lines in Figure~\ref{fig-simple-count-example}
-(linear model) decline at different rates, and the gap between the
-groups is much wider at age six than at age ten. The natural reading is
-that the group difference shrinks with age, that is, that age and group
-interact.
+(Panel A) decline at different rates, and the gap between the groups is
+much wider at age six than at age ten. The natural reading is that the
+group difference shrinks with age, that is, that age and group interact.
 
 \begin{figure}[h]
 
@@ -393,16 +392,17 @@ Figure~\ref{fig-simple-count-example}, however, were generated without
 any interaction. Errors follow a Poisson process in which age and group
 add on the log scale, so the two groups share the same age slope on that
 scale. A Poisson model with a log link recovers this structure, and on
-the log scale its fitted lines are parallel. Mapped back onto the count
-scale, the same model produces two curves that converge with age,
+the log scale its fitted lines are parallel
+(Figure~\ref{fig-simple-count-example}, Panel B). Mapped back onto the
+count scale, the same model produces two curves that converge with age,
 because a constant difference on the log scale is a constant ratio on
 the count scale, and the absolute gap between the groups therefore
-narrows as errors decline. The linear model registers this narrowing and
-reads it as an interaction. Whether an interaction is present thus
-depends on the scale on which effects are assumed to add. Additivity on
-the log scale implies non-parallel curves on the count scale, and
-additivity on the count scale would imply non-parallel lines on the log
-scale.
+narrows as errors decline (Figure~\ref{fig-simple-count-example}, Panel
+C). The linear model registers this narrowing and reads it as an
+interaction. Whether an interaction is present thus depends on the scale
+on which effects are assumed to add. Additivity on the log scale implies
+non-parallel curves on the count scale, and additivity on the count
+scale would imply non-parallel lines on the log scale.
 
 This ambiguity extends far beyond this single illustration, as
 interaction hypotheses are widespread in psychological research and
@@ -438,7 +438,7 @@ Nelder, 1989}; \citeproc{ref-nelderwedderburn1972}{Nelder \& Wedderburn,
 outcome family, which describes the response, and (2) the link function,
 which sets the scale on which effects combine (Box 1).
 
-\begin{tcolorbox}[enhanced jigsaw, title={Box 1: Generalized linear models: outcome family and link function}, colback=white, colframe=quarto-callout-note-color-frame, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, opacitybacktitle=0.6, left=2mm, rightrule=.15mm, bottomrule=.15mm, toprule=.15mm, opacityback=0, toptitle=1mm, bottomtitle=1mm, titlerule=0mm, arc=.35mm, breakable, leftrule=.75mm]
+\begin{tcolorbox}[enhanced jigsaw, colback=white, toptitle=1mm, colbacktitle=quarto-callout-note-color!10!white, arc=.35mm, titlerule=0mm, bottomtitle=1mm, coltitle=black, breakable, opacitybacktitle=0.6, leftrule=.75mm, opacityback=0, title={Box 1: Generalized linear models: outcome family and link function}, colframe=quarto-callout-note-color-frame, rightrule=.15mm, bottomrule=.15mm, toprule=.15mm, left=2mm]
 
 The \emph{outcome family} is the distribution assumed for the response.
 It defines which values the outcome can take and how observations vary
