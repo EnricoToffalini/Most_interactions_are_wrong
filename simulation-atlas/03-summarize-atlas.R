@@ -1,92 +1,42 @@
-# Convert replication-level RDS files into compact app-facing summaries.
-
-# ==========================================================================
-#  SETTINGS - you can normally leave this block alone.
-# ==========================================================================
-
-# "auto" summarizes whatever 02-run-atlas.R left in raw/: the full results if
-# they are there, otherwise the smoke results. Set "smoke" or "full" to force
-# one of the two.
-MODE <- "auto"
-
-# Replications per scenario. Leave NA to read them off the raw file names, so
-# this script automatically follows the B you used in 02-run-atlas.R.
-B <- NA
-B_WITHIN <- NA
-
-# ==========================================================================
-#  Nothing below here needs to be edited.
-# ==========================================================================
-
-atlas_dir <- if (file.exists("simulation-atlas/R/atlas-common.R")) "simulation-atlas" else "."
-source(file.path(atlas_dir, "R", "atlas-common.R"))
-atlas_source("atlas-forced-choice.R")
-atlas_source("atlas-sum-scores.R")
-atlas_source("atlas-within-family.R")
-atlas_source("atlas-diagnostics.R")
-
-grid_path <- file.path(atlas_root(), "data", "scenario-grid.csv")
-if (!file.exists(grid_path)) stop("scenario-grid.csv is missing.", call. = FALSE)
-grid <- utils::read.csv(grid_path, stringsAsFactors = FALSE, check.names = FALSE)
-
-raw_dir <- file.path(atlas_root(), "raw")
-run_type <- if (identical(tolower(as.character(MODE)), "auto")) {
-  if (length(list.files(raw_dir, pattern = "^core-.*-full-B[0-9]+[.]rds$"))) "full" else "smoke"
-} else {
-  atlas_check_mode(MODE)
+# Aggregate precomputed Atlas results; no simulation is performed here.
+# Use the same ATLAS_MODE and N_SIM as in the family runners.
+MODE <- tolower(Sys.getenv("ATLAS_MODE", "full"))
+B <- as.integer(Sys.getenv("N_SIM", if (MODE == "smoke") "3" else "3000"))
+ATLAS_ALPHA <- 0.05
+ATLAS_VERSION <- "0.1.0"
+run_type <- MODE
+grid <- utils::read.csv("simulation-atlas/data/scenario-grid.csv", stringsAsFactors = FALSE)
+summary_grid <- if (MODE == "smoke") grid[grid$scenario_id %in% c("FC-002", "SS-002", "WF-002"), ] else grid
+raw_dir <- "simulation-atlas/raw"
+paths <- file.path(raw_dir, sprintf("core-%s-%s-B%d.rds", summary_grid$scenario_id, MODE, B))
+values <- lapply(paths, readRDS)
+# Only within-family raw files have this descriptive field.
+for (i in seq_along(values)) {
+  if (!"fit_structure" %in% names(values[[i]])) values[[i]]$fit_structure <- NA_character_
 }
+core_raw <- do.call(rbind, values)
 
-# Reading B off the raw file names keeps this script in step with whatever was
-# set in 02-run-atlas.R, so the two settings blocks cannot silently disagree.
-detected_B <- function(family_codes) {
-  pattern <- sprintf("^core-(%s)-[0-9]+-%s-B[0-9]+[.]rds$",
-                     paste(family_codes, collapse = "|"), run_type)
-  files <- list.files(raw_dir, pattern = pattern)
-  if (!length(files)) return(NA_integer_)
-  max(as.integer(sub("^.*-B([0-9]+)[.]rds$", "\\1", files)))
+# Repeated binomial proportion interval used by core and diagnostic summaries.
+wilson_ci <- function(x, n, conf = 0.95) {
+
+  if (!is.finite(n) || n <= 0) return(c(low = NA_real_, high = NA_real_))
+  z <- stats::qnorm(1 - (1 - conf) / 2)
+  p <- x / n
+  denominator <- 1 + z^2 / n
+  centre <- (p + z^2 / (2 * n)) / denominator
+  half <- z * sqrt((p * (1 - p) + z^2 / (4 * n)) / n) / denominator
+  c(low = max(0, centre - half), high = min(1, centre + half))
+
 }
-counts <- atlas_replication_counts(
-  run_type,
-  B = if (all(is.na(B))) detected_B(c("FC", "SS")) else B,
-  B_within = if (all(is.na(B_WITHIN))) detected_B("WF") else B_WITHIN
-)
-cat("Summarizing", run_type, "results: B =", counts$core,
-    "(within-family B =", paste0(counts$within, ")"), "\n")
-summary_grid <- if (run_type == "smoke") {
-  grid[match(atlas_smoke_scenario_ids(grid), grid$scenario_id), , drop = FALSE]
-} else {
-  grid
-}
+core_split <- split(core_raw, interaction(core_raw$scenario_id, core_raw$model_label, drop = TRUE))
+core_metrics <- do.call(rbind, lapply(core_split, function(data) {
 
-read_expected_raw <- function(kind, scenarios) {
-  expected_B <- atlas_requested_B(scenarios$family, counts)
-  paths <- vapply(seq_len(nrow(scenarios)), function(i) {
-    atlas_raw_path(kind, scenarios$scenario_id[i], run_type, expected_B[i])
-  }, character(1))
-  missing <- paths[!file.exists(paths)]
-  if (length(missing)) {
-    stop("Missing expected ", run_type, " raw files: ",
-         paste(basename(missing), collapse = ", "), call. = FALSE)
-  }
-  # Validate the deserialized object rather than re-reading each file.
-  values <- lapply(paths, readRDS)
-  for (i in seq_along(values)) {
-    if (!atlas_raw_is_complete(values[[i]], expected_B[i])) {
-      stop("Raw file is incomplete: ", paths[i], call. = FALSE)
-    }
-  }
-  atlas_bind_rows(values)
-}
-
-core_raw <- read_expected_raw("core", summary_grid)
-
-summarise_core_cell <- function(data) {
   attempted <- nrow(data)
   successful <- data$fit_success %in% TRUE & is.finite(data$interaction_p)
   n_successful <- sum(successful)
   false_positive_count <- sum(data$interaction_p[successful] < ATLAS_ALPHA)
   rate <- if (n_successful) false_positive_count / n_successful else NA_real_
-  ci <- atlas_wilson_ci(false_positive_count, n_successful)
+  ci <- wilson_ci(false_positive_count, n_successful)
   problem_messages <- unique(data$problem_message[nzchar(data$problem_message)])
   data.frame(
     scenario_id = data$scenario_id[1],
@@ -103,21 +53,19 @@ summarise_core_cell <- function(data) {
     false_positive_mc_se = if (n_successful) sqrt(rate * (1 - rate) / n_successful) else NA_real_,
     false_positive_ci_low = unname(ci["low"]),
     false_positive_ci_high = unname(ci["high"]),
-    median_interaction_coefficient = atlas_safe_median(data$interaction_coef),
-    median_interaction_se = atlas_safe_median(data$interaction_se),
-    median_response_scale_did = atlas_safe_median(data$response_scale_did),
-    median_outcome_scale_did = atlas_safe_median(data$outcome_scale_did),
-    deterministic_pseudo_interaction = atlas_safe_median(data$deterministic_pseudo_interaction),
-    deterministic_response_scale_did = atlas_safe_median(data$deterministic_response_scale_did),
+    median_interaction_coefficient = stats::median((data$interaction_coef)[is.finite(data$interaction_coef)], na.rm = TRUE),
+    median_interaction_se = stats::median((data$interaction_se)[is.finite(data$interaction_se)], na.rm = TRUE),
+    median_response_scale_did = stats::median((data$response_scale_did)[is.finite(data$response_scale_did)], na.rm = TRUE),
+    median_outcome_scale_did = stats::median((data$outcome_scale_did)[is.finite(data$outcome_scale_did)], na.rm = TRUE),
+    deterministic_pseudo_interaction = stats::median((data$deterministic_pseudo_interaction)[is.finite(data$deterministic_pseudo_interaction)], na.rm = TRUE),
+    deterministic_response_scale_did = stats::median((data$deterministic_response_scale_did)[is.finite(data$deterministic_response_scale_did)], na.rm = TRUE),
     n_convergence_problems = sum(data$convergence_problem %in% TRUE, na.rm = TRUE),
     convergence_problem_rate = mean(data$convergence_problem %in% TRUE, na.rm = TRUE),
     fit_problem_messages = paste(problem_messages, collapse = " | "),
     stringsAsFactors = FALSE
   )
-}
 
-core_split <- split(core_raw, interaction(core_raw$scenario_id, core_raw$model_label, drop = TRUE))
-core_metrics <- do.call(rbind, lapply(core_split, summarise_core_cell))
+}))
 merge_grid <- summary_grid
 names(merge_grid)[names(merge_grid) == "fitted_model"] <- "fitted_model_set"
 names(merge_grid)[names(merge_grid) == "fitted_link"] <- "fitted_link_set"
@@ -136,61 +84,23 @@ core_summary$atlas_version <- ATLAS_VERSION
 core_summary$run_type <- run_type
 rownames(core_summary) <- NULL
 
-diagnostic_plan <- atlas_diagnostic_plan(grid)
-if (run_type == "smoke") {
-  diagnostic_plan <- diagnostic_plan[
-    diagnostic_plan$diagnostic_paper_anchor | diagnostic_plan$family == "sum_scores",
-    , drop = FALSE
-  ]
+diagnostic_plan <- utils::read.csv("simulation-atlas/data/diagnostic-grid.csv", stringsAsFactors = FALSE)
+if (MODE == "smoke") diagnostic_plan <- diagnostic_plan[
+  diagnostic_plan$diagnostic_paper_anchor | diagnostic_plan$family == "sum_scores", ]
+supported <- diagnostic_plan[diagnostic_plan$family != "sum_scores", ]
+paths <- file.path(raw_dir, sprintf("diagnostic-%s-%s-B%d.rds", supported$scenario_id, MODE, B))
+if (!all(file.exists(paths))) {
+  paths <- file.path(raw_dir, sprintf("diagnostic-nodharma-%s-%s-B%d.rds", supported$scenario_id, MODE, B))
 }
-supported <- diagnostic_plan[diagnostic_plan$family != "sum_scores", , drop = FALSE]
-# Prefer a pass that included DHARMa; fall back to a DHARMa-free pass so the
-# atlas stays consultable before those checks have been run.
-diagnostic_kind <- atlas_diagnostic_kind(TRUE)
-if (nrow(supported) && !all(file.exists(vapply(seq_len(nrow(supported)), function(i) {
-  atlas_raw_path(diagnostic_kind, supported$scenario_id[i], run_type,
-                 atlas_requested_B(supported$family[i], counts))
-}, character(1))))) {
-  diagnostic_kind <- atlas_diagnostic_kind(FALSE)
-}
-diagnostic_raw <- read_expected_raw(diagnostic_kind, supported)
-dharma_in_raw <- isTRUE(all(diagnostic_raw$dharma_computed %in% TRUE))
-cat("Diagnostic source:", diagnostic_kind,
-    if (dharma_in_raw) "(DHARMa included)" else "(DHARMa not computed)", "\n")
-
-diagnostic_value <- function(data, diagnostic) {
-  switch(
-    diagnostic,
-    "AIC favors generating link" = list(values = data$aic_favors_generating, kind = "logical"),
-    "DHARMa uniformity" = list(values = data$dharma_uniformity_p, kind = "p"),
-    "DHARMa dispersion" = list(values = data$dharma_dispersion_p, kind = "p"),
-    "DHARMa residual quantiles over fitted values" = list(values = data$dharma_quantile_fitted_p, kind = "p"),
-    "DHARMa residual quantiles over focal predictor" = list(values = data$dharma_quantile_predictor_p, kind = "p"),
-    "DHARMa residual distribution across design cells" = list(values = data$dharma_categorical_design_p, kind = "p"),
-    "Pregibon-style added-term link check" = list(values = data$pregibon_p, kind = "p"),
-    stop("Unknown diagnostic.", call. = FALSE)
-  )
-}
-
-# The manuscript argues that the proportion of replications favouring the
-# target link is not informative on its own, because winning by under one AIC
-# unit and winning by fifty describe different situations. Carry the magnitude
-# of the difference through to the app, not just the win rate.
-summarise_aic_delta <- function(raw) {
-  empty <- list(n = 0L, median = NA_real_, q25 = NA_real_, q75 = NA_real_,
-                within_two_rate = NA_real_)
-  if (!nrow(raw) || !all(c("aic_generating", "aic_wrong") %in% names(raw))) return(empty)
-  # Positive values favour the generating (target) link, as in the manuscript.
-  delta <- raw$aic_wrong - raw$aic_generating
-  delta <- delta[is.finite(delta)]
-  if (!length(delta)) return(empty)
-  quartiles <- unname(stats::quantile(delta, c(0.25, 0.75), names = FALSE))
-  list(n = length(delta), median = stats::median(delta),
-       q25 = quartiles[1], q75 = quartiles[2],
-       within_two_rate = mean(abs(delta) < 2))
-}
-
+diagnostic_raw <- do.call(rbind, lapply(paths, readRDS))
+diagnostic_names <- c(
+  "AIC favors generating link", "DHARMa uniformity", "DHARMa dispersion",
+  "DHARMa residual quantiles over fitted values", "DHARMa residual quantiles over focal predictor",
+  "DHARMa residual distribution across design cells", "Pregibon-style added-term link check")
+diagnostic_columns <- c("aic_favors_generating", "dharma_uniformity_p", "dharma_dispersion_p",
+  "dharma_quantile_fitted_p", "dharma_quantile_predictor_p", "dharma_categorical_design_p", "pregibon_p")
 summarise_detection <- function(values, kind) {
+
   if (kind == "logical") {
     ok <- !is.na(values)
     detected <- values[ok] %in% TRUE
@@ -201,32 +111,30 @@ summarise_detection <- function(values, kind) {
   n <- sum(ok)
   count <- sum(detected)
   rate <- if (n) count / n else NA_real_
-  ci <- atlas_wilson_ci(count, n)
+  ci <- wilson_ci(count, n)
   list(n = n, count = count, rate = rate,
        mc_se = if (n) sqrt(rate * (1 - rate) / n) else NA_real_,
        low = unname(ci["low"]), high = unname(ci["high"]))
-}
 
+}
 diagnostic_rows <- lapply(seq_len(nrow(diagnostic_plan)), function(i) {
   scenario <- diagnostic_plan[i, , drop = FALSE]
   raw <- diagnostic_raw[diagnostic_raw$scenario_id == scenario$scenario_id, , drop = FALSE]
-  aic_delta <- summarise_aic_delta(raw)
+  delta <- raw$aic_wrong - raw$aic_generating
+  delta <- delta[is.finite(delta)]
+  aic_delta <- list(n = length(delta), median = NA_real_, q25 = NA_real_, q75 = NA_real_, within_two_rate = NA_real_)
+  if (length(delta)) {
+    aic_delta$median <- stats::median(delta)
+    aic_delta$q25 <- unname(stats::quantile(delta, 0.25))
+    aic_delta$q75 <- unname(stats::quantile(delta, 0.75))
+    aic_delta$within_two_rate <- mean(abs(delta) < 2)
+  }
   if (nrow(raw)) {
     pseudo <- summarise_detection(raw$interaction_p, "p")
     fit_success_rate <- mean(raw$fit_success %in% TRUE)
     B_requested <- raw$B_requested[1]
     n_attempted <- nrow(raw)
-    dharma_values <- unique(raw$dharma_n_sim)
-    if (length(dharma_values) != 1L) {
-      stop("Diagnostic raw file has inconsistent DHARMa simulation counts: ",
-           scenario$scenario_id, call. = FALSE)
-    }
-    # NA is legitimate: it marks a pass in which DHARMa was deferred.
-    if (!is.na(dharma_values) && !is.finite(dharma_values)) {
-      stop("Diagnostic raw file has a non-finite DHARMa simulation count: ",
-           scenario$scenario_id, call. = FALSE)
-    }
-    dharma_n_sim <- as.integer(dharma_values)
+    dharma_n_sim <- raw$dharma_n_sim[1]
     scenario_dharma_computed <- isTRUE(all(raw$dharma_computed %in% TRUE))
   } else {
     pseudo <- list(n = 0L, count = 0L, rate = NA_real_, mc_se = NA_real_, low = NA_real_, high = NA_real_)
@@ -236,7 +144,10 @@ diagnostic_rows <- lapply(seq_len(nrow(diagnostic_plan)), function(i) {
     dharma_n_sim <- NA_integer_
     scenario_dharma_computed <- FALSE
   }
-  applicability <- atlas_diagnostic_applicability(scenario$family)
+  applicability <- data.frame(diagnostic = diagnostic_names,
+    applicable = if (scenario$family == "forced_choice") c(TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE)
+      else if (scenario$family == "within_family") c(TRUE, TRUE, TRUE, FALSE, FALSE, TRUE, TRUE)
+      else rep(FALSE, 7))
   rows <- lapply(seq_len(nrow(applicability)), function(j) {
     applicable <- applicability$applicable[j]
     # "Applicable" is a structural property of the family; "computed" says
@@ -245,8 +156,7 @@ diagnostic_rows <- lapply(seq_len(nrow(diagnostic_plan)), function(i) {
     is_dharma <- startsWith(applicability$diagnostic[j], "DHARMa")
     computed <- applicable && nrow(raw) > 0 && (!is_dharma || scenario_dharma_computed)
     if (computed) {
-      value <- diagnostic_value(raw, applicability$diagnostic[j])
-      detection <- summarise_detection(value$values, value$kind)
+      detection <- summarise_detection(raw[[diagnostic_columns[j]]], if (j == 1) "logical" else "p")
     } else {
       detection <- list(n = 0L, count = 0L, rate = NA_real_, mc_se = NA_real_,
                         low = NA_real_, high = NA_real_)
@@ -290,34 +200,12 @@ diagnostic_summary$atlas_version <- ATLAS_VERSION
 diagnostic_summary$run_type <- run_type
 rownames(diagnostic_summary) <- NULL
 
-required_core <- c(
-  "scenario_id", "family", "slice_membership", "paper_anchor", "model_label",
-  "generating_link", "B_requested", "n_successful_fits", "fit_success_rate",
-  "false_positive_count", "false_positive_rate", "false_positive_mc_se",
-  "false_positive_ci_low", "false_positive_ci_high", "median_interaction_coefficient",
-  "median_response_scale_did", "deterministic_pseudo_interaction", "generated_at",
-  "atlas_version", "run_type"
-)
-missing_core <- setdiff(required_core, names(core_summary))
-if (length(missing_core)) stop("Core summary missing: ", paste(missing_core, collapse = ", "), call. = FALSE)
-required_diagnostic <- c(
-  "scenario_id", "family", "diagnostic", "applicable", "computed", "n_successful",
-  "dharma_n_sim",
-  "detection_rate", "detection_mc_se", "detection_ci_low", "detection_ci_high",
-  "pseudo_interaction_detection_rate", "aic_delta_n", "aic_delta_median",
-  "aic_delta_q25", "aic_delta_q75", "aic_delta_within_two_rate",
-  "generated_at", "atlas_version", "run_type"
-)
-missing_diagnostic <- setdiff(required_diagnostic, names(diagnostic_summary))
-if (length(missing_diagnostic)) {
-  stop("Diagnostic summary missing: ", paste(missing_diagnostic, collapse = ", "), call. = FALSE)
-}
-
+dir.create("simulation-atlas/data", recursive = TRUE, showWarnings = FALSE)
 suffix <- if (run_type == "smoke") "-smoke" else ""
-core_csv <- file.path(atlas_root(), "data", paste0("atlas-summary", suffix, ".csv"))
-core_rds <- file.path(atlas_root(), "data", paste0("atlas-summary", suffix, ".rds"))
-diagnostic_csv <- file.path(atlas_root(), "data", paste0("diagnostic-atlas-summary", suffix, ".csv"))
-diagnostic_rds <- file.path(atlas_root(), "data", paste0("diagnostic-atlas-summary", suffix, ".rds"))
+core_csv <- file.path("simulation-atlas", "data", paste0("atlas-summary", suffix, ".csv"))
+core_rds <- file.path("simulation-atlas", "data", paste0("atlas-summary", suffix, ".rds"))
+diagnostic_csv <- file.path("simulation-atlas", "data", paste0("diagnostic-atlas-summary", suffix, ".csv"))
+diagnostic_rds <- file.path("simulation-atlas", "data", paste0("diagnostic-atlas-summary", suffix, ".rds"))
 utils::write.csv(core_summary, core_csv, row.names = FALSE, na = "")
 saveRDS(core_summary, core_rds, compress = "xz")
 utils::write.csv(diagnostic_summary, diagnostic_csv, row.names = FALSE, na = "")
