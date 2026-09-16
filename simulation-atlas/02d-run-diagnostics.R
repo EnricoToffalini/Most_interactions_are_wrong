@@ -1,18 +1,18 @@
 # Targeted diagnostic sensitivity analysis; definitions preserved.
+Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = "1")
 library(glmmTMB)
 # Run from the repository root after 01-build-scenario-grid.R.
 # Replications are parallel; scenarios are visited in declared grid order.
 MODE <- tolower(Sys.getenv("ATLAS_MODE", "full"))
 B <- as.integer(Sys.getenv("N_SIM", if (MODE == "smoke") "3" else "3000"))
 n_cores <- as.integer(Sys.getenv("N_CORES", Sys.getenv("SLURM_CPUS_PER_TASK",
-                       max(1, parallel::detectCores() - 1))))
+      max(1, parallel::detectCores() - 1))))
 OVERWRITE <- as.logical(Sys.getenv("ATLAS_OVERWRITE", "FALSE"))
-Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = "1")
 dir.create("simulation-atlas/raw", recursive = TRUE, showWarnings = FALSE)
 grid <- utils::read.csv("simulation-atlas/data/diagnostic-grid.csv", stringsAsFactors = FALSE)
 RUN_DHARMA <- as.logical(Sys.getenv("ATLAS_RUN_DHARMA", "FALSE"))
 dharma_n_sim <- if (RUN_DHARMA) as.integer(Sys.getenv("DHARMA_N_SIM",
-  if (MODE == "smoke") "25" else "250")) else NA_integer_
+    if (MODE == "smoke") "25" else "250")) else NA_integer_
 kind <- if (RUN_DHARMA) "diagnostic" else "diagnostic-nodharma"
 scenarios <- grid[grid$family != "sum_scores", ]
 if (MODE == "smoke") scenarios <- scenarios[scenarios$diagnostic_paper_anchor, ]
@@ -20,37 +20,37 @@ if (MODE == "smoke") scenarios <- scenarios[scenarios$diagnostic_paper_anchor, ]
 if (RUN_DHARMA) library(DHARMa)
 run_one_replication <- function(replication, scenario, dharma_n_sim) {
   replication_seed <- as.integer((20260807 +
-    ifelse(scenario$family == "forced_choice", 1000000, 3000000) + 4000000 +
-    as.double(sub(".*-", "", scenario$scenario_id)) * 10000 + replication) %% .Machine$integer.max)
+        ifelse(scenario$family == "forced_choice", 1000000, 3000000) + 4000000 +
+        as.double(sub(".*-", "", scenario$scenario_id)) * 10000 + replication) %% .Machine$integer.max)
   set.seed(replication_seed)
   settings <- as.list(scenario)
   correct_problem <- TRUE
   aic_correct <- aic_wrong <- NA_real_
   if (scenario$family == "forced_choice") {
     group_num <- stats::rbinom(settings$N, 1, 0.5)
-        age <- stats::runif(settings$N, scenario$age_min, scenario$age_max)
-        age_c <- age - settings$age_center
-        eta <- scenario$beta_intercept + settings$beta_age * age_c +
-          settings$beta_group * group_num + settings$beta_age_group * age_c * group_num
-        p <- settings$chance + (1 - settings$chance) * stats::plogis(eta)
-        y <- stats::rbinom(settings$N, size = settings$k_trials, prob = p)
+    age <- stats::runif(settings$N, scenario$age_min, scenario$age_max)
+    age_c <- age - settings$age_center
+    eta <- scenario$beta_intercept + settings$beta_age * age_c +
+      settings$beta_group * group_num + settings$beta_age_group * age_c * group_num
+    p <- settings$chance + (1 - settings$chance) * stats::plogis(eta)
+    y <- stats::rbinom(settings$N, size = settings$k_trials, prob = p)
 
-        d <- data.frame(
-          age = age,
-          age_c = age_c,
-          group_num = group_num,
-          group = factor(
-            group_num,
-            levels = c(0, 1),
-            labels = c("Group 0", "Group 1")
-          ),
-          y = y,
-          k = settings$k_trials,
-          accuracy = y / settings$k_trials,
-          stringsAsFactors = FALSE
-        )
+    d <- data.frame(
+      age = age,
+      age_c = age_c,
+      group_num = group_num,
+      group = factor(
+        group_num,
+        levels = c(0, 1),
+        labels = c("Group 0", "Group 1")
+      ),
+      y = y,
+      k = settings$k_trials,
+      accuracy = y / settings$k_trials,
+      stringsAsFactors = FALSE
+    )
     wrong_fit <- try(stats::glm(cbind(y, k - y) ~ age_c * group,
-      data = d, family = stats::binomial("logit")), silent = TRUE)
+        data = d, family = stats::binomial("logit")), silent = TRUE)
     # Chance-corrected binomial logit: likelihood, three starts, and Wald test.
     X <- stats::model.matrix(~ age_c * group, data = d)
     y <- d$y
@@ -73,7 +73,7 @@ run_one_replication <- function(replication, scenario, dharma_n_sim) {
     zero <- stats::setNames(rep(0, ncol(X)), colnames(X))
     from_standard <- zero
     start_fit <- try(stats::glm.fit(X, cbind(y, k - y),
-                                  family = stats::binomial("logit")), silent = TRUE)
+        family = stats::binomial("logit")), silent = TRUE)
     if (!inherits(start_fit, "try-error") && all(is.finite(stats::coef(start_fit)))) {
       from_standard[] <- stats::coef(start_fit)
     }
@@ -87,8 +87,8 @@ run_one_replication <- function(replication, scenario, dharma_n_sim) {
     candidates <- list()
     for (start in list(zero, from_standard, from_above)) {
       candidate <- try(stats::optim(start, nll, gr = gradient, method = "BFGS",
-                                    control = list(maxit = 1500, reltol = 1e-10)),
-                       silent = TRUE)
+          control = list(maxit = 1500, reltol = 1e-10)),
+        silent = TRUE)
       if (!inherits(candidate, "try-error") && is.finite(candidate$value) &&
           all(is.finite(candidate$par))) {
         candidates[[length(candidates) + 1L]] <- candidate
@@ -107,7 +107,7 @@ run_one_replication <- function(replication, scenario, dharma_n_sim) {
       if (!inherits(hessian, "try-error") && all(is.finite(hessian))) {
         hess_sym <- (hessian + t(hessian)) / 2
         eig <- try(eigen(hess_sym, symmetric = TRUE, only.values = TRUE)$values,
-                   silent = TRUE)
+          silent = TRUE)
         if (!inherits(eig, "try-error")) {
           well_conditioned <- all(is.finite(eig)) && min(eig) > 1e-7 &&
             min(eig) / max(eig) > sqrt(.Machine$double.eps)
@@ -147,9 +147,9 @@ run_one_replication <- function(replication, scenario, dharma_n_sim) {
     d$group <- factor(d$group_num, levels = c(0, 1), labels = c("Group 0", "Group 1"))
     d$condition <- factor(d$condition_num, levels = c(0, 1), labels = c("Condition 0", "Condition 1"))
     wrong_fit <- try(glmmTMB::glmmTMB(y ~ group * condition + (1 | id),
-      data = d, family = stats::binomial("logit")), silent = TRUE)
+        data = d, family = stats::binomial("logit")), silent = TRUE)
     correct_fit <- try(glmmTMB::glmmTMB(y ~ group * condition + (1 | id),
-      data = d, family = stats::binomial("probit")), silent = TRUE)
+        data = d, family = stats::binomial("probit")), silent = TRUE)
     if (!inherits(correct_fit, "try-error")) {
       aic_correct <- stats::AIC(correct_fit)
       correct_problem <- !isTRUE(correct_fit$sdr$pdHess) || correct_fit$fit$convergence != 0
@@ -179,27 +179,27 @@ run_one_replication <- function(replication, scenario, dharma_n_sim) {
     }
     if (!is.na(dharma_n_sim)) {
       simulated <- try(DHARMa::simulateResiduals(fittedModel = wrong_fit,
-        n = dharma_n_sim, plot = FALSE, seed = NULL), silent = TRUE)
+          n = dharma_n_sim, plot = FALSE, seed = NULL), silent = TRUE)
       if (!inherits(simulated, "try-error")) {
         check <- try(DHARMa::testUniformity(simulated, plot = FALSE), silent = TRUE)
-        if (!inherits(check, "try-error")) dharma_uniformity_p <- check$p.value
+        if (!inherits(check, "try-error") && length(check$p.value) == 1L) dharma_uniformity_p <- check$p.value
         check <- try(DHARMa::testDispersion(simulated, plot = FALSE), silent = TRUE)
-        if (!inherits(check, "try-error")) dharma_dispersion_p <- check$p.value
+        if (!inherits(check, "try-error") && length(check$p.value) == 1L) dharma_dispersion_p <- check$p.value
         if (scenario$family == "forced_choice") {
           fitted <- as.numeric(stats::predict(wrong_fit, type = "response"))
           if (length(unique(round(fitted[is.finite(fitted)], 10))) >= 8) {
             check <- try(DHARMa::testQuantiles(simulated, plot = FALSE), silent = TRUE)
-            if (!inherits(check, "try-error")) dharma_quantile_fitted_p <- check$p.value
+            if (!inherits(check, "try-error") && length(check$p.value) == 1L) dharma_quantile_fitted_p <- check$p.value
           }
           if (length(unique(round(d$age_c, 10))) >= 8) {
             check <- try(DHARMa::testQuantiles(simulated, predictor = d$age_c, plot = FALSE), silent = TRUE)
-            if (!inherits(check, "try-error")) dharma_quantile_predictor_p <- check$p.value
+            if (!inherits(check, "try-error") && length(check$p.value) == 1L) dharma_quantile_predictor_p <- check$p.value
           }
         } else {
           design_cell <- interaction(d$group, d$condition, drop = TRUE)
           residual <- simulated$scaledResiduals
           check <- try(stats::kruskal.test(residual ~ design_cell), silent = TRUE)
-          if (!inherits(check, "try-error")) dharma_categorical_design_p <- check$p.value
+          if (!inherits(check, "try-error") && length(check$p.value) == 1L) dharma_categorical_design_p <- check$p.value
         }
       }
     }
@@ -208,15 +208,15 @@ run_one_replication <- function(replication, scenario, dharma_n_sim) {
     augmented$eta_hat_sq <- as.numeric(stats::predict(wrong_fit, type = "link"))^2
     if (scenario$family == "forced_choice") {
       added_fit <- try(stats::glm(cbind(y, k - y) ~ age_c * group + eta_hat_sq,
-        data = augmented, family = stats::binomial("logit"),
-        start = c(stats::coef(wrong_fit), eta_hat_sq = 0)), silent = TRUE)
+          data = augmented, family = stats::binomial("logit"),
+          start = c(stats::coef(wrong_fit), eta_hat_sq = 0)), silent = TRUE)
       if (!inherits(added_fit, "try-error")) {
         sm <- summary(added_fit)$coefficients
         if ("eta_hat_sq" %in% rownames(sm)) pregibon_p <- sm["eta_hat_sq", 4]
       }
     } else {
       added_fit <- try(glmmTMB::glmmTMB(y ~ group * condition + (1 | id) + eta_hat_sq,
-        data = augmented, family = stats::binomial("logit")), silent = TRUE)
+          data = augmented, family = stats::binomial("logit")), silent = TRUE)
       if (!inherits(added_fit, "try-error")) {
         sm <- summary(added_fit)$coefficients$cond
         if ("eta_hat_sq" %in% rownames(sm)) pregibon_p <- sm["eta_hat_sq", 4]

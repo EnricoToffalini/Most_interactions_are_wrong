@@ -17,12 +17,14 @@ rm(list = ls())
 # 0. Project setup
 # ---------------------------------------------------------------------
 
-source("R/project-settings.R")
-source("R/utils-reporting.R")
-source("R/utils-plots.R")
+# Run from the repository root. This example draws one dataset.
+figure_width <- 7.2
+figure_height <- 7.0
 
-ensure_output_dirs()
-report_header("Fitted logit vs probit example")
+for (path in c("tables", "figs", "outputs", "outputs/inspection")) {
+  dir.create(path, recursive = TRUE, showWarnings = FALSE)
+}
+cat("\n", "Fitted logit vs probit example", "\n")
 
 # ---------------------------------------------------------------------
 # 1. User-tunable settings
@@ -30,7 +32,7 @@ report_header("Fitted logit vs probit example")
 
 settings <- list(
   seed = 20260601,
-  
+
   # Data-generating scenario.
   N = 1000,
   k_trials = 60,
@@ -125,81 +127,127 @@ diff_limit <- max(diff_limit, settings$diff_min_limit)
 
 pA <- ggplot2::ggplot() +
   ggplot2::geom_point(
-    data = d,
-    ggplot2::aes(x = x, y = proportion),
-    alpha = settings$point_alpha,
-    size = settings$point_size,
-    shape = 21,
-    stroke = 0.15,
-    fill = "grey55",
-    colour = "grey15"
-  ) +
+  data = d,
+  ggplot2::aes(x = x, y = proportion),
+  alpha = settings$point_alpha,
+  size = settings$point_size,
+  shape = 21,
+  stroke = 0.15,
+  fill = "grey55",
+  colour = "grey15"
+) +
   ggplot2::geom_line(
-    data = pred_long,
-    ggplot2::aes(x = x, y = probability, colour = model),
-    linewidth = settings$line_width
-  ) +
+  data = pred_long,
+  ggplot2::aes(x = x, y = probability, colour = model),
+  linewidth = settings$line_width
+) +
   ggplot2::geom_hline(
-    yintercept = 0.5,
-    linetype = "dotted",
-    linewidth = 0.35,
-    colour = "grey55"
-  ) +
+  yintercept = 0.5,
+  linetype = "dotted",
+  linewidth = 0.35,
+  colour = "grey55"
+) +
   ggplot2::scale_colour_manual(
-    values = c(
-      "Fitted logit" = "#E69F00",
-      "Fitted probit" = "#009E73"
-    )
-  ) +
-  ggplot2::coord_cartesian(
-    xlim = settings$x_range,
-    ylim = c(0, 1),
-    clip = "off"
-  ) +
-  ggplot2::labs(
-    title = "A. Fitted probability",
-    x = NULL,
-    y = "Observed proportion / fitted probability",
-    colour = NULL
-  ) +
-  link_theme(base_size = 10) +
-  ggplot2::theme(
-    axis.title.x = ggplot2::element_blank(),
-    axis.text.x = ggplot2::element_blank(),
-    axis.ticks.x = ggplot2::element_blank(),
-    legend.position = "bottom",
-    plot.title = ggplot2::element_text(face = "bold", hjust = 0, margin = ggplot2::margin(b = 4)),
-    plot.margin = ggplot2::margin(5.5, 5.5, 0, 5.5)
+  values = c(
+    "Fitted logit" = "#E69F00",
+    "Fitted probit" = "#009E73"
   )
+) +
+  ggplot2::coord_cartesian(
+  xlim = settings$x_range,
+  ylim = c(0, 1),
+  clip = "off"
+) +
+  ggplot2::labs(
+  title = "A. Fitted probability",
+  x = NULL,
+  y = "Observed proportion / fitted probability",
+  colour = NULL
+) +
+  (ggplot2::theme_minimal(base_size = (10), base_family = ("")) +
+    ggplot2::theme(
+    plot.title = ggplot2::element_text(
+      face = "bold",
+      size = (10) + 1,
+      margin = ggplot2::margin(b = 3)
+    ),
+    plot.subtitle = ggplot2::element_text(
+      size = (10) - 1,
+      color = "grey25",
+      margin = ggplot2::margin(b = 6)
+    ),
+    axis.title = ggplot2::element_text(size = (10)),
+    axis.text = ggplot2::element_text(size = (10) - 1, color = "grey20"),
+    strip.text = ggplot2::element_text(face = "bold", size = (10) - 1),
+    legend.position = "bottom",
+    legend.title = ggplot2::element_text(size = (10) - 1),
+    legend.text = ggplot2::element_text(size = (10) - 1),
+    legend.key.width = grid::unit(1.25, "lines"),
+    panel.grid.minor = ggplot2::element_blank(),
+    panel.grid.major = ggplot2::element_line(linewidth = 0.25, color = "grey88"),
+    panel.spacing = grid::unit(0.9, "lines"),
+    plot.margin = ggplot2::margin(6, 8, 6, 8)
+)) +
+  ggplot2::theme(
+  axis.title.x = ggplot2::element_blank(),
+  axis.text.x = ggplot2::element_blank(),
+  axis.ticks.x = ggplot2::element_blank(),
+  legend.position = "bottom",
+  plot.title = ggplot2::element_text(face = "bold", hjust = 0, margin = ggplot2::margin(b = 4)),
+  plot.margin = ggplot2::margin(5.5, 5.5, 0, 5.5)
+)
 
 pB <- ggplot2::ggplot(newd, ggplot2::aes(x = x, y = difference)) +
   ggplot2::geom_hline(
-    yintercept = 0,
-    linetype = "dotted",
-    linewidth = 0.35,
-    colour = "grey55"
-  ) +
+  yintercept = 0,
+  linetype = "dotted",
+  linewidth = 0.35,
+  colour = "grey55"
+) +
   ggplot2::geom_line(
-    linewidth = settings$discrepancy_width,
-    linetype = "longdash",
-    colour = "grey25"
-  ) +
+  linewidth = settings$discrepancy_width,
+  linetype = "longdash",
+  colour = "grey25"
+) +
   ggplot2::coord_cartesian(
-    xlim = settings$x_range,
-    ylim = c(-diff_limit, diff_limit),
-    clip = "off"
-  ) +
+  xlim = settings$x_range,
+  ylim = c(-diff_limit, diff_limit),
+  clip = "off"
+) +
   ggplot2::labs(
-    title = "B. Logit minus probit fitted probability",
-    x = "Predictor value",
-    y = "Logit - probit fitted probability"
-  ) +
-  link_theme(base_size = 10) +
+  title = "B. Logit minus probit fitted probability",
+  x = "Predictor value",
+  y = "Logit - probit fitted probability"
+) +
+  (ggplot2::theme_minimal(base_size = (10), base_family = ("")) +
+    ggplot2::theme(
+    plot.title = ggplot2::element_text(
+      face = "bold",
+      size = (10) + 1,
+      margin = ggplot2::margin(b = 3)
+    ),
+    plot.subtitle = ggplot2::element_text(
+      size = (10) - 1,
+      color = "grey25",
+      margin = ggplot2::margin(b = 6)
+    ),
+    axis.title = ggplot2::element_text(size = (10)),
+    axis.text = ggplot2::element_text(size = (10) - 1, color = "grey20"),
+    strip.text = ggplot2::element_text(face = "bold", size = (10) - 1),
+    legend.position = "bottom",
+    legend.title = ggplot2::element_text(size = (10) - 1),
+    legend.text = ggplot2::element_text(size = (10) - 1),
+    legend.key.width = grid::unit(1.25, "lines"),
+    panel.grid.minor = ggplot2::element_blank(),
+    panel.grid.major = ggplot2::element_line(linewidth = 0.25, color = "grey88"),
+    panel.spacing = grid::unit(0.9, "lines"),
+    plot.margin = ggplot2::margin(6, 8, 6, 8)
+)) +
   ggplot2::theme(
-    legend.position = "none",
-    plot.title = ggplot2::element_text(face = "bold", hjust = 0, margin = ggplot2::margin(b = 4)),
-    plot.margin = ggplot2::margin(0, 5.5, 5.5, 5.5)
-  )
+  legend.position = "none",
+  plot.title = ggplot2::element_text(face = "bold", hjust = 0, margin = ggplot2::margin(b = 4)),
+  plot.margin = ggplot2::margin(0, 5.5, 5.5, 5.5)
+)
 
 p <- patchwork::wrap_plots(
   pA,

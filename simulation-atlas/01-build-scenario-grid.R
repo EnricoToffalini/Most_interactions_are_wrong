@@ -339,7 +339,6 @@ row$varied_parameter <- "chance"
 row$varied_value <- 0.333333333333333
 rows[[length(rows) + 1L]] <- row
 
-
 # sum_scores
 anchor <- data.frame(
   scenario_id = "SS-001",
@@ -660,7 +659,6 @@ row$varied_value <- 1.3
 row$theta_sd <- 1.3
 row$threshold_shift <- 0
 rows[[length(rows) + 1L]] <- row
-
 
 # within_family
 anchor <- data.frame(

@@ -7,17 +7,17 @@
 #   identity, standard binomial links, and a chance-corrected binomial link.
 #
 # Design principle:
-#   Scenario-specific values stay in this script. The R/ folder only provides
-#   project defaults and reusable helper functions.
+#   Settings, scientific calculations, model fits, and plots are all local.
 
 rm(list = ls())
+library(ggplot2)
 
-source("R/project-settings.R")
-source("R/utils-reporting.R")
-source("R/utils-link-functions.R")
-source("R/utils-plots.R")
+# Run from the repository root. This sandbox draws one dataset.
+default_dpi <- 300
 
-ensure_output_dirs()
+for (path in c("tables", "figs", "outputs", "outputs/inspection")) {
+  dir.create(path, recursive = TRUE, showWarnings = FALSE)
+}
 set.seed(20260529)
 
 # ---------------------------------------------------------------------
@@ -34,8 +34,8 @@ scenario <- list(
   beta_age = 1.00,
   beta_group = -1.40,
   beta_age_group = 0.00,
-  generating_link = "logit",
-  chance_fit_link = "logit"
+  generating_link = "logit", # Label for the explicit DGP below.
+  chance_fit_link = "logit" # Label for the explicit likelihood below.
 )
 
 # Local values used only to summarize and plot this scenario.
@@ -66,33 +66,19 @@ eta_fun <- function(age, group_num) {
 }
 
 p_fun <- function(age, group_num) {
-  chance_linkinv(
-    eta_fun(age, group_num),
-    chance = scenario$chance,
-    link = scenario$generating_link
-  )
-}
-
-make_group_factor <- function(group_num) {
-  factor(group_num, levels = c(0, 1), labels = c("Group 0", "Group 1"))
-}
-
-extract_change_in_group_difference <- function(pred, grid, age_low, age_high) {
-  p_low_g0 <- pred[grid$age == age_low & grid$group == "Group 0"]
-  p_low_g1 <- pred[grid$age == age_low & grid$group == "Group 1"]
-  p_high_g0 <- pred[grid$age == age_high & grid$group == "Group 0"]
-  p_high_g1 <- pred[grid$age == age_high & grid$group == "Group 1"]
-  
-  change_in_group_difference(p_low_g0, p_low_g1, p_high_g0, p_high_g1)
+  age_c <- age - scenario$age_center
+  eta <- scenario$beta_intercept + scenario$beta_age * age_c +
+    scenario$beta_group * group_num + scenario$beta_age_group * age_c * group_num
+  scenario$chance + (1 - scenario$chance) * stats::plogis(eta)
 }
 
 # ---------------------------------------------------------------------
 # Report current scenario
 # ---------------------------------------------------------------------
-report_header("Sandbox scenario")
+cat("\n", "Sandbox scenario", "\n")
 
-report_section("Current sandbox parameters")
-print_compact(list_to_table(scenario))
+cat("\n", "Current sandbox parameters", "\n")
+print(scenario)
 
 cat("- beta_intercept: lower = closer to the chance floor, higher = closer to the ceiling.\n")
 cat("- beta_age: larger = steeper age trend.\n")
@@ -108,17 +94,17 @@ scenario_grid <- expand.grid(
   age = scenario$age_summary_values,
   group_num = c(0, 1)
 )
-scenario_grid$group <- make_group_factor(scenario_grid$group_num)
+scenario_grid$group <- factor(scenario_grid$group_num, levels = c(0, 1), labels = c("Group 0", "Group 1"))
 scenario_grid$linear_predictor <- eta_fun(scenario_grid$age, scenario_grid$group_num)
 scenario_grid$expected_accuracy <- p_fun(scenario_grid$age, scenario_grid$group_num)
 scenario_grid$expected_correct_out_of_k_trials <-
   scenario_grid$expected_accuracy * scenario$k_trials
 
-report_section("Implied values")
-print_compact(
+cat("\n", "Implied values", "\n")
+print(
   scenario_grid[, c(
-    "age", "group", "linear_predictor", "expected_accuracy",
-    "expected_correct_out_of_k_trials"
+      "age", "group", "linear_predictor", "expected_accuracy",
+      "expected_correct_out_of_k_trials"
   )]
 )
 
@@ -140,11 +126,11 @@ contrasts <- data.frame(
     "Generating link-scale age-by-group product term"
   ),
   value_probability_points = c(
-    group_difference(p_low_g0, p_low_g1),
-    group_difference(p_high_g0, p_high_g1),
+    (p_low_g1 - p_low_g0),
+    (p_high_g1 - p_high_g0),
     p_high_g0 - p_low_g0,
     p_high_g1 - p_low_g1,
-    change_in_group_difference(p_low_g0, p_low_g1, p_high_g0, p_high_g1),
+    ((p_high_g1) - (p_high_g0)) - ((p_low_g1) - (p_low_g0)),
     NA_real_
   ),
   link_scale_value = c(NA, NA, NA, NA, NA, scenario$beta_age_group),
@@ -153,9 +139,9 @@ contrasts <- data.frame(
 contrasts$value_correct_out_of_k_trials <-
   contrasts$value_probability_points * scenario$k_trials
 
-report_section("Derived contrasts")
-print_compact(contrasts)
-report_sign_convention(paste0("age ", age_low), paste0("age ", age_high))
+cat("\n", "Derived contrasts", "\n")
+print(contrasts)
+cat("\nGroup gaps are Group 1 minus Group 0; changes are high minus low.\n")
 
 # ---------------------------------------------------------------------
 # Simulate one dataset
@@ -169,15 +155,15 @@ y <- stats::rbinom(scenario$N, size = scenario$k_trials, prob = p)
 sim_data <- data.frame(
   age = age,
   age_c = age_c,
-  group = make_group_factor(group_num),
+  group = factor(group_num, levels = c(0, 1), labels = c("Group 0", "Group 1")),
   group_num = group_num,
   y = y,
   k = scenario$k_trials,
   accuracy = y / scenario$k_trials
 )
 
-report_section("Observed data summary")
-print_compact(stats::aggregate(accuracy ~ group, data = sim_data, FUN = mean))
+cat("\n", "Observed data summary", "\n")
+print(stats::aggregate(accuracy ~ group, data = sim_data, FUN = mean))
 
 # ---------------------------------------------------------------------
 # Fit quick comparison models
@@ -194,14 +180,84 @@ fit_probit <- stats::glm(
   family = stats::binomial("probit"),
   data = sim_data
 )
-fit_chance <- fit_chance_binom(
-  ~ age_c * group,
-  data = sim_data,
-  y_col = "y",
-  k_col = "k",
-  chance = scenario$chance,
-  link = scenario$chance_fit_link
-)
+d <- sim_data
+settings <- scenario
+# Chance-corrected binomial logit: likelihood, three starts, and Wald test.
+X <- stats::model.matrix(~ age_c * group, data = d)
+y <- d$y
+k <- d$k
+chance <- settings$chance
+nll <- function(beta) {
+  eta <- drop(X %*% beta)
+  p <- chance + (1 - chance) * stats::plogis(eta)
+  p <- pmin(pmax(p, 1e-10), 1 - 1e-10)
+  -sum(stats::dbinom(y, size = k, prob = p, log = TRUE))
+}
+gradient <- function(beta) {
+  eta <- drop(X %*% beta)
+  q <- stats::plogis(eta)
+  p <- chance + (1 - chance) * q
+  p <- pmin(pmax(p, 1e-10), 1 - 1e-10)
+  weight <- ((y - k * p) / (p * (1 - p))) * (1 - chance) * q * (1 - q)
+  -drop(crossprod(X, weight))
+}
+zero <- stats::setNames(rep(0, ncol(X)), colnames(X))
+from_standard <- zero
+start_fit <- try(stats::glm.fit(X, cbind(y, k - y),
+    family = stats::binomial("logit")), silent = TRUE)
+if (!inherits(start_fit, "try-error") && all(is.finite(stats::coef(start_fit)))) {
+  from_standard[] <- stats::coef(start_fit)
+}
+above <- (y / k - chance) / (1 - chance)
+above <- pmin(pmax(above, 0.02), 0.98)
+from_above <- zero
+above_fit <- try(stats::lm.fit(X, stats::qlogis(above)), silent = TRUE)
+if (!inherits(above_fit, "try-error") && all(is.finite(stats::coef(above_fit)))) {
+  from_above[] <- stats::coef(above_fit)
+}
+candidates <- list()
+for (start in list(zero, from_standard, from_above)) {
+  candidate <- try(stats::optim(start, nll, gr = gradient, method = "BFGS",
+      control = list(maxit = 1500, reltol = 1e-10)),
+    silent = TRUE)
+  if (!inherits(candidate, "try-error") && is.finite(candidate$value) &&
+      all(is.finite(candidate$par))) {
+    candidates[[length(candidates) + 1L]] <- candidate
+  }
+}
+chance_coef <- chance_se <- chance_p <- rep(NA_real_, ncol(X))
+chance_vcov <- matrix(NA_real_, ncol(X), ncol(X))
+chance_usable <- FALSE
+chance_nll <- NA_real_
+if (length(candidates)) {
+  best <- candidates[[which.min(vapply(candidates, `[[`, numeric(1), "value"))]]
+  chance_coef <- best$par
+  chance_nll <- best$value
+  hessian <- try(stats::optimHess(best$par, nll, gr = gradient), silent = TRUE)
+  well_conditioned <- FALSE
+  if (!inherits(hessian, "try-error") && all(is.finite(hessian))) {
+    hess_sym <- (hessian + t(hessian)) / 2
+    eig <- try(eigen(hess_sym, symmetric = TRUE, only.values = TRUE)$values,
+      silent = TRUE)
+    if (!inherits(eig, "try-error")) {
+      well_conditioned <- all(is.finite(eig)) && min(eig) > 1e-7 &&
+        min(eig) / max(eig) > sqrt(.Machine$double.eps)
+    }
+    if (well_conditioned) {
+      V <- try(solve(hess_sym), silent = TRUE)
+      if (!inherits(V, "try-error") && all(is.finite(V))) chance_vcov <- V
+    }
+  }
+  variances <- diag(chance_vcov)
+  variances[!is.finite(variances) | variances <= 0] <- NA_real_
+  chance_se <- sqrt(variances)
+  z <- chance_coef / chance_se
+  chance_p <- 2 * stats::pnorm(abs(z), lower.tail = FALSE)
+  chance_usable <- isTRUE(best$convergence == 0) && well_conditioned &&
+    all(is.finite(chance_vcov)) && all(is.finite(chance_se)) && all(is.finite(chance_p))
+  if (!chance_usable) chance_p[] <- NA_real_
+}
+names(chance_coef) <- names(chance_se) <- names(chance_p) <- colnames(X)
 
 quick_results <- data.frame(
   model = c(
@@ -211,16 +267,16 @@ quick_results <- data.frame(
     paste0("Chance-corrected ", scenario$chance_fit_link)
   ),
   interaction_coef = c(
-    interaction_coef_from_lm(fit_identity),
-    interaction_coef_from_glm(fit_logit),
-    interaction_coef_from_glm(fit_probit),
-    interaction_coef_from_chance(fit_chance)
+    unname(stats::coef(fit_identity)["age_c:groupGroup 1"]),
+    unname(stats::coef(fit_logit)["age_c:groupGroup 1"]),
+    unname(stats::coef(fit_probit)["age_c:groupGroup 1"]),
+    unname(chance_coef["age_c:groupGroup 1"])
   ),
   p_value = c(
-    interaction_p_from_lm(fit_identity),
-    interaction_p_from_glm(fit_logit),
-    interaction_p_from_glm(fit_probit),
-    interaction_p_from_chance(fit_chance)
+    unname(summary(fit_identity)$coefficients["age_c:groupGroup 1", 4]),
+    unname(summary(fit_logit)$coefficients["age_c:groupGroup 1", 4]),
+    unname(summary(fit_probit)$coefficients["age_c:groupGroup 1", 4]),
+    unname(chance_p["age_c:groupGroup 1"])
   ),
   stringsAsFactors = FALSE
 )
@@ -234,43 +290,19 @@ contrast_grid <- expand.grid(
 )
 contrast_grid$age_c <- contrast_grid$age - scenario$age_center
 
-predict_model <- function(model_name, newdata) {
-  model_name <- as.character(model_name)
-  
-  if (model_name == "Identity") {
-    return(stats::predict(fit_identity, newdata = newdata))
-  }
-  
-  if (model_name == "Standard logit") {
-    return(stats::predict(fit_logit, newdata = newdata, type = "response"))
-  }
-  
-  if (model_name == "Standard probit") {
-    return(stats::predict(fit_probit, newdata = newdata, type = "response"))
-  }
-  
-  if (model_name == paste0("Chance-corrected ", scenario$chance_fit_link)) {
-    return(predict_chance_binom(fit_chance, newdata = newdata, type = "response"))
-  }
-  
-  stop("Unknown model: ", model_name, call. = FALSE)
-}
+predictions <- cbind(
+  stats::predict(fit_identity, newdata = contrast_grid),
+  stats::predict(fit_logit, newdata = contrast_grid, type = "response"),
+  stats::predict(fit_probit, newdata = contrast_grid, type = "response"),
+  scenario$chance + (1 - scenario$chance) * stats::plogis(
+    drop(stats::model.matrix(~ age_c * group, contrast_grid) %*% chance_coef)))
+quick_results$change_in_group_difference_probability_points <-
+  predictions[4, ] - predictions[2, ] - predictions[3, ] + predictions[1, ]
+quick_results$change_in_group_difference_correct_out_of_k_trials <-
+  quick_results$change_in_group_difference_probability_points * scenario$k_trials
 
-quick_results$change_in_group_difference_probability_points <- NA_real_
-quick_results$change_in_group_difference_correct_out_of_k_trials <- NA_real_
-
-for (m in quick_results$model) {
-  pred <- predict_model(m, contrast_grid)
-  this_change <- extract_change_in_group_difference(pred, contrast_grid, age_low, age_high)
-  
-  quick_results$change_in_group_difference_probability_points[quick_results$model == m] <-
-    this_change
-  quick_results$change_in_group_difference_correct_out_of_k_trials[quick_results$model == m] <-
-    this_change * scenario$k_trials
-}
-
-report_section("Quick model results for this one dataset")
-print_compact(quick_results)
+cat("\n", "Quick model results for this one dataset", "\n")
+print(quick_results)
 cat("\nInterpretation aid: change_in_group_difference_correct_out_of_k_trials is a contrast, not an observed count.\n")
 cat(
   "It is the model-implied change in the predicted group difference from age ",
@@ -286,7 +318,7 @@ plot_grid <- expand.grid(
   age = scenario$age_plot_values,
   group_num = c(0, 1)
 )
-plot_grid$group <- make_group_factor(plot_grid$group_num)
+plot_grid$group <- factor(plot_grid$group_num, levels = c(0, 1), labels = c("Group 0", "Group 1"))
 plot_grid$age_c <- plot_grid$age - scenario$age_center
 plot_grid$expected_accuracy <- p_fun(plot_grid$age, plot_grid$group_num)
 
@@ -309,7 +341,7 @@ pred_long <- rbind(
   data.frame(
     model = paste0("Chance-corrected ", scenario$chance_fit_link),
     plot_grid,
-    predicted = predict_chance_binom(fit_chance, newdata = plot_grid, type = "response")
+    predicted = scenario$chance + (1 - scenario$chance) * stats::plogis(drop(stats::model.matrix(~ age_c * group, plot_grid) %*% chance_coef))
   )
 )
 
@@ -326,27 +358,73 @@ p1 <- ggplot2::ggplot(
   ggplot2::geom_line(linewidth = 1) +
   ggplot2::coord_cartesian(ylim = c(y_low, y_high)) +
   ggplot2::labs(
-    title = "A. True scenario",
-    x = "Age",
-    y = "Expected accuracy"
-  ) +
-  link_theme()
+  title = "A. True scenario",
+  x = "Age",
+  y = "Expected accuracy"
+) +
+  (ggplot2::theme_minimal(base_size = (10), base_family = ("")) +
+    ggplot2::theme(
+    plot.title = ggplot2::element_text(
+      face = "bold",
+      size = (10) + 1,
+      margin = ggplot2::margin(b = 3)
+    ),
+    plot.subtitle = ggplot2::element_text(
+      size = (10) - 1,
+      color = "grey25",
+      margin = ggplot2::margin(b = 6)
+    ),
+    axis.title = ggplot2::element_text(size = (10)),
+    axis.text = ggplot2::element_text(size = (10) - 1, color = "grey20"),
+    strip.text = ggplot2::element_text(face = "bold", size = (10) - 1),
+    legend.position = "bottom",
+    legend.title = ggplot2::element_text(size = (10) - 1),
+    legend.text = ggplot2::element_text(size = (10) - 1),
+    legend.key.width = grid::unit(1.25, "lines"),
+    panel.grid.minor = ggplot2::element_blank(),
+    panel.grid.major = ggplot2::element_line(linewidth = 0.25, color = "grey88"),
+    panel.spacing = grid::unit(0.9, "lines"),
+    plot.margin = ggplot2::margin(6, 8, 6, 8)
+))
 
 p2 <- ggplot2::ggplot() +
   ggplot2::geom_hline(yintercept = scenario$chance, linetype = "dashed") +
   ggplot2::geom_point(
-    data = sim_data,
-    ggplot2::aes(x = age, y = accuracy, shape = group),
-    alpha = 0.25,
-    size = 0.8
-  ) +
+  data = sim_data,
+  ggplot2::aes(x = age, y = accuracy, shape = group),
+  alpha = 0.25,
+  size = 0.8
+) +
   ggplot2::coord_cartesian(ylim = c(y_low, y_high)) +
   ggplot2::labs(
-    title = "B. One simulated dataset",
-    x = "Age",
-    y = "Observed accuracy"
-  ) +
-  link_theme()
+  title = "B. One simulated dataset",
+  x = "Age",
+  y = "Observed accuracy"
+) +
+  (ggplot2::theme_minimal(base_size = (10), base_family = ("")) +
+    ggplot2::theme(
+    plot.title = ggplot2::element_text(
+      face = "bold",
+      size = (10) + 1,
+      margin = ggplot2::margin(b = 3)
+    ),
+    plot.subtitle = ggplot2::element_text(
+      size = (10) - 1,
+      color = "grey25",
+      margin = ggplot2::margin(b = 6)
+    ),
+    axis.title = ggplot2::element_text(size = (10)),
+    axis.text = ggplot2::element_text(size = (10) - 1, color = "grey20"),
+    strip.text = ggplot2::element_text(face = "bold", size = (10) - 1),
+    legend.position = "bottom",
+    legend.title = ggplot2::element_text(size = (10) - 1),
+    legend.text = ggplot2::element_text(size = (10) - 1),
+    legend.key.width = grid::unit(1.25, "lines"),
+    panel.grid.minor = ggplot2::element_blank(),
+    panel.grid.major = ggplot2::element_line(linewidth = 0.25, color = "grey88"),
+    panel.spacing = grid::unit(0.9, "lines"),
+    plot.margin = ggplot2::margin(6, 8, 6, 8)
+))
 
 p3 <- ggplot2::ggplot(
   pred_long,
@@ -357,11 +435,34 @@ p3 <- ggplot2::ggplot(
   ggplot2::facet_wrap(~ model, ncol = 2) +
   ggplot2::coord_cartesian(ylim = c(y_low, y_high)) +
   ggplot2::labs(
-    title = "C. Fitted model curves",
-    x = "Age",
-    y = "Predicted accuracy"
-  ) +
-  link_theme(base_size = 9)
+  title = "C. Fitted model curves",
+  x = "Age",
+  y = "Predicted accuracy"
+) +
+  (ggplot2::theme_minimal(base_size = (9), base_family = ("")) +
+    ggplot2::theme(
+    plot.title = ggplot2::element_text(
+      face = "bold",
+      size = (9) + 1,
+      margin = ggplot2::margin(b = 3)
+    ),
+    plot.subtitle = ggplot2::element_text(
+      size = (9) - 1,
+      color = "grey25",
+      margin = ggplot2::margin(b = 6)
+    ),
+    axis.title = ggplot2::element_text(size = (9)),
+    axis.text = ggplot2::element_text(size = (9) - 1, color = "grey20"),
+    strip.text = ggplot2::element_text(face = "bold", size = (9) - 1),
+    legend.position = "bottom",
+    legend.title = ggplot2::element_text(size = (9) - 1),
+    legend.text = ggplot2::element_text(size = (9) - 1),
+    legend.key.width = grid::unit(1.25, "lines"),
+    panel.grid.minor = ggplot2::element_blank(),
+    panel.grid.major = ggplot2::element_line(linewidth = 0.25, color = "grey88"),
+    panel.spacing = grid::unit(0.9, "lines"),
+    plot.margin = ggplot2::margin(6, 8, 6, 8)
+))
 
 p4 <- ggplot2::ggplot(
   quick_results,
@@ -374,21 +475,57 @@ p4 <- ggplot2::ggplot(
   ggplot2::geom_point(size = 2.4) +
   ggplot2::coord_flip() +
   ggplot2::labs(
-    title = "D. Model-implied change in the group difference",
-    subtitle = "Values are contrasts, not possible observed counts",
-    x = NULL,
-    y = axis_title_change_group_gap_correct(age_low, age_high, scenario$k_trials)
-  ) +
-  link_theme()
+  title = "D. Model-implied change in the group difference",
+  subtitle = "Values are contrasts, not possible observed counts",
+  x = NULL,
+  y = paste0("Change in group gap from ", (age_low), " to ", (age_high), ", correct responses out of ", (scenario$k_trials))
+) +
+  (ggplot2::theme_minimal(base_size = (10), base_family = ("")) +
+    ggplot2::theme(
+    plot.title = ggplot2::element_text(
+      face = "bold",
+      size = (10) + 1,
+      margin = ggplot2::margin(b = 3)
+    ),
+    plot.subtitle = ggplot2::element_text(
+      size = (10) - 1,
+      color = "grey25",
+      margin = ggplot2::margin(b = 6)
+    ),
+    axis.title = ggplot2::element_text(size = (10)),
+    axis.text = ggplot2::element_text(size = (10) - 1, color = "grey20"),
+    strip.text = ggplot2::element_text(face = "bold", size = (10) - 1),
+    legend.position = "bottom",
+    legend.title = ggplot2::element_text(size = (10) - 1),
+    legend.text = ggplot2::element_text(size = (10) - 1),
+    legend.key.width = grid::unit(1.25, "lines"),
+    panel.grid.minor = ggplot2::element_blank(),
+    panel.grid.major = ggplot2::element_line(linewidth = 0.25, color = "grey88"),
+    panel.spacing = grid::unit(0.9, "lines"),
+    plot.margin = ggplot2::margin(6, 8, 6, 8)
+))
 
-save_plot_grid(
-  list(p1, p2, p3, p4),
-  filename_base = scenario$output_base,
-  width = 10,
-  height = 5.8,
-  ncol = 2,
-  dpi = default_dpi
-)
+# Write the same panel layout to PDF and PNG.
+plots <- list(p1, p2, p3, p4)
+plot_columns <- 2
+plot_rows <- ceiling(length(plots) / plot_columns)
+dir.create(dirname(scenario$output_base), recursive = TRUE, showWarnings = FALSE)
+for (plot_format in c("pdf", "png")) {
+  if (plot_format == "pdf") {
+    grDevices::pdf(paste0(scenario$output_base, ".pdf"), width = 10, height = 5.8)
+  } else {
+    grDevices::png(paste0(scenario$output_base, ".png"), width = 10, height = 5.8, units = "in", res = default_dpi)
+  }
+  grid::grid.newpage()
+  grid::pushViewport(grid::viewport(layout = grid::grid.layout(plot_rows, plot_columns)))
+  for (panel in seq_along(plots)) {
+    plot_row <- ceiling(panel / plot_columns)
+    plot_column <- panel - (plot_row - 1) * plot_columns
+    print(plots[[panel]], vp = grid::viewport(layout.pos.row = plot_row, layout.pos.col = plot_column))
+  }
+  grid::popViewport()
+  grDevices::dev.off()
+}
 
 saveRDS(
   list(
@@ -402,7 +539,7 @@ saveRDS(
   file = paste0(scenario$output_base, ".rds")
 )
 
-report_section("Saved files")
+cat("\n", "Saved files", "\n")
 cat("- ", scenario$output_base, ".pdf/png\n", sep = "")
 cat("- ", scenario$output_base, ".rds\n", sep = "")
 cat("\nDone.\n")

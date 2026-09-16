@@ -1,13 +1,13 @@
 # Within-family Atlas; see scripts/03b-simulation-within-family-links.R.
+Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = "1")
 library(glmmTMB)
 # Run from the repository root after 01-build-scenario-grid.R.
 # Replications are parallel; scenarios are visited in declared grid order.
 MODE <- tolower(Sys.getenv("ATLAS_MODE", "full"))
 B <- as.integer(Sys.getenv("N_SIM", if (MODE == "smoke") "3" else "3000"))
 n_cores <- as.integer(Sys.getenv("N_CORES", Sys.getenv("SLURM_CPUS_PER_TASK",
-                       max(1, parallel::detectCores() - 1))))
+      max(1, parallel::detectCores() - 1))))
 OVERWRITE <- as.logical(Sys.getenv("ATLAS_OVERWRITE", "FALSE"))
-Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = "1")
 dir.create("simulation-atlas/raw", recursive = TRUE, showWarnings = FALSE)
 grid <- utils::read.csv("simulation-atlas/data/scenario-grid.csv", stringsAsFactors = FALSE)
 
@@ -15,7 +15,7 @@ scenarios <- grid[grid$family == "within_family", ]
 if (MODE == "smoke") scenarios <- scenarios[scenarios$scenario_id == "WF-002", ]
 run_one_replication <- function(replication, scenario, deterministic) {
   replication_seed <- as.integer((20260807 + 3000000 +
-    as.double(sub(".*-", "", scenario$scenario_id)) * 10000 + replication) %% .Machine$integer.max)
+        as.double(sub(".*-", "", scenario$scenario_id)) * 10000 + replication) %% .Machine$integer.max)
   set.seed(replication_seed)
   # Preserve the Atlas's aggregated binomial draws (the manuscript uses individual trials).
   id <- rep(seq_len(scenario$n_subjects), each = 2)
@@ -36,14 +36,14 @@ run_one_replication <- function(replication, scenario, deterministic) {
   # The existing sensitivity design uses a GLM at ICC = 0.
   if (scenario$target_icc == 0) {
     fit_logit <- try(stats::glm(cbind(successes, k - successes) ~ group * condition,
-      data = d, family = stats::binomial("logit")), silent = TRUE)
+        data = d, family = stats::binomial("logit")), silent = TRUE)
     fit_probit <- try(stats::glm(cbind(successes, k - successes) ~ group * condition,
-      data = d, family = stats::binomial("probit")), silent = TRUE)
+        data = d, family = stats::binomial("probit")), silent = TRUE)
   } else {
     fit_logit <- try(glmmTMB::glmmTMB(cbind(successes, k - successes) ~ group * condition + (1 | id),
-      data = d, family = stats::binomial("logit")), silent = TRUE)
+        data = d, family = stats::binomial("logit")), silent = TRUE)
     fit_probit <- try(glmmTMB::glmmTMB(cbind(successes, k - successes) ~ group * condition + (1 | id),
-      data = d, family = stats::binomial("probit")), silent = TRUE)
+        data = d, family = stats::binomial("probit")), silent = TRUE)
   }
   nd <- expand.grid(group = factor(c("Group 0", "Group 1"), levels = c("Group 0", "Group 1")),
     condition = factor(c("Condition 0", "Condition 1"), levels = c("Condition 0", "Condition 1")))
