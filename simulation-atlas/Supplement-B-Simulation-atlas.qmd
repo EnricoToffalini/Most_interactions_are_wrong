@@ -103,6 +103,10 @@ grid <- utils::read.csv(
 stopifnot(
   nrow(core) > 0,
   nrow(grid) > 0,
+  all(c(
+    "n_fit_ok", "n_fit_problem", "fit_problem_rate",
+    "rejection_rate_ok", "n_p_finite_problem", "rejection_rate_problem"
+  ) %in% names(core)),
   all(is.finite(grid$generating_interaction)),
   all(grid$generating_interaction == 0),
   !anyDuplicated(grid$scenario_id)
@@ -226,11 +230,20 @@ anchor_table <- function(family) {
     `Generating link/scale` = dat$generating_link,
     `Fitted model/scale` = as.character(dat$model_label),
     `Rate type` = dat$rate_type,
-    `Rejection rate` = pct(dat$false_positive_rate),
-    `95% CI` = ci_text(dat$false_positive_ci_low, dat$false_positive_ci_high),
+    `Rejection rate` = pct(dat$rejection_rate_ok),
+    `95% CI` = ci_text(dat$rejection_ci_low_ok, dat$rejection_ci_high_ok),
     `Deterministic pseudo-interaction` = num(dat$deterministic_pseudo_interaction),
     check.names = FALSE
   )
+  if (family == "forced_choice") {
+    out <- cbind(
+      out,
+      `Flagged fits` = dat$n_fit_problem,
+      `Fit-problem rate` = pct(dat$fit_problem_rate),
+      `Apparent rejection rate among flagged fits` = pct(dat$rejection_rate_problem),
+      check.names = FALSE
+    )
+  }
   rownames(out) <- NULL
   out
 }
@@ -243,9 +256,9 @@ plot_anchor_rates <- function(family) {
     dat,
     aes(
       x = model_label,
-      y = false_positive_rate,
-      ymin = false_positive_ci_low,
-      ymax = false_positive_ci_high,
+      y = rejection_rate_ok,
+      ymin = rejection_ci_low_ok,
+      ymax = rejection_ci_high_ok,
       group = scenario_label,
       shape = scenario_label
     )
@@ -279,7 +292,7 @@ plot_slice_rates <- function(family) {
     dat,
     aes(
       x = x_value,
-      y = false_positive_rate,
+      y = rejection_rate_ok,
       group = model_label,
       linetype = model_label,
       shape = model_label
@@ -322,8 +335,8 @@ slice_range_table <- function(family) {
       Slice = x$slice_label[1],
       `Generating link/scale` = x$generating_link[1],
       `Fitted model/scale` = as.character(x$model_label[1]),
-      `Minimum rejection rate` = pct(min(x$false_positive_rate, na.rm = TRUE)),
-      `Maximum rejection rate` = pct(max(x$false_positive_rate, na.rm = TRUE)),
+      `Minimum rejection rate` = pct(min(x$rejection_rate_ok, na.rm = TRUE)),
+      `Maximum rejection rate` = pct(max(x$rejection_rate_ok, na.rm = TRUE)),
       check.names = FALSE
     )
   })
@@ -414,11 +427,11 @@ plot_surface <- function(family) {
     aes(
       x = surface_x,
       y = surface_y,
-      fill = false_positive_rate
+      fill = rejection_rate_ok
     )
   ) +
     geom_tile() +
-    geom_text(aes(label = paste0(round(100 * false_positive_rate), "%")), size = 3, colour = "white") +
+    geom_text(aes(label = paste0(round(100 * rejection_rate_ok), "%")), size = 3, colour = "white") +
     scale_fill_gradient(
       limits = c(0, 1),
       breaks = seq(0, 1, by = 0.25),
@@ -443,7 +456,7 @@ rate_range <- function(family, model = NULL, rate_type = NULL) {
   dat <- family_rows(family)
   if (!is.null(model)) dat <- dat[as.character(dat$model_label) == model, , drop = FALSE]
   if (!is.null(rate_type)) dat <- dat[dat$rate_type == rate_type, , drop = FALSE]
-  range(dat$false_positive_rate, na.rm = TRUE)
+  range(dat$rejection_rate_ok, na.rm = TRUE)
 }
 
 rate_range_text <- function(...) {
@@ -461,10 +474,18 @@ compact_core_table <- function(family) {
     Scenario = dat$scenario_label,
     `Generating link/scale` = dat$generating_link,
     `Fitted model/scale` = as.character(dat$model_label),
-    `Rejection rate` = pct(dat$false_positive_rate),
+    `Rejection rate` = pct(dat$rejection_rate_ok),
     `Deterministic pseudo-interaction` = num(dat$deterministic_pseudo_interaction),
     check.names = FALSE
   )
+  if (family == "forced_choice") {
+    out <- cbind(
+      out,
+      `Fit-problem rate` = pct(dat$fit_problem_rate),
+      `Apparent rejection rate among flagged fits` = pct(dat$rejection_rate_problem),
+      check.names = FALSE
+    )
+  }
   rownames(out) <- NULL
   out
 }
@@ -633,13 +654,13 @@ scenario_counts <- table(grid$family)
 
 Supplement B extends the three manuscript simulations by varying selected parameters while keeping the true interaction equal to zero on the generating scale. It uses one-dimensional sensitivity slices and small main-effect surfaces rather than a full Cartesian design.
 
-Reference scenarios retain the generating settings of the corresponding manuscript simulations. In every scenario, a rejection under the matched generating model estimates the nominal generating-scale rejection rate; under another scale, it is a **pseudo-interaction detection rate**. All scenarios used 3,000 Monte Carlo replications.
+Reference scenarios retain the generating settings of the corresponding manuscript simulations. In every scenario, a rejection under the matched generating model estimates the nominal generating-scale rejection rate; under another scale, it is a **pseudo-interaction detection rate**. For forced choice, these primary rates use finite tests from fits passing the minimal lme4 fit-quality checks. Apparent rejection rates among flagged fits are reported separately. Publication runs request 3,000 Monte Carlo replications.
 
 ## How to read the figures
 
 All rejection-rate figures use the same interpretation. The horizontal dashed line at .05 marks nominal alpha. Rates close to .05 under the generating scale provide a calibration check. Elevated rates under an alternative fitted scale show how often the scale difference becomes a statistically significant product term at the stated sample size and design. Error bars are shown for the reference scenarios. The sensitivity plots omit error bars to keep the larger set of scenarios readable; Wilson 95% intervals are available in the numerical tables and in `data/atlas-summary.csv`.
 
-The deterministic pseudo-interaction reported in the tables is calculated from expected values before sampling. It describes the interaction contrast implied by evaluating the generating pattern on the fitted scale. The Monte Carlo rejection rate adds sampling variability, standard errors, and sample size to that deterministic discrepancy.
+The deterministic pseudo-interaction reported in the tables is calculated from expected values before sampling. For forced choice and the other mixed-model family, it is evaluated at random intercept 0, not as a marginal population-average probability. It describes the interaction contrast implied by evaluating the generating pattern on the fitted scale. The Monte Carlo rejection rate adds sampling variability, standard errors, and sample size to that deterministic discrepancy.
 
 # Atlas design
 
@@ -683,13 +704,13 @@ For Simulation 2, logit and probit coefficients are on different generating-link
 
 # Simulation 1: Forced-choice accuracy and the non-zero chance floor
 
-Forced-choice accuracy is generated from a chance-corrected binomial logit model with a .50 floor and no age-by-group product term on that scale. The fitted models are the matched chance-corrected model, standard binomial logit and probit models, and a Gaussian identity model; the figures and Table 1 show the sensitivity design.
+Forced-choice accuracy is generated as trial-level Bernoulli responses from a chance-corrected binomial logit mixed model with a .50 floor, a subject random intercept, and no age-by-group product term on the conditional chance-corrected-logit scale. The subject random-intercept SD corresponds to latent-scale ICC $.30$ under the usual logistic convention. The fitted models are a matched chance-corrected-logit GLMM using `psyphy::mafc.logit`, standard binomial-logit and binomial-probit GLMMs, and a Gaussian identity LMM. All four use the same `(1 | id)` structure.
 
 ## Reference scenarios
 
 ```{r}
 #| label: fig-atlas-fc-anchor
-#| fig-cap: "Forced-choice reference scenarios. The product term is zero on the chance-corrected logit generating scale. The dashed line marks alpha = .05."
+#| fig-cap: "Forced-choice reference scenarios. The product term is zero on the conditional chance-corrected-logit generating scale. Rates use fits passing the minimal fit-quality checks. The dashed line marks alpha = .05."
 #| fig-width: 8
 #| fig-height: 4.8
 
@@ -700,10 +721,10 @@ plot_anchor_rates("forced_choice")
 #| label: tbl-atlas-fc-anchor
 #| tbl-cap: "Forced-choice reference scenarios. The deterministic pseudo-interaction is evaluated on each fitted scale before sampling."
 
-knitr::kable(anchor_table("forced_choice"), align = c("l", "l", "l", "l", "r", "r", "r"))
+knitr::kable(anchor_table("forced_choice"), align = c("l", "l", "l", "l", "r", "r", "r", "r", "r", "r"))
 ```
 
-Across all forced-choice atlas scenarios, the matched chance-corrected model remains close to nominal alpha, with rejection rates from `r rate_range_text("forced_choice", model = "Chance-corrected binomial logit")`. The standard binomial logit ranges from `r rate_range_text("forced_choice", model = "Standard binomial logit")`, and the standard binomial probit from `r rate_range_text("forced_choice", model = "Standard binomial probit")`. These ranges are sensitivity results, not prevalence estimates. They show that the inferential consequence of placing the lower asymptote at 0 instead of the task-implied chance level can be small in some regions and very large in others.
+The forced-choice atlas must be regenerated before numerical ranges are reported for the revised mixed-model design. The saved atlas results from the earlier fixed-effect design are not valid for this specification.
 
 ## One-dimensional sensitivity slices
 
@@ -760,7 +781,7 @@ plot_anchor_rates("within_family")
 knitr::kable(anchor_table("within_family"), align = c("l", "l", "l", "l", "r", "r", "r"))
 ```
 
-Across the atlas, matched logit/probit fits remain near the nominal rejection rate. The wrong-link rows range from `r pct(min(family_rows("within_family")$false_positive_rate[family_rows("within_family")$rate_type == "Pseudo-interaction detection rate"], na.rm = TRUE))` to `r pct(max(family_rows("within_family")$false_positive_rate[family_rows("within_family")$rate_type == "Pseudo-interaction detection rate"], na.rm = TRUE))`. The range is wider than the reference scenarios alone suggest because the atlas deliberately varies information and the region of the latent scale. The result remains conditional on these declared slices and should not be read as a general frequency for logit-probit disagreement.
+Across the atlas, matched logit/probit fits remain near the nominal rejection rate. The wrong-link rows range from `r pct(min(family_rows("within_family")$rejection_rate_ok[family_rows("within_family")$rate_type == "Pseudo-interaction detection rate"], na.rm = TRUE))` to `r pct(max(family_rows("within_family")$rejection_rate_ok[family_rows("within_family")$rate_type == "Pseudo-interaction detection rate"], na.rm = TRUE))`. The range is wider than the reference scenarios alone suggest because the atlas deliberately varies information and the region of the latent scale. The result remains conditional on these declared slices and should not be read as a general frequency for logit-probit disagreement.
 
 ## One-dimensional sensitivity slices
 
@@ -854,7 +875,7 @@ The surface shows how the mapping from latent values to a bounded total can turn
 
 # Diagnostic atlas
 
-The diagnostic analyses cover the forced-choice chance-floor case and the probit-generated, logit-fitted repeated-trial case. They examine how pseudo-interaction risk and diagnostic detection change with sample size and intercept.
+The diagnostic analyses cover the forced-choice chance-floor case and the probit-generated, logit-fitted repeated-trial case. The forced-choice diagnostic uses the same trial-level random-intercept DGP and paired standard-logit and chance-corrected-logit GLMMs as the revised manuscript scenario. They examine how pseudo-interaction risk and diagnostic detection change with sample size and intercept. The forced-choice diagnostic atlas must be regenerated before its numerical values are interpreted.
 
 Diagnostics are applied to the **misspecified interaction model**, matching the manuscript's post-estimation question: once the fitted model has produced the product-term finding, does that same model show enough evidence of misspecification to warn the analyst? AIC compares prespecified candidate mean models with the same structural interaction formula. Positive delta AIC, defined as AIC of the misspecified model minus AIC of the generating model, favors the generating link.
 
@@ -899,7 +920,7 @@ The atlas does not estimate how often link misspecification occurs in psychologi
 
 # Numerical appendix
 
-The tables below provide scenario-level results for the core sensitivity analyses. All scenarios used 3,000 Monte Carlo replications.
+The tables below provide scenario-level results for the core sensitivity analyses. Publication runs request 3,000 Monte Carlo replications.
 
 ## Forced-choice accuracy
 
@@ -907,7 +928,7 @@ The tables below provide scenario-level results for the core sensitivity analyse
 #| label: tbl-atlas-fc-full
 #| tbl-cap: "Scenario-level results for the forced-choice atlas."
 
-report_kable(compact_core_table("forced_choice"), align = c("l", "l", "l", "l", "l", "r", "r"), long = TRUE)
+report_kable(compact_core_table("forced_choice"), align = c("l", "l", "l", "l", "l", "r", "r", "r", "r"), long = TRUE)
 ```
 
 ## Logit versus probit

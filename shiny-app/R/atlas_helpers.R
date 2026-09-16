@@ -130,18 +130,19 @@ ATLAS_PAPER_GUIDE <- list(
     ),
     design = paste(
       "N = 250 participants with k = 20 trials each, ages 6 to 10 centered at 8.",
-      "Accuracy is generated from a chance-corrected logit model with a .50 chance floor:",
+      "Trial-level accuracy is generated from a chance-corrected logit mixed model",
+      "with a .50 chance floor and a subject random intercept for latent ICC .30:",
       "age effect 0.60, group effect -0.90, and an age-by-group product term of exactly zero",
-      "on that generating scale. The three manuscript scenarios differ only in the intercept",
+      "on the conditional generating scale. The three manuscript scenarios differ only in the intercept",
       "(-0.80, 0.00, +0.80), which is where the Lower performance, Middle performance and",
       "Higher performance scenarios come from: overall accuracy sits just above the .50",
       "chance floor, in the middle of the above-chance range, or close to 1."
     ),
     models = paste(
-      "Four models are fitted to each dataset, one row per participant: a Gaussian identity",
-      "model on the observed proportions, standard binomial logit and probit models on the",
-      "correct-response counts, and the chance-corrected binomial logit that matches the",
-      "generating scale and therefore supplies the nominal rejection rate."
+      "Four models are fitted to the same binary trial data with the same subject random",
+      "intercept: a Gaussian identity LMM, standard binomial logit and probit GLMMs,",
+      "and the chance-corrected binomial logit GLMM that matches the generating scale.",
+      "Primary rates use fits passing the minimal lme4 checks; flagged fits are summarized separately."
     ),
     beyond = paste(
       "Holding the generating product term at zero, the atlas moves the sample size",

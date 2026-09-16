@@ -12,183 +12,195 @@ grid <- utils::read.csv("simulation-atlas/data/scenario-grid.csv", stringsAsFact
 scenarios <- grid[grid$family == "forced_choice", ]
 if (MODE == "smoke") scenarios <- scenarios[scenarios$scenario_id == "FC-002", ]
 
+capture_fit <- function(expr) {
+  warning_text <- character()
+  error_text <- ""
+  fit <- tryCatch(
+    withCallingHandlers(expr, warning = function(w) {
+      warning_text <<- c(warning_text, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    }),
+    error = function(e) {
+      error_text <<- conditionMessage(e)
+      NULL
+    }
+  )
+  list(fit = fit, warnings = unique(warning_text), error = error_text)
+}
+
+extract_mixed_fit <- function(captured, newdata, gaussian = FALSE) {
+  targeted_pattern <- paste(
+    "failed to converge", "identif", "Hessian",
+    "positive definite", "degenerate", sep = "|"
+  )
+  if (is.null(captured$fit)) {
+    return(data.frame(
+      interaction_p = NA_real_, interaction_coef = NA_real_, interaction_se = NA_real_,
+      response_scale_did = NA_real_, fit_problem = TRUE,
+      problem_message = captured$error, singular = NA,
+      warning_message = paste(captured$warnings, collapse = " | "),
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  fit <- captured$fit
+  lme4_messages <- fit@optinfo$conv$lme4$messages
+  if (is.null(lme4_messages)) lme4_messages <- character()
+  singular <- lme4::isSingular(fit, tol = 1e-4)
+  extraction_warnings <- character()
+  extraction_error <- ""
+  coefficient_table <- tryCatch(
+    withCallingHandlers(
+      stats::coef(summary(fit)),
+      warning = function(w) {
+        extraction_warnings <<- c(extraction_warnings, conditionMessage(w))
+        invokeRestart("muffleWarning")
+      }
+    ),
+    error = function(e) {
+      extraction_error <<- conditionMessage(e)
+      NULL
+    }
+  )
+  term <- "age_c:groupGroup 1"
+  estimate <- if (!is.null(coefficient_table) && term %in% rownames(coefficient_table)) coefficient_table[term, 1] else NA_real_
+  standard_error <- if (!is.null(coefficient_table) && term %in% rownames(coefficient_table)) coefficient_table[term, 2] else NA_real_
+  p_value <- if (is.finite(estimate) && is.finite(standard_error) && standard_error > 0) {
+    2 * stats::pnorm(abs(estimate / standard_error), lower.tail = FALSE)
+  } else {
+    NA_real_
+  }
+  predictions <- try(
+    if (gaussian) {
+      stats::predict(fit, newdata = newdata, re.form = NA)
+    } else {
+      stats::predict(fit, newdata = newdata, type = "response", re.form = NA)
+    },
+    silent = TRUE
+  )
+  did <- if (inherits(predictions, "try-error") || any(!is.finite(predictions))) {
+    NA_real_
+  } else {
+    predictions[4] - predictions[2] - predictions[3] + predictions[1]
+  }
+  targeted_warnings <- c(captured$warnings, extraction_warnings)
+  targeted_warnings <- targeted_warnings[
+    grepl(targeted_pattern, targeted_warnings, ignore.case = TRUE)
+  ]
+  invalid_inference <- !is.finite(estimate) || !is.finite(standard_error) ||
+    standard_error <= 0 || !is.finite(p_value)
+  fit_problem <- length(lme4_messages) > 0 || isTRUE(singular) ||
+    length(targeted_warnings) > 0 || nzchar(extraction_error) || invalid_inference
+  problem_parts <- c(
+    lme4_messages,
+    if (isTRUE(singular)) "singular fit" else character(),
+    targeted_warnings,
+    extraction_error,
+    if (invalid_inference) "non-finite or non-positive interaction inference" else character()
+  )
+  problem_parts <- problem_parts[!is.na(problem_parts) & nzchar(problem_parts)]
+  data.frame(
+    interaction_p = unname(p_value),
+    interaction_coef = unname(estimate),
+    interaction_se = unname(standard_error),
+    response_scale_did = unname(did),
+    fit_problem = fit_problem,
+    problem_message = paste(unique(problem_parts), collapse = " | "),
+    singular = singular,
+    warning_message = paste(
+      unique(c(captured$warnings, extraction_warnings)), collapse = " | "
+    ),
+    stringsAsFactors = FALSE
+  )
+}
+
 run_one_replication <- function(replication, scenario, deterministic) {
   settings <- as.list(scenario)
   replication_seed <- as.integer((20260807 + 1000000 +
         as.double(sub(".*-", "", scenario$scenario_id)) * 10000 + replication) %% .Machine$integer.max)
   set.seed(replication_seed)
   settings$age_range <- c(scenario$age_min, scenario$age_max)
-  beta_intercept <- scenario$beta_intercept
+  settings$sigma_u <- sqrt(
+    settings$target_icc * (pi^2 / 3) / (1 - settings$target_icc)
+  )
 
   group_num <- stats::rbinom(settings$N, 1, 0.5)
   age <- stats::runif(settings$N, settings$age_range[1], settings$age_range[2])
   age_c <- age - settings$age_center
-  eta <- beta_intercept + settings$beta_age * age_c +
-    settings$beta_group * group_num + settings$beta_age_group * age_c * group_num
-  p <- settings$chance + (1 - settings$chance) * stats::plogis(eta)
-  y <- stats::rbinom(settings$N, size = settings$k_trials, prob = p)
-
+  u <- stats::rnorm(settings$N, mean = 0, sd = settings$sigma_u)
+  # The product term is zero on the conditional chance-corrected-logit scale.
+  eta <- settings$beta_intercept + settings$beta_age * age_c +
+    settings$beta_group * group_num + settings$beta_age_group * age_c * group_num + u
   d <- data.frame(
-    age = age,
-    age_c = age_c,
-    group_num = group_num,
+    id = factor(rep(seq_len(settings$N), each = settings$k_trials)),
+    age = rep(age, each = settings$k_trials),
+    age_c = rep(age_c, each = settings$k_trials),
     group = factor(
-      group_num,
-      levels = c(0, 1),
-      labels = c("Group 0", "Group 1")
+      rep(group_num, each = settings$k_trials),
+      levels = c(0, 1), labels = c("Group 0", "Group 1")
     ),
-    y = y,
-    k = settings$k_trials,
-    accuracy = y / settings$k_trials,
     stringsAsFactors = FALSE
   )
+  d$eta <- rep(eta, each = settings$k_trials)
+  d$p <- settings$chance + (1 - settings$chance) * stats::plogis(d$eta)
+  d$correct <- stats::rbinom(nrow(d), size = 1, prob = d$p)
 
-  fit_gaussian <- try(stats::lm(accuracy ~ age_c * group, data = d), silent = TRUE)
-  fit_logit <- try(stats::glm(cbind(y, k - y) ~ age_c * group,
-      family = stats::binomial("logit"), data = d), silent = TRUE)
-  fit_probit <- try(stats::glm(cbind(y, k - y) ~ age_c * group,
-      family = stats::binomial("probit"), data = d), silent = TRUE)
+  fit_gaussian <- capture_fit(lme4::lmer(
+    correct ~ age_c * group + (1 | id), data = d
+  ))
+  fit_logit <- capture_fit(lme4::glmer(
+    correct ~ age_c * group + (1 | id),
+    family = stats::binomial("logit"), data = d
+  ))
+  fit_probit <- capture_fit(lme4::glmer(
+    correct ~ age_c * group + (1 | id),
+    family = stats::binomial("probit"), data = d
+  ))
+  fitted_alternatives <- as.integer(round(1 / settings$chance))
+  fit_chance <- capture_fit(lme4::glmer(
+    correct ~ age_c * group + (1 | id),
+    family = stats::binomial(psyphy::mafc.logit(fitted_alternatives)), data = d
+  ))
 
-  # Chance-corrected binomial logit: likelihood, three starts, and Wald test.
-  X <- stats::model.matrix(~ age_c * group, data = d)
-  y <- d$y
-  k <- d$k
-  chance <- settings$chance
-  nll <- function(beta) {
-    eta <- drop(X %*% beta)
-    p <- chance + (1 - chance) * stats::plogis(eta)
-    p <- pmin(pmax(p, 1e-10), 1 - 1e-10)
-    -sum(stats::dbinom(y, size = k, prob = p, log = TRUE))
-  }
-  gradient <- function(beta) {
-    eta <- drop(X %*% beta)
-    q <- stats::plogis(eta)
-    p <- chance + (1 - chance) * q
-    p <- pmin(pmax(p, 1e-10), 1 - 1e-10)
-    weight <- ((y - k * p) / (p * (1 - p))) * (1 - chance) * q * (1 - q)
-    -drop(crossprod(X, weight))
-  }
-  zero <- stats::setNames(rep(0, ncol(X)), colnames(X))
-  from_standard <- zero
-  start_fit <- try(stats::glm.fit(X, cbind(y, k - y),
-      family = stats::binomial("logit")), silent = TRUE)
-  if (!inherits(start_fit, "try-error") && all(is.finite(stats::coef(start_fit)))) {
-    from_standard[] <- stats::coef(start_fit)
-  }
-  above <- (y / k - chance) / (1 - chance)
-  above <- pmin(pmax(above, 0.02), 0.98)
-  from_above <- zero
-  above_fit <- try(stats::lm.fit(X, stats::qlogis(above)), silent = TRUE)
-  if (!inherits(above_fit, "try-error") && all(is.finite(stats::coef(above_fit)))) {
-    from_above[] <- stats::coef(above_fit)
-  }
-  candidates <- list()
-  for (start in list(zero, from_standard, from_above)) {
-    candidate <- try(stats::optim(start, nll, gr = gradient, method = "BFGS",
-        control = list(maxit = 1500, reltol = 1e-10)),
-      silent = TRUE)
-    if (!inherits(candidate, "try-error") && is.finite(candidate$value) &&
-        all(is.finite(candidate$par))) {
-      candidates[[length(candidates) + 1L]] <- candidate
-    }
-  }
-  chance_coef <- chance_se <- chance_p <- rep(NA_real_, ncol(X))
-  chance_vcov <- matrix(NA_real_, ncol(X), ncol(X))
-  chance_usable <- FALSE
-  chance_nll <- NA_real_
-  if (length(candidates)) {
-    best <- candidates[[which.min(vapply(candidates, `[[`, numeric(1), "value"))]]
-    chance_coef <- best$par
-    chance_nll <- best$value
-    hessian <- try(stats::optimHess(best$par, nll, gr = gradient), silent = TRUE)
-    well_conditioned <- FALSE
-    if (!inherits(hessian, "try-error") && all(is.finite(hessian))) {
-      hess_sym <- (hessian + t(hessian)) / 2
-      eig <- try(eigen(hess_sym, symmetric = TRUE, only.values = TRUE)$values,
-        silent = TRUE)
-      if (!inherits(eig, "try-error")) {
-        well_conditioned <- all(is.finite(eig)) && min(eig) > 1e-7 &&
-          min(eig) / max(eig) > sqrt(.Machine$double.eps)
-      }
-      if (well_conditioned) {
-        V <- try(solve(hess_sym), silent = TRUE)
-        if (!inherits(V, "try-error") && all(is.finite(V))) chance_vcov <- V
-      }
-    }
-    variances <- diag(chance_vcov)
-    variances[!is.finite(variances) | variances <= 0] <- NA_real_
-    chance_se <- sqrt(variances)
-    z <- chance_coef / chance_se
-    chance_p <- 2 * stats::pnorm(abs(z), lower.tail = FALSE)
-    chance_usable <- isTRUE(best$convergence == 0) && well_conditioned &&
-      all(is.finite(chance_vcov)) && all(is.finite(chance_se)) && all(is.finite(chance_p))
-    if (!chance_usable) chance_p[] <- NA_real_
-  }
-  names(chance_coef) <- names(chance_se) <- names(chance_p) <- colnames(X)
-
-  nd <- expand.grid(age = settings$age_range,
-    group = factor(c("Group 0", "Group 1"), levels = c("Group 0", "Group 1")))
+  nd <- expand.grid(
+    age = settings$age_range,
+    group = factor(c("Group 0", "Group 1"), levels = c("Group 0", "Group 1"))
+  )
   nd$age_c <- nd$age - settings$age_center
-  p_values <- coefficients <- standard_errors <- did <- rep(NA_real_, 4)
-  problems <- rep(TRUE, 4)
-  messages <- rep("", 4)
-  if (inherits(fit_gaussian, "try-error")) messages[1] <- as.character(fit_gaussian)
-  if (!inherits(fit_gaussian, "try-error")) {
-    problems[1] <- FALSE
-    sm <- summary(fit_gaussian)$coefficients
-    if ("age_c:groupGroup 1" %in% rownames(sm)) {
-      p_values[1] <- sm["age_c:groupGroup 1", 4]
-      coefficients[1] <- sm["age_c:groupGroup 1", 1]
-      standard_errors[1] <- sm["age_c:groupGroup 1", 2]
-    }
-    pred <- stats::predict(fit_gaussian, newdata = nd, type = "response")
-    did[1] <- (pred[4] - pred[2]) - (pred[3] - pred[1])
-  }
-  if (inherits(fit_logit, "try-error")) messages[2] <- as.character(fit_logit)
-  if (!inherits(fit_logit, "try-error")) {
-    problems[2] <- !isTRUE(fit_logit$converged)
-    sm <- summary(fit_logit)$coefficients
-    if ("age_c:groupGroup 1" %in% rownames(sm)) {
-      p_values[2] <- sm["age_c:groupGroup 1", 4]
-      coefficients[2] <- sm["age_c:groupGroup 1", 1]
-      standard_errors[2] <- sm["age_c:groupGroup 1", 2]
-    }
-    pred <- stats::predict(fit_logit, newdata = nd, type = "response")
-    did[2] <- (pred[4] - pred[2]) - (pred[3] - pred[1])
-  }
-  if (inherits(fit_probit, "try-error")) messages[3] <- as.character(fit_probit)
-  if (!inherits(fit_probit, "try-error")) {
-    problems[3] <- !isTRUE(fit_probit$converged)
-    sm <- summary(fit_probit)$coefficients
-    if ("age_c:groupGroup 1" %in% rownames(sm)) {
-      p_values[3] <- sm["age_c:groupGroup 1", 4]
-      coefficients[3] <- sm["age_c:groupGroup 1", 1]
-      standard_errors[3] <- sm["age_c:groupGroup 1", 2]
-    }
-    pred <- stats::predict(fit_probit, newdata = nd, type = "response")
-    did[3] <- (pred[4] - pred[2]) - (pred[3] - pred[1])
-  }
-  p_values[4] <- chance_p["age_c:groupGroup 1"]
-  coefficients[4] <- chance_coef["age_c:groupGroup 1"]
-  pred <- chance + (1 - chance) * stats::plogis(drop(stats::model.matrix(~ age_c * group, nd) %*% chance_coef))
-  did[4] <- (pred[4] - pred[2]) - (pred[3] - pred[1])
-
-  standard_errors[4] <- chance_se["age_c:groupGroup 1"]
-  problems[4] <- !chance_usable
-  messages[4] <- if (chance_usable) "" else "chance-corrected optimizer/Hessian check failed"
-  data.frame(scenario_id = scenario$scenario_id, family = "forced_choice",
-    replication = replication, replication_seed = replication_seed,
-    model_label = c("Gaussian identity", "Standard binomial logit", "Standard binomial probit", "Chance-corrected binomial logit"), fitted_link = c("identity", "logit", "probit", "chance-corrected logit"),
-    interaction_p = p_values, interaction_coef = coefficients, interaction_se = standard_errors,
-    response_scale_did = did, outcome_scale_did = did * settings$k_trials,
-    deterministic_pseudo_interaction = deterministic$pseudo,
-    deterministic_response_scale_did = deterministic$response_did,
-    fit_success = is.finite(p_values) & !problems, convergence_problem = problems,
-    problem_message = messages, stringsAsFactors = FALSE)
+  extracted <- rbind(
+    extract_mixed_fit(fit_gaussian, nd, gaussian = TRUE),
+    extract_mixed_fit(fit_logit, nd),
+    extract_mixed_fit(fit_probit, nd),
+    extract_mixed_fit(fit_chance, nd)
+  )
+  extracted$outcome_scale_did <- extracted$response_scale_did * settings$k_trials
+  extracted$scenario_id <- scenario$scenario_id
+  extracted$family <- "forced_choice"
+  extracted$replication <- replication
+  extracted$replication_seed <- replication_seed
+  extracted$model_label <- c(
+    "Gaussian identity", "Standard binomial logit", "Standard binomial probit",
+    "Chance-corrected binomial logit"
+  )
+  extracted$fitted_link <- c("identity", "logit", "probit", "chance-corrected logit")
+  extracted$deterministic_pseudo_interaction <- deterministic$pseudo
+  extracted$deterministic_response_scale_did <- deterministic$response_did
+  extracted$fit_success <- is.finite(extracted$interaction_p) & !extracted$fit_problem
+  extracted$convergence_problem <- extracted$fit_problem
+  extracted[, c(
+    "scenario_id", "family", "replication", "replication_seed", "model_label",
+    "fitted_link", "interaction_p", "interaction_coef", "interaction_se",
+    "response_scale_did", "outcome_scale_did", "deterministic_pseudo_interaction",
+    "deterministic_response_scale_did", "fit_success", "convergence_problem",
+    "fit_problem", "problem_message", "singular", "warning_message"
+  )]
 }
 
 cluster <- NULL
-if (n_cores > 1 && .Platform$OS.type != "unix") cluster <- parallel::makeCluster(n_cores)
+if (n_cores > 1 && .Platform$OS.type != "unix") {
+  cluster <- parallel::makeCluster(n_cores)
+  parallel::clusterExport(cluster, c("capture_fit", "extract_mixed_fit"))
+}
 for (i in seq_len(nrow(scenarios))) {
   scenario <- scenarios[i, ]
   output_file <- file.path("simulation-atlas/raw",
@@ -198,17 +210,21 @@ for (i in seq_len(nrow(scenarios))) {
     next
   }
   cat("Scenario:", scenario$scenario_id, "B =", B, "cores =", n_cores, "\n")
+  # Deterministic geometry is conditional at random intercept = 0.
   nd <- expand.grid(age = c(scenario$age_min, scenario$age_max), group_num = c(0, 1))
   eta <- scenario$beta_intercept + scenario$beta_age * (nd$age - scenario$age_center) +
-    scenario$beta_group * nd$group_num + scenario$beta_age_group * (nd$age - scenario$age_center) * nd$group_num
+    scenario$beta_group * nd$group_num +
+    scenario$beta_age_group * (nd$age - scenario$age_center) * nd$group_num
   probability <- scenario$chance + (1 - scenario$chance) * stats::plogis(eta)
   p <- pmin(pmax(probability, 1e-10), 1 - 1e-10)
   q <- pmin(pmax((probability - scenario$chance) / (1 - scenario$chance), 1e-10), 1 - 1e-10)
   fitted_values <- cbind(probability, stats::qlogis(p), stats::qnorm(p), stats::qlogis(q))
   pseudo <- fitted_values[4, ] - fitted_values[2, ] - fitted_values[3, ] + fitted_values[1, ]
   pseudo[is.finite(pseudo) & abs(pseudo) < 1e-12] <- 0
-  deterministic <- list(pseudo = unname(pseudo),
-    response_did = probability[4] - probability[2] - probability[3] + probability[1])
+  deterministic <- list(
+    pseudo = unname(pseudo),
+    response_did = probability[4] - probability[2] - probability[3] + probability[1]
+  )
   if (n_cores > 1 && .Platform$OS.type == "unix") {
     result <- parallel::mclapply(seq_len(B), run_one_replication,
       scenario = scenario, deterministic = deterministic,

@@ -32,12 +32,22 @@ core_split <- split(core_raw, interaction(core_raw$scenario_id, core_raw$model_l
 core_metrics <- do.call(rbind, lapply(core_split, function(data) {
 
       attempted <- nrow(data)
-      successful <- data$fit_success %in% TRUE & is.finite(data$interaction_p)
+      problem <- if ("fit_problem" %in% names(data)) {
+        data$fit_problem %in% TRUE
+      } else {
+        data$convergence_problem %in% TRUE
+      }
+      successful <- !problem & is.finite(data$interaction_p)
+      flagged_finite <- problem & is.finite(data$interaction_p)
       n_successful <- sum(successful)
+      n_flagged_finite <- sum(flagged_finite)
       false_positive_count <- sum(data$interaction_p[successful] < ATLAS_ALPHA)
+      apparent_flagged_count <- sum(data$interaction_p[flagged_finite] < ATLAS_ALPHA)
       rate <- if (n_successful) false_positive_count / n_successful else NA_real_
+      flagged_rate <- if (n_flagged_finite) apparent_flagged_count / n_flagged_finite else NA_real_
       ci <- wilson_ci(false_positive_count, n_successful)
-      problem_messages <- unique(data$problem_message[nzchar(data$problem_message)])
+      flagged_ci <- wilson_ci(apparent_flagged_count, n_flagged_finite)
+      problem_messages <- unique(data$problem_message[problem & nzchar(data$problem_message)])
       data.frame(
         scenario_id = data$scenario_id[1],
         model_label = data$model_label[1],
@@ -45,6 +55,15 @@ core_metrics <- do.call(rbind, lapply(core_split, function(data) {
         fit_structure = if ("fit_structure" %in% names(data)) data$fit_structure[1] else NA_character_,
         B_requested = data$B_requested[1],
         n_attempted = attempted,
+        n_fit_ok = sum(!problem),
+        n_fit_problem = sum(problem),
+        fit_problem_rate = mean(problem),
+        n_p_finite_ok = n_successful,
+        n_rejections_ok = false_positive_count,
+        rejection_rate_ok = rate,
+        rejection_mc_se_ok = if (n_successful) sqrt(rate * (1 - rate) / n_successful) else NA_real_,
+        rejection_ci_low_ok = unname(ci["low"]),
+        rejection_ci_high_ok = unname(ci["high"]),
         n_successful_fits = n_successful,
         n_failed_fits = attempted - n_successful,
         fit_success_rate = n_successful / attempted,
@@ -53,14 +72,23 @@ core_metrics <- do.call(rbind, lapply(core_split, function(data) {
         false_positive_mc_se = if (n_successful) sqrt(rate * (1 - rate) / n_successful) else NA_real_,
         false_positive_ci_low = unname(ci["low"]),
         false_positive_ci_high = unname(ci["high"]),
+        n_p_finite_problem = n_flagged_finite,
+        n_rejections_problem = apparent_flagged_count,
+        rejection_rate_problem = flagged_rate,
+        rejection_ci_low_problem = unname(flagged_ci["low"]),
+        rejection_ci_high_problem = unname(flagged_ci["high"]),
+        apparent_rejection_count_problem = apparent_flagged_count,
+        apparent_rejection_rate_problem = flagged_rate,
+        apparent_rejection_ci_low_problem = unname(flagged_ci["low"]),
+        apparent_rejection_ci_high_problem = unname(flagged_ci["high"]),
         median_interaction_coefficient = stats::median((data$interaction_coef)[is.finite(data$interaction_coef)], na.rm = TRUE),
         median_interaction_se = stats::median((data$interaction_se)[is.finite(data$interaction_se)], na.rm = TRUE),
         median_response_scale_did = stats::median((data$response_scale_did)[is.finite(data$response_scale_did)], na.rm = TRUE),
         median_outcome_scale_did = stats::median((data$outcome_scale_did)[is.finite(data$outcome_scale_did)], na.rm = TRUE),
         deterministic_pseudo_interaction = stats::median((data$deterministic_pseudo_interaction)[is.finite(data$deterministic_pseudo_interaction)], na.rm = TRUE),
         deterministic_response_scale_did = stats::median((data$deterministic_response_scale_did)[is.finite(data$deterministic_response_scale_did)], na.rm = TRUE),
-        n_convergence_problems = sum(data$convergence_problem %in% TRUE, na.rm = TRUE),
-        convergence_problem_rate = mean(data$convergence_problem %in% TRUE, na.rm = TRUE),
+        n_convergence_problems = sum(problem),
+        convergence_problem_rate = mean(problem),
         fit_problem_messages = paste(problem_messages, collapse = " | "),
         stringsAsFactors = FALSE
       )

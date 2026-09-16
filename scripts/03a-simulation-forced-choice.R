@@ -10,6 +10,8 @@ Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = 
 rm(list = ls())
 
 library(ggplot2)
+library(lme4)
+library(psyphy)
 
 # ---------------------------------------------------------------------
 # 0. Project setup
@@ -44,6 +46,7 @@ settings <- list(
   beta_age = 0.60,
   beta_group = -0.90,
   beta_age_group = 0.00,
+  target_icc = 0.30,
   generating_link = "logit", # Describes the explicit DGP below.
   B = B,
   n_cores = as.integer(Sys.getenv(
@@ -53,10 +56,12 @@ settings <- list(
   alpha = default_alpha,
   output_scenario_table = "tables/scenario-table-forced-choice.csv",
   output_summary_table = "tables/simulation-summary-forced-choice.csv",
-  output_common_convergence_table = "tables/simulation-summary-forced-choice-common-convergence.csv",
   output_figure_base = "figs/forced-choice-simulation",
   output_inspection_base = "outputs/inspection/forced-choice-effect-size-inspection",
   output_rds = "outputs/simulation-forced-choice.rds"
+)
+settings$sigma_u <- sqrt(
+  settings$target_icc * (pi^2 / 3) / (1 - settings$target_icc)
 )
 
 # Derived local values. These belong to this script because they describe
@@ -103,18 +108,18 @@ print(scenarios)
 # ---------------------------------------------------------------------
 # 2. Data-generating functions
 # ---------------------------------------------------------------------
-eta_fun <- function(age, group_num, beta_intercept) {
+eta_fun <- function(age, group_num, beta_intercept, u = 0) {
   age_c <- age - settings$age_center
   beta_intercept +
     settings$beta_age * age_c +
     settings$beta_group * group_num +
-    settings$beta_age_group * age_c * group_num
+    settings$beta_age_group * age_c * group_num + u
 }
 
-p_fun <- function(age, group_num, beta_intercept) {
+p_fun <- function(age, group_num, beta_intercept, u = 0) {
   age_c <- age - settings$age_center
   eta <- beta_intercept + settings$beta_age * age_c +
-    settings$beta_group * group_num + settings$beta_age_group * age_c * group_num
+    settings$beta_group * group_num + settings$beta_age_group * age_c * group_num + u
   settings$chance + (1 - settings$chance) * stats::plogis(eta)
 }
 
@@ -133,6 +138,7 @@ scenario_values <- do.call(
       g$group <- ifelse(g$group_num == 0, "Group 0", "Group 1")
       g$linear_predictor <- eta_fun(g$age, g$group_num, s$beta_intercept)
       g$expected_accuracy <- p_fun(g$age, g$group_num, s$beta_intercept)
+      g$curve_condition <- "random intercept = 0"
       g$expected_correct_out_of_k_trials <- g$expected_accuracy *
       settings$k_trials
 
@@ -142,7 +148,8 @@ scenario_values <- do.call(
           "group",
           "linear_predictor",
           "expected_accuracy",
-          "expected_correct_out_of_k_trials"
+          "expected_correct_out_of_k_trials",
+          "curve_condition"
       )]
   })
 )
@@ -211,6 +218,7 @@ scenario_table <- rbind(
     linear_predictor = NA_real_,
     expected_accuracy = NA_real_,
     expected_correct_out_of_k_trials = NA_real_,
+    curve_condition = NA_character_,
     contrast = scenario_contrasts$contrast,
     value_probability_points = scenario_contrasts$value_probability_points,
     value_correct_out_of_k_trials = scenario_contrasts$value_correct_out_of_k_trials,
@@ -284,24 +292,26 @@ example_data <- do.call(
       group_num <- stats::rbinom(settings$N, 1, 0.5)
       age <- stats::runif(settings$N, settings$age_range[1], settings$age_range[2])
       age_c <- age - settings$age_center
+      id <- factor(rep(seq_len(settings$N), each = settings$k_trials))
+      u <- stats::rnorm(settings$N, mean = 0, sd = settings$sigma_u)
       eta <- beta_intercept + settings$beta_age * age_c +
-        settings$beta_group * group_num + settings$beta_age_group * age_c * group_num
-      p <- settings$chance + (1 - settings$chance) * stats::plogis(eta)
-      y <- stats::rbinom(settings$N, size = settings$k_trials, prob = p)
-
+        settings$beta_group * group_num + settings$beta_age_group * age_c * group_num + u
       d <- data.frame(
-        age = age,
-        age_c = age_c,
-        group_num = group_num,
-        group = factor(
-          group_num,
+        id = id,
+        age = rep(age, each = settings$k_trials),
+        age_c = rep(age_c, each = settings$k_trials),
+        group_num = rep(group_num, each = settings$k_trials),
+        u = rep(u, each = settings$k_trials),
+        stringsAsFactors = FALSE
+      )
+      d$eta <- rep(eta, each = settings$k_trials)
+      d$p <- settings$chance + (1 - settings$chance) * stats::plogis(d$eta)
+      d$correct <- stats::rbinom(nrow(d), size = 1, prob = d$p)
+
+      d$group <- factor(
+          d$group_num,
           levels = c(0, 1),
           labels = c("Group 0", "Group 1")
-        ),
-        y = y,
-        k = settings$k_trials,
-        accuracy = y / settings$k_trials,
-        stringsAsFactors = FALSE
       )
       d$scenario <- scenarios$scenario[i]
       d
@@ -318,7 +328,7 @@ example_data$age_bin <- cut(
   include.lowest = TRUE
 )
 example_binned <- stats::aggregate(
-  accuracy ~ scenario + age_bin + group,
+  correct ~ scenario + age_bin + group,
   example_data,
   mean
 )
@@ -331,158 +341,182 @@ example_binned$age_mid <- {
 
 cat("\n", "One example dataset per scenario", "\n")
 cat("Observed mean accuracy by scenario and group:\n")
-print(stats::aggregate(accuracy ~ scenario + group, example_data, mean))
+print(stats::aggregate(correct ~ scenario + group, example_data, mean))
 
 # ---------------------------------------------------------------------
-# 6. One replication: DGP, explicit fits, likelihood, interaction tests
+# 6. One replication: trial-level DGP and four mixed-model fits
 # ---------------------------------------------------------------------
+capture_fit <- function(expr) {
+  warning_text <- character()
+  error_text <- ""
+  fit <- tryCatch(
+    withCallingHandlers(
+      expr,
+      warning = function(w) {
+        warning_text <<- c(warning_text, conditionMessage(w))
+        invokeRestart("muffleWarning")
+      }
+    ),
+    error = function(e) {
+      error_text <<- conditionMessage(e)
+      NULL
+    }
+  )
+  list(fit = fit, warnings = unique(warning_text), error = error_text)
+}
+
+extract_mixed_fit <- function(captured, newdata, gaussian = FALSE) {
+  targeted_pattern <- paste(
+    "failed to converge", "identif", "Hessian",
+    "positive definite", "degenerate", sep = "|"
+  )
+  if (is.null(captured$fit)) {
+    return(data.frame(
+      interaction_coef = NA_real_, interaction_se = NA_real_, p_value = NA_real_,
+      fit_problem = TRUE, problem_message = captured$error, singular = NA,
+      warning_message = paste(captured$warnings, collapse = " | "),
+      change_in_group_difference_response_scale = NA_real_,
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  fit <- captured$fit
+  lme4_messages <- fit@optinfo$conv$lme4$messages
+  if (is.null(lme4_messages)) lme4_messages <- character()
+  singular <- lme4::isSingular(fit, tol = 1e-4)
+
+  extraction_warnings <- character()
+  extraction_error <- ""
+  coefficient_table <- tryCatch(
+    withCallingHandlers(
+      stats::coef(summary(fit)),
+      warning = function(w) {
+        extraction_warnings <<- c(extraction_warnings, conditionMessage(w))
+        invokeRestart("muffleWarning")
+      }
+    ),
+    error = function(e) {
+      extraction_error <<- conditionMessage(e)
+      NULL
+    }
+  )
+  term <- "age_c:groupGroup 1"
+  estimate <- if (!is.null(coefficient_table) && term %in% rownames(coefficient_table)) coefficient_table[term, 1] else NA_real_
+  standard_error <- if (!is.null(coefficient_table) && term %in% rownames(coefficient_table)) coefficient_table[term, 2] else NA_real_
+  p_value <- if (is.finite(estimate) && is.finite(standard_error) && standard_error > 0) {
+    2 * stats::pnorm(abs(estimate / standard_error), lower.tail = FALSE)
+  } else {
+    NA_real_
+  }
+
+  predictions <- try(
+    if (gaussian) {
+      stats::predict(fit, newdata = newdata, re.form = NA)
+    } else {
+      stats::predict(fit, newdata = newdata, type = "response", re.form = NA)
+    },
+    silent = TRUE
+  )
+  did <- if (inherits(predictions, "try-error") || any(!is.finite(predictions))) {
+    NA_real_
+  } else {
+    (predictions[4] - predictions[2]) - (predictions[3] - predictions[1])
+  }
+
+  targeted_warnings <- c(captured$warnings, extraction_warnings)
+  targeted_warnings <- targeted_warnings[
+    grepl(targeted_pattern, targeted_warnings, ignore.case = TRUE)
+  ]
+  invalid_inference <- !is.finite(estimate) || !is.finite(standard_error) ||
+    standard_error <= 0 || !is.finite(p_value)
+  fit_problem <- length(lme4_messages) > 0 || isTRUE(singular) ||
+    length(targeted_warnings) > 0 || nzchar(extraction_error) || invalid_inference
+  problem_parts <- c(
+    lme4_messages,
+    if (isTRUE(singular)) "singular fit" else character(),
+    targeted_warnings,
+    extraction_error,
+    if (invalid_inference) "non-finite or non-positive interaction inference" else character()
+  )
+  problem_parts <- problem_parts[!is.na(problem_parts) & nzchar(problem_parts)]
+
+  data.frame(
+    interaction_coef = unname(estimate),
+    interaction_se = unname(standard_error),
+    p_value = unname(p_value),
+    fit_problem = fit_problem,
+    problem_message = paste(unique(problem_parts), collapse = " | "),
+    singular = singular,
+    warning_message = paste(
+      unique(c(captured$warnings, extraction_warnings)), collapse = " | "
+    ),
+    change_in_group_difference_response_scale = unname(did),
+    stringsAsFactors = FALSE
+  )
+}
+
 run_replication <- function(replication, scenario_label, beta_intercept) {
   group_num <- stats::rbinom(settings$N, 1, 0.5)
   age <- stats::runif(settings$N, settings$age_range[1], settings$age_range[2])
   age_c <- age - settings$age_center
+  u <- stats::rnorm(settings$N, mean = 0, sd = settings$sigma_u)
+  # The true product term is zero on the conditional chance-corrected-logit
+  # scale, with the subject random intercept held fixed.
   eta <- beta_intercept + settings$beta_age * age_c +
-    settings$beta_group * group_num + settings$beta_age_group * age_c * group_num
-  p <- settings$chance + (1 - settings$chance) * stats::plogis(eta)
-  y <- stats::rbinom(settings$N, size = settings$k_trials, prob = p)
+    settings$beta_group * group_num + settings$beta_age_group * age_c * group_num + u
 
   d <- data.frame(
-    age = age,
-    age_c = age_c,
-    group_num = group_num,
+    id = factor(rep(seq_len(settings$N), each = settings$k_trials)),
+    age = rep(age, each = settings$k_trials),
+    age_c = rep(age_c, each = settings$k_trials),
+    group_num = rep(group_num, each = settings$k_trials),
     group = factor(
-      group_num,
+      rep(group_num, each = settings$k_trials),
       levels = c(0, 1),
       labels = c("Group 0", "Group 1")
     ),
-    y = y,
-    k = settings$k_trials,
-    accuracy = y / settings$k_trials,
     stringsAsFactors = FALSE
   )
+  d$eta <- rep(eta, each = settings$k_trials)
+  d$p <- settings$chance + (1 - settings$chance) * stats::plogis(d$eta)
+  d$correct <- stats::rbinom(nrow(d), size = 1, prob = d$p)
 
-  fit_gaussian <- try(stats::lm(accuracy ~ age_c * group, data = d), silent = TRUE)
-  fit_logit <- try(stats::glm(cbind(y, k - y) ~ age_c * group,
-      family = stats::binomial("logit"), data = d), silent = TRUE)
-  fit_probit <- try(stats::glm(cbind(y, k - y) ~ age_c * group,
-      family = stats::binomial("probit"), data = d), silent = TRUE)
-
-  # Chance-corrected binomial logit: likelihood, three starts, and Wald test.
-  X <- stats::model.matrix(~ age_c * group, data = d)
-  y <- d$y
-  k <- d$k
-  chance <- settings$chance
-  nll <- function(beta) {
-    eta <- drop(X %*% beta)
-    p <- chance + (1 - chance) * stats::plogis(eta)
-    p <- pmin(pmax(p, 1e-10), 1 - 1e-10)
-    -sum(stats::dbinom(y, size = k, prob = p, log = TRUE))
-  }
-  gradient <- function(beta) {
-    eta <- drop(X %*% beta)
-    q <- stats::plogis(eta)
-    p <- chance + (1 - chance) * q
-    p <- pmin(pmax(p, 1e-10), 1 - 1e-10)
-    weight <- ((y - k * p) / (p * (1 - p))) * (1 - chance) * q * (1 - q)
-    -drop(crossprod(X, weight))
-  }
-  zero <- stats::setNames(rep(0, ncol(X)), colnames(X))
-  from_standard <- zero
-  start_fit <- try(stats::glm.fit(X, cbind(y, k - y),
-      family = stats::binomial("logit")), silent = TRUE)
-  if (!inherits(start_fit, "try-error") && all(is.finite(stats::coef(start_fit)))) {
-    from_standard[] <- stats::coef(start_fit)
-  }
-  above <- (y / k - chance) / (1 - chance)
-  above <- pmin(pmax(above, 0.02), 0.98)
-  from_above <- zero
-  above_fit <- try(stats::lm.fit(X, stats::qlogis(above)), silent = TRUE)
-  if (!inherits(above_fit, "try-error") && all(is.finite(stats::coef(above_fit)))) {
-    from_above[] <- stats::coef(above_fit)
-  }
-  candidates <- list()
-  for (start in list(zero, from_standard, from_above)) {
-    candidate <- try(stats::optim(start, nll, gr = gradient, method = "BFGS",
-        control = list(maxit = 1500, reltol = 1e-10)),
-      silent = TRUE)
-    if (!inherits(candidate, "try-error") && is.finite(candidate$value) &&
-        all(is.finite(candidate$par))) {
-      candidates[[length(candidates) + 1L]] <- candidate
-    }
-  }
-  chance_coef <- chance_se <- chance_p <- rep(NA_real_, ncol(X))
-  chance_vcov <- matrix(NA_real_, ncol(X), ncol(X))
-  chance_usable <- FALSE
-  chance_nll <- NA_real_
-  if (length(candidates)) {
-    best <- candidates[[which.min(vapply(candidates, `[[`, numeric(1), "value"))]]
-    chance_coef <- best$par
-    chance_nll <- best$value
-    hessian <- try(stats::optimHess(best$par, nll, gr = gradient), silent = TRUE)
-    well_conditioned <- FALSE
-    if (!inherits(hessian, "try-error") && all(is.finite(hessian))) {
-      hess_sym <- (hessian + t(hessian)) / 2
-      eig <- try(eigen(hess_sym, symmetric = TRUE, only.values = TRUE)$values,
-        silent = TRUE)
-      if (!inherits(eig, "try-error")) {
-        well_conditioned <- all(is.finite(eig)) && min(eig) > 1e-7 &&
-          min(eig) / max(eig) > sqrt(.Machine$double.eps)
-      }
-      if (well_conditioned) {
-        V <- try(solve(hess_sym), silent = TRUE)
-        if (!inherits(V, "try-error") && all(is.finite(V))) chance_vcov <- V
-      }
-    }
-    variances <- diag(chance_vcov)
-    variances[!is.finite(variances) | variances <= 0] <- NA_real_
-    chance_se <- sqrt(variances)
-    z <- chance_coef / chance_se
-    chance_p <- 2 * stats::pnorm(abs(z), lower.tail = FALSE)
-    chance_usable <- isTRUE(best$convergence == 0) && well_conditioned &&
-      all(is.finite(chance_vcov)) && all(is.finite(chance_se)) && all(is.finite(chance_p))
-    if (!chance_usable) chance_p[] <- NA_real_
-  }
-  names(chance_coef) <- names(chance_se) <- names(chance_p) <- colnames(X)
+  fit_gaussian <- capture_fit(lme4::lmer(
+    correct ~ age_c * group + (1 | id), data = d
+  ))
+  fit_logit <- capture_fit(lme4::glmer(
+    correct ~ age_c * group + (1 | id),
+    family = stats::binomial("logit"), data = d
+  ))
+  fit_probit <- capture_fit(lme4::glmer(
+    correct ~ age_c * group + (1 | id),
+    family = stats::binomial("probit"), data = d
+  ))
+  fit_chance <- capture_fit(lme4::glmer(
+    correct ~ age_c * group + (1 | id),
+    family = stats::binomial(psyphy::mafc.logit(2)), data = d
+  ))
 
   nd <- expand.grid(age = settings$age_range,
     group = factor(c("Group 0", "Group 1"), levels = c("Group 0", "Group 1")))
   nd$age_c <- nd$age - settings$age_center
-  p_values <- coefficients <- did <- rep(NA_real_, 4)
-  if (!inherits(fit_gaussian, "try-error")) {
-    sm <- summary(fit_gaussian)$coefficients
-    if ("age_c:groupGroup 1" %in% rownames(sm)) {
-      p_values[1] <- sm["age_c:groupGroup 1", 4]
-      coefficients[1] <- sm["age_c:groupGroup 1", 1]
-    }
-    pred <- stats::predict(fit_gaussian, newdata = nd, type = "response")
-    did[1] <- (pred[4] - pred[2]) - (pred[3] - pred[1])
-  }
-  if (!inherits(fit_logit, "try-error")) {
-    sm <- summary(fit_logit)$coefficients
-    if ("age_c:groupGroup 1" %in% rownames(sm)) {
-      p_values[2] <- sm["age_c:groupGroup 1", 4]
-      coefficients[2] <- sm["age_c:groupGroup 1", 1]
-    }
-    pred <- stats::predict(fit_logit, newdata = nd, type = "response")
-    did[2] <- (pred[4] - pred[2]) - (pred[3] - pred[1])
-  }
-  if (!inherits(fit_probit, "try-error")) {
-    sm <- summary(fit_probit)$coefficients
-    if ("age_c:groupGroup 1" %in% rownames(sm)) {
-      p_values[3] <- sm["age_c:groupGroup 1", 4]
-      coefficients[3] <- sm["age_c:groupGroup 1", 1]
-    }
-    pred <- stats::predict(fit_probit, newdata = nd, type = "response")
-    did[3] <- (pred[4] - pred[2]) - (pred[3] - pred[1])
-  }
-  p_values[4] <- chance_p["age_c:groupGroup 1"]
-  coefficients[4] <- chance_coef["age_c:groupGroup 1"]
-  pred <- chance + (1 - chance) * stats::plogis(drop(stats::model.matrix(~ age_c * group, nd) %*% chance_coef))
-  did[4] <- (pred[4] - pred[2]) - (pred[3] - pred[1])
-  data.frame(scenario = scenario_label, replication = replication, model = model_names,
-    p_value = p_values, interaction_coef = coefficients,
-    change_in_group_difference_response_scale = did,
-    change_in_group_difference_outcome_units = did * settings$k_trials,
-    stringsAsFactors = FALSE)
+  extracted <- rbind(
+    extract_mixed_fit(fit_gaussian, nd, gaussian = TRUE),
+    extract_mixed_fit(fit_logit, nd),
+    extract_mixed_fit(fit_probit, nd),
+    extract_mixed_fit(fit_chance, nd)
+  )
+  extracted$scenario <- scenario_label
+  extracted$replication <- replication
+  extracted$model <- model_names
+  extracted$change_in_group_difference_outcome_units <-
+    extracted$change_in_group_difference_response_scale * settings$k_trials
+  extracted[, c(
+    "scenario", "replication", "model", "interaction_coef", "interaction_se",
+    "p_value", "fit_problem", "problem_message", "singular", "warning_message",
+    "change_in_group_difference_response_scale",
+    "change_in_group_difference_outcome_units"
+  )]
 }
 
 # ---------------------------------------------------------------------
@@ -507,7 +541,10 @@ cluster <- NULL
 if (settings$n_cores > 1 && .Platform$OS.type != "unix") {
   cluster <- parallel::makeCluster(settings$n_cores)
   parallel::clusterSetRNGStream(cluster, iseed = 20260525)
-  parallel::clusterExport(cluster, c("settings", "model_names"))
+  parallel::clusterExport(
+    cluster,
+    c("settings", "model_names", "capture_fit", "extract_mixed_fit")
+  )
 }
 scenario_results <- list()
 for (i in seq_len(nrow(scenarios))) {
@@ -526,59 +563,63 @@ for (i in seq_len(nrow(scenarios))) {
 if (!is.null(cluster)) parallel::stopCluster(cluster)
 simulation_results <- do.call(rbind, scenario_results)
 
-simulation_summary <- do.call(
-  rbind,
-  lapply(
-    split(
-      simulation_results,
-      list(simulation_results$scenario, simulation_results$model),
-      drop = TRUE
-    ),
-    function(dat) {
-      ok <- is.finite(dat$p_value)
-      n <- sum(ok)
-      sig <- sum(dat$p_value[ok] < settings$alpha)
-      z <- stats::qnorm(0.975)
-      rate <- if (n == 0) NA_real_ else sig / n
-      denom <- 1 + z^2 / n
-      center <- (rate + z^2 / (2 * n)) / denom
-      half <- z * sqrt((rate * (1 - rate) + z^2 / (4 * n)) / n) / denom
-      ci <- if (n == 0) c(NA_real_, NA_real_) else c(center - half, center + half)
+wilson_interval <- function(rejections, n) {
+  if (n == 0) return(c(NA_real_, NA_real_))
+  z <- stats::qnorm(0.975)
+  rate <- rejections / n
+  denominator <- 1 + z^2 / n
+  center <- (rate + z^2 / (2 * n)) / denominator
+  half <- z * sqrt((rate * (1 - rate) + z^2 / (4 * n)) / n) / denominator
+  c(center - half, center + half)
+}
 
-      sm <- data.frame(
-        n_successful_fits = n,
-        n_rejections = sig,
-        rejection_rate = rate,
-        ci_low = ci[1],
-        ci_high = ci[2],
-        median_interaction_coef = if (all(!is.finite(dat$interaction_coef))) NA_real_ else stats::median(dat$interaction_coef, na.rm = TRUE),
-        mean_interaction_coef = if (any(is.finite(dat$interaction_coef))) mean((dat$interaction_coef)[is.finite(dat$interaction_coef)]) else NA_real_,
-        sd_interaction_coef = stats::sd((dat$interaction_coef)[is.finite(dat$interaction_coef)]),
-        q25_interaction_coef = unname(stats::quantile((dat$interaction_coef)[is.finite(dat$interaction_coef)], 0.25, na.rm = TRUE)),
-        q75_interaction_coef = unname(stats::quantile((dat$interaction_coef)[is.finite(dat$interaction_coef)], 0.75, na.rm = TRUE)),
-        q025_interaction_coef = unname(stats::quantile((dat$interaction_coef)[is.finite(dat$interaction_coef)], 0.025, na.rm = TRUE)),
-        q975_interaction_coef = unname(stats::quantile((dat$interaction_coef)[is.finite(dat$interaction_coef)], 0.975, na.rm = TRUE)),
-        median_abs_coef_significant = if (all(!is.finite(abs(dat$interaction_coef[is.finite(dat$p_value) & dat$p_value < settings$alpha])))) NA_real_ else stats::median(
-          abs(dat$interaction_coef[is.finite(dat$p_value) & dat$p_value < settings$alpha])
-          , na.rm = TRUE),
-        median_abs_coef_nonsignificant = if (all(!is.finite(abs(dat$interaction_coef[is.finite(dat$p_value) & dat$p_value >= settings$alpha])))) NA_real_ else stats::median(
-          abs(dat$interaction_coef[is.finite(dat$p_value) & dat$p_value >= settings$alpha])
-          , na.rm = TRUE),
-        median_change_in_group_difference_response_scale = if (all(!is.finite(dat$change_in_group_difference_response_scale))) NA_real_ else stats::median(dat$change_in_group_difference_response_scale, na.rm = TRUE),
-        median_change_in_group_difference_outcome_units = if (all(!is.finite(dat$change_in_group_difference_outcome_units))) NA_real_ else stats::median(dat$change_in_group_difference_outcome_units, na.rm = TRUE),
-        mean_change_in_group_difference_outcome_units = if (any(is.finite(dat$change_in_group_difference_outcome_units))) mean((dat$change_in_group_difference_outcome_units)[is.finite(dat$change_in_group_difference_outcome_units)]) else NA_real_,
-        sd_change_in_group_difference_outcome_units = stats::sd((dat$change_in_group_difference_outcome_units)[is.finite(dat$change_in_group_difference_outcome_units)]),
-        stringsAsFactors = FALSE
-      )
-      data.frame(
-        scenario = dat$scenario[1],
-        model = dat$model[1],
-        sm,
-        stringsAsFactors = FALSE
-      )
-    }
-  )
-)
+simulation_summary <- do.call(rbind, lapply(
+  split(
+    simulation_results,
+    list(simulation_results$scenario, simulation_results$model),
+    drop = TRUE
+  ),
+  function(dat) {
+    finite_ok <- is.finite(dat$p_value) & !dat$fit_problem
+    finite_problem <- is.finite(dat$p_value) & dat$fit_problem
+    n_ok <- sum(finite_ok)
+    n_problem <- sum(finite_problem)
+    reject_ok <- sum(dat$p_value[finite_ok] < settings$alpha)
+    reject_problem <- sum(dat$p_value[finite_problem] < settings$alpha)
+    ci_ok <- wilson_interval(reject_ok, n_ok)
+    ci_problem <- wilson_interval(reject_problem, n_problem)
+    finite_coef <- dat$interaction_coef[is.finite(dat$interaction_coef)]
+    finite_did <- dat$change_in_group_difference_outcome_units[
+      is.finite(dat$change_in_group_difference_outcome_units)
+    ]
+
+    data.frame(
+      scenario = dat$scenario[1],
+      model = dat$model[1],
+      n_total = nrow(dat),
+      n_fit_ok = sum(!dat$fit_problem),
+      n_fit_problem = sum(dat$fit_problem),
+      fit_problem_rate = mean(dat$fit_problem),
+      n_p_finite_ok = n_ok,
+      n_rejections_ok = reject_ok,
+      rejection_rate_ok = if (n_ok > 0) reject_ok / n_ok else NA_real_,
+      ci_low_ok = ci_ok[1],
+      ci_high_ok = ci_ok[2],
+      n_p_finite_problem = n_problem,
+      n_rejections_problem = reject_problem,
+      rejection_rate_problem = if (n_problem > 0) reject_problem / n_problem else NA_real_,
+      ci_low_problem = ci_problem[1],
+      ci_high_problem = ci_problem[2],
+      median_interaction_coef = if (length(finite_coef)) stats::median(finite_coef) else NA_real_,
+      mean_interaction_coef = if (length(finite_coef)) mean(finite_coef) else NA_real_,
+      sd_interaction_coef = if (length(finite_coef) > 1) stats::sd(finite_coef) else NA_real_,
+      median_change_in_group_difference_outcome_units = if (length(finite_did)) stats::median(finite_did) else NA_real_,
+      mean_change_in_group_difference_outcome_units = if (length(finite_did)) mean(finite_did) else NA_real_,
+      sd_change_in_group_difference_outcome_units = if (length(finite_did) > 1) stats::sd(finite_did) else NA_real_,
+      stringsAsFactors = FALSE
+    )
+  }
+))
 simulation_summary$scenario <- factor(
   simulation_summary$scenario,
   levels = scenarios$scenario
@@ -605,9 +646,10 @@ utils::write.csv(
 cat("\n", "Simulation summary", "\n")
 print(simulation_summary)
 cat(
-  "\nThe generating age-by-group product term is zero on the chance-corrected logit scale.\n"
+  "\nThe generating age-by-group product term is zero on the conditional chance-corrected logit scale.\n"
 )
-cat("The matching chance-corrected model supplies nominal rejection rates.\n")
+cat("rejection_rate_ok is primary and uses finite p-values from fits passing the minimal lme4 checks.\n")
+cat("Finite p-values from flagged fits are retained in rejection_rate_problem.\n")
 cat(
   "Models fitted on alternative scales supply pseudo-interaction detection rates.\n"
 )
@@ -628,113 +670,6 @@ cat(
   " trials.\n",
   sep = ""
 )
-
-# ---------------------------------------------------------------------
-# 7b. Common-convergence subset
-# ---------------------------------------------------------------------
-common_convergence_results <- do.call(
-  rbind,
-  lapply(
-    split(simulation_results, simulation_results$scenario, drop = TRUE),
-    function(dat) {
-      usable <- stats::aggregate(
-        list(all_models_converged = is.finite(dat$p_value)),
-        by = list(replication = dat$replication),
-        FUN = all
-      )
-      keep <- usable$replication[usable$all_models_converged]
-      dat[dat$replication %in% keep, , drop = FALSE]
-    }
-  )
-)
-
-common_convergence_summary <- do.call(
-  rbind,
-  lapply(
-    split(
-      common_convergence_results,
-      list(
-        common_convergence_results$scenario,
-        common_convergence_results$model
-      ),
-      drop = TRUE
-    ),
-    function(dat) {
-      ok <- is.finite(dat$p_value)
-      n <- sum(ok)
-      sig <- sum(dat$p_value[ok] < settings$alpha)
-      z <- stats::qnorm(0.975)
-      rate <- if (n == 0) NA_real_ else sig / n
-      denom <- 1 + z^2 / n
-      center <- (rate + z^2 / (2 * n)) / denom
-      half <- z * sqrt((rate * (1 - rate) + z^2 / (4 * n)) / n) / denom
-      ci <- if (n == 0) c(NA_real_, NA_real_) else c(center - half, center + half)
-
-      sm <- data.frame(
-        n_successful_fits = n,
-        n_rejections = sig,
-        rejection_rate = rate,
-        ci_low = ci[1],
-        ci_high = ci[2],
-        median_interaction_coef = if (all(!is.finite(dat$interaction_coef))) NA_real_ else stats::median(dat$interaction_coef, na.rm = TRUE),
-        mean_interaction_coef = if (any(is.finite(dat$interaction_coef))) mean((dat$interaction_coef)[is.finite(dat$interaction_coef)]) else NA_real_,
-        sd_interaction_coef = stats::sd((dat$interaction_coef)[is.finite(dat$interaction_coef)]),
-        q25_interaction_coef = unname(stats::quantile((dat$interaction_coef)[is.finite(dat$interaction_coef)], 0.25, na.rm = TRUE)),
-        q75_interaction_coef = unname(stats::quantile((dat$interaction_coef)[is.finite(dat$interaction_coef)], 0.75, na.rm = TRUE)),
-        q025_interaction_coef = unname(stats::quantile((dat$interaction_coef)[is.finite(dat$interaction_coef)], 0.025, na.rm = TRUE)),
-        q975_interaction_coef = unname(stats::quantile((dat$interaction_coef)[is.finite(dat$interaction_coef)], 0.975, na.rm = TRUE)),
-        median_abs_coef_significant = if (all(!is.finite(abs(dat$interaction_coef[is.finite(dat$p_value) & dat$p_value < settings$alpha])))) NA_real_ else stats::median(
-          abs(dat$interaction_coef[is.finite(dat$p_value) & dat$p_value < settings$alpha])
-          , na.rm = TRUE),
-        median_abs_coef_nonsignificant = if (all(!is.finite(abs(dat$interaction_coef[is.finite(dat$p_value) & dat$p_value >= settings$alpha])))) NA_real_ else stats::median(
-          abs(dat$interaction_coef[is.finite(dat$p_value) & dat$p_value >= settings$alpha])
-          , na.rm = TRUE),
-        median_change_in_group_difference_response_scale = if (all(!is.finite(dat$change_in_group_difference_response_scale))) NA_real_ else stats::median(dat$change_in_group_difference_response_scale, na.rm = TRUE),
-        median_change_in_group_difference_outcome_units = if (all(!is.finite(dat$change_in_group_difference_outcome_units))) NA_real_ else stats::median(dat$change_in_group_difference_outcome_units, na.rm = TRUE),
-        mean_change_in_group_difference_outcome_units = if (any(is.finite(dat$change_in_group_difference_outcome_units))) mean((dat$change_in_group_difference_outcome_units)[is.finite(dat$change_in_group_difference_outcome_units)]) else NA_real_,
-        sd_change_in_group_difference_outcome_units = stats::sd((dat$change_in_group_difference_outcome_units)[is.finite(dat$change_in_group_difference_outcome_units)]),
-        stringsAsFactors = FALSE
-      )
-      data.frame(
-        scenario = dat$scenario[1],
-        model = dat$model[1],
-        n_common_convergence_replications = length(unique(dat$replication)),
-        sm,
-        stringsAsFactors = FALSE
-      )
-    }
-  )
-)
-common_convergence_summary$scenario <- factor(
-  common_convergence_summary$scenario,
-  levels = scenarios$scenario
-)
-common_convergence_summary$model <- factor(
-  common_convergence_summary$model,
-  levels = model_names
-)
-common_convergence_summary$rate_type <- ifelse(
-  as.character(common_convergence_summary$model) ==
-  "Chance-corrected binomial logit",
-  "Nominal rejection rate",
-  "Pseudo-interaction detection rate"
-)
-common_convergence_summary <- common_convergence_summary[
-  order(common_convergence_summary$scenario, common_convergence_summary$model),
-]
-
-utils::write.csv(
-  common_convergence_summary,
-  settings$output_common_convergence_table,
-  row.names = FALSE
-)
-
-cat("\n", "Simulation summary, common-convergence subset", "\n")
-print(common_convergence_summary)
-cat(
-  "\nEvery model is restricted to the replications in which all four models converged,\n"
-)
-cat("so the four rates within a scenario are computed on identical datasets.\n")
 
 # ---------------------------------------------------------------------
 # 8. Figure panels
@@ -828,7 +763,7 @@ pA <- ggplot2::ggplot(
   ), name = NULL) +
   ggplot2::labs(
   title = "A. Scenario curves generated above a chance floor",
-  subtitle = "Horizontal lines mark equal steps on the chance-corrected logit scale",
+  subtitle = "Curves are conditional at random intercept = 0; horizontal lines mark equal link-scale steps",
   x = "Age",
   y = "Expected accuracy",
   color = NULL,
@@ -865,7 +800,7 @@ pA <- ggplot2::ggplot(
 
 pB <- ggplot2::ggplot(
   simulation_summary,
-  ggplot2::aes(x = model, y = rejection_rate, shape = model)
+  ggplot2::aes(x = model, y = rejection_rate_ok, shape = model)
 ) +
   ggplot2::geom_hline(
   yintercept = settings$alpha,
@@ -873,7 +808,7 @@ pB <- ggplot2::ggplot(
   color = "grey35"
 ) +
   ggplot2::geom_pointrange(
-  ggplot2::aes(ymin = ci_low, ymax = ci_high),
+  ggplot2::aes(ymin = ci_low_ok, ymax = ci_high_ok),
   linewidth = 0.45
 ) +
   ggplot2::coord_flip() +
@@ -893,7 +828,7 @@ pB <- ggplot2::ggplot(
 ) +
   ggplot2::labs(
   title = "B. Product-term rejection rate",
-  subtitle = "Matched generating-scale model: nominal rejection; alternative scales: pseudo-interaction detection. Dashed line: nominal alpha",
+  subtitle = "Primary rates use fits passing minimal lme4 checks; dashed line: nominal alpha",
   x = NULL,
   y = "Replications rejecting the age-by-group product term",
   shape = NULL
@@ -1013,8 +948,7 @@ saveRDS(
     example_dataset = example_data,
     example_binned = example_binned,
     simulation_results = simulation_results,
-    simulation_summary = simulation_summary,
-    common_convergence_summary = common_convergence_summary
+    simulation_summary = simulation_summary
   ),
   file = settings$output_rds
 )
@@ -1022,7 +956,6 @@ saveRDS(
 cat("\n", "Saved files", "\n")
 cat("- ", settings$output_scenario_table, "\n", sep = "")
 cat("- ", settings$output_summary_table, "\n", sep = "")
-cat("- ", settings$output_common_convergence_table, "\n", sep = "")
 cat("- ", settings$output_figure_base, ".pdf/png\n", sep = "")
 cat("- ", settings$output_inspection_base, ".pdf/png\n", sep = "")
 cat("- ", settings$output_rds, "\n", sep = "")

@@ -727,14 +727,19 @@ forced_choice_sim <- select_required_columns(
   c(
     "scenario",
     "model",
-    "n_successful_fits",
-    "n_rejections",
-    "rejection_rate",
+    "n_total",
+    "n_fit_ok",
+    "n_fit_problem",
+    "fit_problem_rate",
+    "n_p_finite_ok",
+    "n_rejections_ok",
+    "rejection_rate_ok",
     "rate_type",
-    "ci_low",
-    "ci_high",
-    "sd_interaction_coef",
-    "median_change_in_group_difference_outcome_units"
+    "ci_low_ok",
+    "ci_high_ok",
+    "n_p_finite_problem",
+    "n_rejections_problem",
+    "rejection_rate_problem"
   )
 )
 forced_choice_sim <- rename_columns(
@@ -742,14 +747,19 @@ forced_choice_sim <- rename_columns(
   c(
     scenario = "Scenario",
     model = "Model",
-    n_successful_fits = "Successful fits",
-    n_rejections = "Rejections",
-    rejection_rate = "Rejection rate",
+    n_total = "Fits attempted",
+    n_fit_ok = "Fits passing checks",
+    n_fit_problem = "Flagged fits",
+    fit_problem_rate = "Fit-problem rate",
+    n_p_finite_ok = "Finite p-values, acceptable fits",
+    n_rejections_ok = "Rejections, acceptable fits",
+    rejection_rate_ok = "Primary rejection rate",
     rate_type = "Rate type",
-    ci_low = "CI low",
-    ci_high = "CI high",
-    sd_interaction_coef = "Monte Carlo SD interaction coefficient",
-    median_change_in_group_difference_outcome_units = "Median change in group gap, correct-response units"
+    ci_low_ok = "Primary CI low",
+    ci_high_ok = "Primary CI high",
+    n_p_finite_problem = "Finite p-values, flagged fits",
+    n_rejections_problem = "Apparent rejections, flagged fits",
+    rejection_rate_problem = "Apparent rejection rate, flagged fits"
   )
 )
 
@@ -960,41 +970,16 @@ sim_N <- 250
 sim_k <- 20
 settings_age_low <- 6
 settings_age_high <- 10
-n_rep <- max(forced_choice_sim$`Successful fits`)
-
-fc_lookup <- function(scn, mdl, col) {
-  require_single(
-    forced_choice_sim[
-      forced_choice_sim$Scenario == scn & forced_choice_sim$Model == mdl,
-      col, drop = TRUE
-    ],
-    paste0("forced_choice_sim[", scn, " / ", mdl, " / ", col, "]")
-  )
-}
-fc_rejection_rate <- function(scn, mdl) round(100 * fc_lookup(scn, mdl, "Rejection rate"))
-fc_interaction_sd <- function(
-    scn,
-    mdl = "Chance-corrected binomial logit"
-) {
-  fmt_num(
-    fc_lookup(scn, mdl, "Monte Carlo SD interaction coefficient"),
-    3
-  )
-}
-matched_nominal_rate <- forced_choice_sim$`Rejection rate`[
-  forced_choice_sim$Model == "Chance-corrected binomial logit"
-]
-matched_nominal_min <- round(100 * min(matched_nominal_rate))
-matched_nominal_max <- round(100 * max(matched_nominal_rate))
+n_rep <- max(forced_choice_sim$`Fits attempted`)
 ```
 
-In each of `r n_rep` replications we generated accuracy for $N = `r sim_N`$ participants with $k = `r sim_k`$ trials each, from a chance-corrected logit model with a .50 floor, a positive age effect, a group difference, and no age-by-group product term on the generating scale. Three scenarios differ only in overall performance, set by shifting the intercept. In the *lower-performance* scenario the two groups lie close to the .50 floor (expected accuracies roughly .53 to .80 across ages 6 to 10), in the *middle-performance* scenario they occupy the middle of the above-chance range (roughly .55 to .88), and in the *higher-performance* scenario they approach the ceiling (roughly .61 to .94). Each simulated dataset was analyzed with four models, a Gaussian linear model on the observed proportions, standard binomial-logit and binomial-probit GLMs on the correct-response counts, and the chance-corrected binomial-logit GLM that matches the generating scale. We recorded how often each product-term test rejected at $\alpha = .05$. @fig-forced-choice-simulation shows the simulation results; the per-scenario rates, fit-success counts, and coefficient variability are reported in Supplement A.
+In each of `r n_rep` replications we generated 20 trial-level Bernoulli responses for each of $N = `r sim_N`$ participants. Age and group were constant across a participant's trials. The data-generating model included a subject random intercept with standard deviation $\sqrt{.30(\pi^2/3)/(1-.30)} \approx 1.187$, corresponding to latent-scale ICC $.30$ under the usual logistic convention. The probability of a correct response followed a chance-corrected logit with a .50 floor, a positive age effect, a group difference, and no age-by-group product term on the conditional chance-corrected-logit scale. Three scenarios differ only in overall performance, set by shifting the fixed intercept. The deterministic curves in Panel A are evaluated at random intercept 0.
 
-![Simulation 1: forced-choice accuracy with a chance floor. Data are generated with no age-by-group product term on the chance-corrected logit scale. Panel A shows the resulting accuracy curves across three performance levels; the grey region lies below the .50 chance floor. Panel B shows product-term rejection rates by fitted model and scenario. The matched chance-corrected model remains near nominal alpha, whereas the alternative scales produce pseudo-interactions. The dashed line marks alpha = .05.](../figs/forced-choice-simulation.pdf){#fig-forced-choice-simulation fig-pos="H"}
+Each simulated dataset was analyzed with four mixed models sharing the same subject random intercept: a Gaussian identity LMM applied to the binary trial outcome, standard binomial-logit and binomial-probit GLMMs, and the matched chance-corrected binomial-logit GLMM. The matched model was fitted with `lme4::glmer` and `psyphy::mafc.logit(2)`. Each model received one ordinary fit attempt. The primary rate uses finite Wald-normal product-term tests from fits without an lme4 convergence message, singularity, targeted convergence or Hessian warning during inference extraction, or non-finite inferential quantity. Finite $p$-values from flagged fits are retained and summarized separately in Supplement A.
 
-The chance-corrected model rejects between `r matched_nominal_min`% and `r matched_nominal_max`% of the time across the three scenarios. Pseudo-interaction detection is highest where performance lies near the floor, and in the lower-performance scenario the standard logit rejects `r fc_rejection_rate("Lower performance", "Standard binomial logit")`% of the time, the standard probit `r fc_rejection_rate("Lower performance", "Standard binomial probit")`%, and the Gaussian identity `r fc_rejection_rate("Lower performance", "Gaussian identity")`%. Detection falls as performance moves away from the floor, reaching `r fc_rejection_rate("Higher performance", "Standard binomial logit")`% for the logit, `r fc_rejection_rate("Higher performance", "Standard binomial probit")`% for the probit, and `r fc_rejection_rate("Higher performance", "Gaussian identity")`% for the Gaussian identity in the higher-performance scenario. The same qualitative sensitivity to the chance floor also appears at chance levels 0.25 and 0.33 (Supplement B).
+![Simulation 1: forced-choice accuracy with a chance floor and a subject random intercept. The product term is zero on the conditional chance-corrected-logit scale. Panel A shows fixed-effect curves at random intercept 0 across three performance levels; the grey region lies below the .50 chance floor. Panel B shows the primary product-term rejection rates among fits passing the minimal fit-quality checks. The dashed line marks alpha = .05.](../figs/forced-choice-simulation.pdf){#fig-forced-choice-simulation fig-pos="H"}
 
-All four models returned a usable product-term test in every replication, including the lower-performance scenario. However, under the matched chance-corrected model, the Monte Carlo standard deviation of the estimated age-by-group coefficient was `r fc_interaction_sd("Lower performance")` in the lower-performance scenario, compared with `r fc_interaction_sd("Middle performance")` in the middle-performance scenario and `r fc_interaction_sd("Higher performance")` in the higher-performance scenario. This greater sampling variability is consistent with less information about link-scale changes when expected accuracy lies closer to the chance floor.
+For the matched chance-corrected model, the primary rate is the nominal rejection rate among numerically acceptable fits. For the three alternative links it is the pseudo-interaction detection rate among acceptable fits. Rates among flagged fits are descriptive apparent rejection rates, not valid inferential error rates. Numerical results in this section and Supplement A require regeneration with the revised mixed-model simulation.
 
 ## Within-Family Link Choice
 
@@ -1101,7 +1086,7 @@ The three checks share two limits. A significant Pregibon term or a departure fr
 
 ## Diagnostic Simulation
 
-The five scenarios are based on examples introduced earlier in the paper, with sample sizes and coefficients reported in Supplement A. Each keeps the outcome family and the interaction formula fixed and changes only the link, so the fitted model is wrong about the scale on which effects add and about nothing else. *Count errors* follows the Poisson-log example of @fig-simple-count-example and fits it with an identity link. *Chance-floor accuracy* takes the lower-performance scenario of Simulation 1, generated on the chance-corrected logit scale and fitted with a standard binomial logit. *Binary repeated trials* follows the probit-generated, logit-fitted case of Simulation 2 with `r dg_N_binary` participants instead of `r wf_N`. *Binary continuous predictor* repeats that case with a continuous predictor in place of the two-level condition, so that residual structure can be examined along a predictor. *Gamma mean response time* generates response times from a Gamma model with a log link and fits the inverse link.
+The five scenarios are based on examples introduced earlier in the paper, with sample sizes and coefficients reported in Supplement A. Each keeps the outcome family and the interaction formula fixed and changes only the link, so the fitted model is wrong about the scale on which effects add and about nothing else. *Count errors* follows the Poisson-log example of @fig-simple-count-example and fits it with an identity link. *Chance-floor accuracy* takes the lower-performance scenario of Simulation 1, including its trial-level responses and subject random intercept, and compares standard-logit and chance-corrected-logit GLMMs with the same random-effects structure. *Binary repeated trials* follows the probit-generated, logit-fitted case of Simulation 2 with `r dg_N_binary` participants instead of `r wf_N`. *Binary continuous predictor* repeats that case with a continuous predictor in place of the two-level condition, so that residual structure can be examined along a predictor. *Gamma mean response time* generates response times from a Gamma model with a log link and fits the inverse link.
 
 In each replication we applied the checks to the misspecified interaction model, since this is the model an analyst would inspect after obtaining a significant interaction. The residual checks covered uniformity, dispersion, quantile structure over fitted values, and structure over the focal predictor, the last assessed with a quantile check for a continuous predictor and with a comparison across design cells in the $2 \times 2$ case. AIC compared the misspecified model with the target model. The residual checks and the Pregibon test were also applied to the correctly specified model fitted to the same data, to establish how often each flags a model that is right. All rates are computed over the replications in which the misspecified model converged, which was all `r n_rep_diagnostic` replications except in the count scenario, where the Poisson-identity model converged in `r dg_n("Count errors")`.
 
@@ -1116,9 +1101,7 @@ knitr::kable(
 )
 ```
 
-@tbl-diagnostic-scenarios shows that the three checks differ widely in sensitivity. The residual checks detected the wrong link in up to `r dg_pct("Count errors", "DHARMa max")`% of replications in the count scenario and in at most `r dg_max_other("DHARMa max")`% in the other four. The Pregibon test detected it in `r dg_pct("Count errors", "Pregibon check")`% of count replications, in `r dg_pct("Gamma mean response time", "Pregibon check")`% of Gamma replications and `r dg_pct("Chance-floor accuracy", "Pregibon check")`% of chance-floor replications, and in `r dg_pct("Binary continuous predictor", "Pregibon check")`% of binary replications with a continuous predictor, and it cannot be computed in the saturated $2 \times 2$ design. AIC preferred the target link in every scenario, in `r dg_range("AIC favors target")` of replications.
-
-The count scenario is the only one in which a wrong link distorted the fitted values enough for every check to detect it. In the other four the residual checks almost never detected the misspecification, the Pregibon test did so in at most `r dg_max_other("Pregibon check")`% of replications, and AIC gave the most consistent indication. This pattern matters most in the chance-floor scenario, where pseudo-interactions occurred in `r dg_pct("Chance-floor accuracy", "Pseudo-interaction detection")`% of replications while AIC preferred the chance-corrected model in `r dg_pct("Chance-floor accuracy", "AIC favors target")`%, often by a narrow margin (Supplement A). In the two logit-probit scenarios pseudo-interactions were rare, at `r dg_pct("Binary repeated trials", "Pseudo-interaction detection")`% and `r dg_pct("Binary continuous predictor", "Pseudo-interaction detection")`%. Applied to the correctly specified model, no check flagged more than `r fmt_num(max(dharma_calibration_max, pregibon_calibration_single_level_max, pregibon_calibration_glmm_continuous), 1)`% of replications. Supplement A reports the full results, and Supplement B shows how they change with sample size and the intercept.
+The diagnostic tables must be regenerated after converting the chance-floor scenario to the revised subject-random-intercept design. Until then, the saved D2 rates from the earlier fixed-effect design are not results for the model described here. The other diagnostic scenarios are unchanged.
 
 # From Link Choice to Sensitivity Analysis
 
@@ -1173,7 +1156,7 @@ The simulations then showed what that can cost. With two main effects present, a
 
 This difficulty is of a different kind from the one documented in work on the precision of interaction estimates [@baranger2023; @castillo2026]. There the obstacle is noise, and more data helps. Here the product term induced by the wrong link is a fixed property of that scale, so a larger sample estimates it more precisely and reports it as significant more often.
 
-The diagnostic simulation showed that ordinary post-fit checks catch this unevenly. Residual checks, Pregibon-style tests, and AIC each detected the misspecification in some scenarios and not in others, and AIC can only rank the links it is given. The chance-floor scenario illustrates this most clearly, since a wrong link produced pseudo-interactions in most replications while the residual checks were almost never significant, the Pregibon test detected the problem in `r dg_pct("Chance-floor accuracy", "Pregibon check")`% of replications, and AIC preferred the correct link, often by a narrow margin. These diagnostics therefore answer a question about fit within a supplied candidate set, which is a different question from whether an interaction claim holds on the scale the researcher means [@dunnsmyth1996; @hartig2024; @pregibon1980].
+The diagnostic simulation asks whether ordinary post-fit checks catch link misspecification. Residual checks, Pregibon-style tests, and AIC answer different questions, and AIC can only rank the links it is given. Fresh diagnostic results are required for the revised chance-floor mixed-model scenario. More generally, these diagnostics answer a question about fit within a supplied candidate set, which is different from whether an interaction claim holds on the scale the researcher means [@dunnsmyth1996; @hartig2024; @pregibon1980].
 
 Three limitations bound the scope of these conclusions. The review was descriptive and covered five prominent journals across major areas of psychology in a single year, so its estimates describe reporting practice in such outlets and leave the field as a whole unmeasured, and a broader mapping across journals, years, and subfields would be needed to support reporting guidance. The review also coded observable reporting features and did not assess removability in each article. The simulations, finally, are demonstrations of a mechanism. They target a single regime, in which two established main effects push expected values into the region where link curvature is strongest, and they say nothing about how often that regime arises or about the further complications of real data.
 

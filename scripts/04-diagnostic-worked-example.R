@@ -17,6 +17,8 @@
 Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = "1")
 rm(list = ls())
 library(glmmTMB)
+library(lme4)
+library(psyphy)
 library(DHARMa)
 
 # ---------------------------------------------------------------------
@@ -97,8 +99,9 @@ diag_scenarios <- list(
     beta_age = 0.60,
     beta_group = -0.90,
     beta_age_group = 0.00,
+    target_icc = 0.30,
     focal_dharma = "continuous_age",
-    variability_summary = "Binomial sampling with 20 trials per participant."
+    variability_summary = "Trial-level Bernoulli sampling with 20 trials per participant and a subject random intercept."
   ),
   probit_dgp_logit_fit = list(
     scenario = "Binary repeated trials",
@@ -220,255 +223,6 @@ summarise_logical <- function(values) {
 # Scenario-aware DHARMa checks. The important change is that quantile
 # regression is not attempted for categorical predictors.
 
-# Audit fields for fits produced by fit_chance_binomial_logit(). They are NA
-# for glm and glmmTMB fits, which carry no gradient_max element.
-
-# ---------------------------------------------------------------------
-# 3. Model-fitting helpers
-# ---------------------------------------------------------------------
-
-# This local fitter is reused for the original and Pregibon-augmented likelihood.
-# Its five starts, two optimization methods, and polishing step are unchanged.
-# The methods below are the adapter required by the existing DHARMa calls.
-fit_chance_binomial_logit <- function(
-  data,
-  include_interaction = TRUE,
-  chance = 0.50,
-  add_eta_sq = FALSE
-) {
-  rhs_text <- if (include_interaction) "age_c * group" else "age_c + group"
-  if (add_eta_sq) rhs_text <- paste(rhs_text, "+ eta_hat_sq")
-  rhs <- stats::as.formula(paste("~", rhs_text))
-  X <- stats::model.matrix(rhs, data = data)
-  y <- data$y
-  k <- data$k
-
-  neg_loglik <- function(par) {
-    eta <- as.vector(X %*% par)
-    p <- chance_logit_inv_local(eta, chance = chance)
-    p <- pmin(pmax(p, 1e-10), 1 - 1e-10)
-    -sum(stats::dbinom(y, size = k, prob = p, log = TRUE))
-  }
-
-  # Analytic score. With s = logistic(eta) and p = chance + (1 - chance) * s,
-  # dp/deta = (1 - chance) * s * (1 - s), and the binomial contribution in p is
-  # (y - k * p) / (p * (1 - p)). Supplying the gradient keeps BFGS on the
-  # likelihood surface instead of relying on finite differences, which vanish
-  # once the fitted probabilities approach the chance floor.
-  neg_score <- function(par) {
-    eta <- as.vector(X %*% par)
-    s <- stats::plogis(eta)
-    p <- chance + (1 - chance) * s
-    p <- pmin(pmax(p, 1e-10), 1 - 1e-10)
-    w <- ((y - k * p) / (p * (1 - p))) * (1 - chance) * s * (1 - s)
-    -as.vector(crossprod(X, w))
-  }
-
-  start_form <- stats::as.formula(paste("cbind(y, k - y) ~", rhs_text))
-
-  start_glm <- {
-    glm_fit <- try(stats::glm(
-        start_form,
-        family = stats::binomial("logit"),
-        data = data
-      ), silent = TRUE)
-    if (!inherits(glm_fit, "try-error") && !isTRUE(glm_fit$converged)) glm_fit <- NULL
-    glm_fit
-  }
-
-  zero <- rep(0, ncol(X))
-  names(zero) <- colnames(X)
-
-  from_glm <- zero
-  if (!inherits(start_glm, "try-error") && !is.null(start_glm)) {
-    cf <- stats::coef(start_glm)
-    common <- intersect(names(cf), names(from_glm))
-    from_glm[common] <- cf[common]
-  }
-
-  # Standard-logit coefficients live on a different scale from the
-  # chance-corrected ones, so they are only one candidate start among several.
-  # This one reads the observed proportions on the above-chance scale the model
-  # actually works on.
-  above <- (y / k - chance) / (1 - chance)
-  above <- pmin(pmax(above, 0.02), 0.98)
-  from_above <- zero
-  lin <- try(stats::lm.fit(X, stats::qlogis(above)), silent = TRUE)
-  if (!inherits(lin, "try-error") && all(is.finite(stats::coef(lin)))) {
-    from_above <- stats::setNames(stats::coef(lin), colnames(X))
-  }
-
-  starts <- list(zero, from_glm, from_glm / 2, from_glm * 1.5, from_above)
-
-  best <- NULL
-  for (s in starts) {
-    for (m in c("BFGS", "Nelder-Mead")) {
-      opt <- try(
-        stats::optim(
-          par = s,
-          fn = neg_loglik,
-          gr = if (identical(m, "BFGS")) neg_score else NULL,
-          method = m,
-          control = list(maxit = 5000)
-        ),
-        silent = TRUE
-      )
-      if (inherits(opt, "try-error")) next
-      if (!is.finite(opt$value) || any(!is.finite(opt$par))) next
-      if (is.null(best) || opt$value < best$value) best <- opt
-    }
-  }
-
-  if (is.null(best)) {
-    return(list(converged = FALSE, aic = NA_real_, logLik = NA_real_))
-  }
-
-  polished <- try(
-    stats::optim(
-      par = best$par,
-      fn = neg_loglik,
-      gr = neg_score,
-      method = "BFGS",
-      control = list(maxit = 5000, reltol = 1e-14)
-    ),
-    silent = TRUE
-  )
-  if (!inherits(polished, "try-error") && is.finite(polished$value) &&
-      polished$value <= best$value) {
-    best <- polished
-  }
-
-  names(best$par) <- colnames(X)
-
-  # optim()'s convergence code only reports that a stopping rule was met, and on
-  # the flat region near the chance floor that rule is met far from the maximum.
-  # The retained solution is therefore checked against the score and the
-  # curvature, and the same Hessian supplies the variance-covariance matrix.
-  gradient_max <- max(abs(neg_score(best$par)))
-  H <- try(stats::optimHess(best$par, neg_loglik, neg_score), silent = TRUE)
-
-  na_vcov <- matrix(
-    NA_real_,
-    nrow = length(best$par),
-    ncol = length(best$par),
-    dimnames = list(names(best$par), names(best$par))
-  )
-
-  if (inherits(H, "try-error")) {
-    hessian_min_eigen <- NA_real_
-    vcov_fit <- na_vcov
-  } else {
-    hessian_min_eigen <- min(eigen(H, symmetric = TRUE, only.values = TRUE)$values)
-    vcov_fit <- try(solve(H), silent = TRUE)
-    if (inherits(vcov_fit, "try-error")) {
-      vcov_fit <- na_vcov
-    } else {
-      dimnames(vcov_fit) <- list(names(best$par), names(best$par))
-    }
-  }
-
-  converged <- all(is.finite(best$par)) && is.finite(best$value) &&
-    isTRUE(hessian_min_eigen > 1e-6)
-
-  loglik <- -best$value
-  eta <- as.vector(X %*% best$par)
-  fitted_probability <- chance_logit_inv_local(eta, chance = chance)
-  model_frame <- stats::model.frame(start_form, data = data)
-
-  structure(list(
-      converged = converged,
-      coefficients = best$par,
-      vcov = vcov_fit,
-      logLik = loglik,
-      aic = if (converged) -2 * loglik + 2 * length(best$par) else NA_real_,
-      gradient_max = gradient_max,
-      hessian_min_eigen = hessian_min_eigen,
-      include_interaction = include_interaction,
-      add_eta_sq = add_eta_sq,
-      chance = chance,
-      formula = start_form,
-      data = data,
-      model_frame = model_frame,
-      model_matrix = X,
-      linear_predictors = eta,
-      fitted_probability = fitted_probability,
-      observed = y,
-      trials = k
-    ), class = "chance_binomial_logit")
-}
-coef.chance_binomial_logit <- function(object, ...) {
-  object$coefficients
-}
-
-vcov.chance_binomial_logit <- function(object, ...) {
-  object$vcov
-}
-
-family.chance_binomial_logit <- function(object, ...) {
-  stats::binomial(link = "logit")
-}
-
-nobs.chance_binomial_logit <- function(object, ...) {
-  length(object$observed)
-}
-
-formula.chance_binomial_logit <- function(x, ...) {
-  x$formula
-}
-
-model.frame.chance_binomial_logit <- function(formula, ...) {
-  formula$model_frame
-}
-
-predict.chance_binomial_logit <- function(
-  object,
-  newdata = NULL,
-  type = c("link", "response"),
-  ...
-) {
-  type <- match.arg(type)
-  if (is.null(newdata)) {
-    eta <- object$linear_predictors
-  } else {
-    X <- stats::model.matrix(stats::delete.response(stats::terms(object$formula)), newdata)
-    eta <- as.vector(X %*% object$coefficients)
-  }
-  if (type == "link") return(as.numeric(eta))
-  chance_logit_inv_local(eta, chance = object$chance)
-}
-
-simulate.chance_binomial_logit <- function(
-  object,
-  nsim = 1,
-  seed = NULL,
-  ...
-) {
-  if (!is.null(seed)) set.seed(seed)
-  out <- replicate(
-    nsim,
-    stats::rbinom(
-      n = length(object$observed),
-      size = object$trials,
-      prob = object$fitted_probability
-    ),
-    simplify = FALSE
-  )
-  names(out) <- paste0("sim_", seq_len(nsim))
-  as.data.frame(out, optional = TRUE)
-}
-
-residuals.chance_binomial_logit <- function(
-  object,
-  type = c("response", "pearson"),
-  ...
-) {
-  type <- match.arg(type)
-  raw <- object$observed - object$trials * object$fitted_probability
-  if (type == "response") return(raw)
-  variance <- object$trials * object$fitted_probability * (1 - object$fitted_probability)
-  raw / sqrt(variance)
-}
-
 # ---------------------------------------------------------------------
 # 4. DGPs and initial model fits are written inside run_replication below
 # ---------------------------------------------------------------------
@@ -492,8 +246,9 @@ for (name in names(diag_scenarios)) {
     scenario_descriptions[name] <- paste0(
       "Simulation 1 lower-performance coefficients: eta = ", scn$beta_intercept,
       " + ", scn$beta_age, " * (age - ", scn$age_center, ") + ",
-      scn$beta_group, " * group; p = ", scn$chance,
-      " + (1 - ", scn$chance, ") * logistic(eta); no age-by-group product term."
+      scn$beta_group, " * group + subject random intercept; p = ", scn$chance,
+      " + (1 - ", scn$chance, ") * logistic(eta); latent ICC = ", scn$target_icc,
+      "; no age-by-group product term on the conditional chance-corrected-logit scale."
     )
   }
   if (name == "probit_dgp_logit_fit") {
@@ -543,7 +298,7 @@ scenario_table <- do.call(
         expected <- chance_logit_inv_local(eta, scn$chance)
         predictor_name <- "age"
         predictor_value <- g$age
-        outcome_label <- "expected_accuracy"
+        outcome_label <- "expected_accuracy_at_random_intercept_0"
       } else if (name == "probit_dgp_logit_fit") {
         g <- expand.grid(condition_num = c(0, 1), group_num = c(0, 1))
         eta <- scn$beta_intercept + scn$beta_group * g$group_num + scn$beta_condition * g$condition_num
@@ -658,27 +413,33 @@ run_replication <- function(rep_id, name, scn) {
     group_num <- stats::rbinom(scn$N, 1, 0.5)
     age <- stats::runif(scn$N, scn$age_range[1], scn$age_range[2])
     age_c <- age - scn$age_center
+    u <- stats::rnorm(
+      scn$N, mean = 0,
+      sd = sqrt(scn$target_icc * (pi^2 / 3) / (1 - scn$target_icc))
+    )
     eta <- scn$beta_intercept + scn$beta_age * age_c +
-      scn$beta_group * group_num + scn$beta_age_group * age_c * group_num
-    p <- chance_logit_inv_local(eta, chance = scn$chance)
-    y <- stats::rbinom(scn$N, size = scn$k_trials, prob = p)
+      scn$beta_group * group_num + scn$beta_age_group * age_c * group_num + u
     d <- data.frame(
-      age = age,
-      age_c = age_c,
-      group_num = group_num,
-      group = factor(group_num, levels = c(0, 1), labels = c("Group 0", "Group 1")),
-      eta_true = eta,
-      p_true = p,
-      y = y,
-      k = scn$k_trials,
-      accuracy = y / scn$k_trials,
+      id = factor(rep(seq_len(scn$N), each = scn$k_trials)),
+      age = rep(age, each = scn$k_trials),
+      age_c = rep(age_c, each = scn$k_trials),
+      group_num = rep(group_num, each = scn$k_trials),
+      group = factor(rep(group_num, each = scn$k_trials),
+        levels = c(0, 1), labels = c("Group 0", "Group 1")),
       stringsAsFactors = FALSE
     )
+    d$eta_true <- rep(eta, each = scn$k_trials)
+    d$p_true <- chance_logit_inv_local(d$eta_true, chance = scn$chance)
+    d$correct <- stats::rbinom(nrow(d), size = 1, prob = d$p_true)
 
-    fit_wrong_interaction <- try(stats::glm(cbind(y, k - y) ~ age_c * group, data = d, family = stats::binomial("logit")), silent = TRUE)
-    if (!inherits(fit_wrong_interaction, "try-error") && !isTRUE(fit_wrong_interaction$converged)) fit_wrong_interaction <- NULL
-
-    fit_true_interaction <- fit_chance_binomial_logit(d, chance = scn$chance)
+    fit_wrong_interaction <- try(lme4::glmer(
+      correct ~ age_c * group + (1 | id),
+      data = d, family = stats::binomial("logit")
+    ), silent = TRUE)
+    fit_true_interaction <- try(lme4::glmer(
+      correct ~ age_c * group + (1 | id),
+      data = d, family = stats::binomial(psyphy::mafc.logit(2))
+    ), silent = TRUE)
   } else if (name == "probit_dgp_logit_fit") {
     n_per_group <- scn$n_subjects / 2
     id <- rep(seq_len(scn$n_subjects), each = 2 * scn$k_trials)
@@ -919,7 +680,7 @@ run_replication <- function(rep_id, name, scn) {
     # effects; squaring those empirical Bayes estimates and feeding them back as
     # an ordinary covariate is badly anti-conservative under the correct link.
     eta_hat <- try(
-      if (inherits(fit, "glmmTMB")) {
+      if (inherits(fit, "glmmTMB") || inherits(fit, "merMod")) {
         stats::predict(fit, type = "link", re.form = NA)
       } else {
         stats::predict(fit, type = "link")
@@ -934,8 +695,11 @@ run_replication <- function(rep_id, name, scn) {
     # in the 2 x 2 interaction model, whose four cell indicators span any
     # function of the four fitted cell predictors. The added coefficient is then
     # not identifiable, so the check is not applicable.
-    if (inherits(fit, "glmmTMB")) {
-      fixed_formula <- try(stats::formula(fit, fixed.only = TRUE), silent = TRUE)
+    if (inherits(fit, "glmmTMB") || inherits(fit, "merMod")) {
+      fixed_formula <- try(
+        if (inherits(fit, "glmmTMB")) stats::formula(fit, fixed.only = TRUE) else lme4::nobars(stats::formula(fit)),
+        silent = TRUE
+      )
       if (inherits(fixed_formula, "try-error")) next
       augmented_fixed_formula <- stats::update.formula(
         fixed_formula,
@@ -952,26 +716,24 @@ run_replication <- function(rep_id, name, scn) {
       if (qr(X_augmented)$rank <= qr(X_base)$rank) next
     }
 
-    if (inherits(fit, "chance_binomial_logit")) {
-      fit2 <- fit_chance_binomial_logit(
-        data,
-        include_interaction = fit$include_interaction,
-        chance = fit$chance,
-        add_eta_sq = TRUE
-      )
+    augmented_formula <- stats::update.formula(
+      stats::formula(fit),
+      . ~ . + eta_hat_sq
+    )
+    fit_family <- stats::family(fit)
+    if (inherits(fit, "glmmTMB")) {
+      fit2 <- try(glmmTMB::glmmTMB(
+          augmented_formula,
+          data = data,
+          family = fit_family
+        ), silent = TRUE)
+    } else if (inherits(fit, "merMod")) {
+      fit2 <- try(lme4::glmer(
+          augmented_formula,
+          data = data,
+          family = fit_family
+        ), silent = TRUE)
     } else {
-      augmented_formula <- stats::update.formula(
-        stats::formula(fit),
-        . ~ . + eta_hat_sq
-      )
-      fit_family <- stats::family(fit)
-      if (inherits(fit, "glmmTMB")) {
-        fit2 <- try(glmmTMB::glmmTMB(
-            augmented_formula,
-            data = data,
-            family = fit_family
-          ), silent = TRUE)
-      } else {
         # glm() reads `start` by position, and model.matrix() orders the added
         # main effect eta_hat_sq before any interaction term. Appending the zero
         # to coef(fit) therefore handed the interaction estimate to eta_hat_sq and
@@ -995,21 +757,11 @@ run_replication <- function(rep_id, name, scn) {
           if (!inherits(glm_fit, "try-error") && !isTRUE(glm_fit$converged)) glm_fit <- NULL
           glm_fit
         }
-      }
     }
 
     if (inherits(fit2, "try-error") || is.null(fit2)) next
 
-    if (inherits(fit2, "chance_binomial_logit")) {
-      if (!isTRUE(fit2$converged) || !"eta_hat_sq" %in% names(fit2$coefficients)) {
-        next
-      }
-      variance <- fit2$vcov["eta_hat_sq", "eta_hat_sq"]
-      if (!is.finite(variance) || variance <= 0) next
-      z <- fit2$coefficients["eta_hat_sq"] / sqrt(variance)
-      pregibon_values[specification] <- unname(2 * stats::pnorm(-abs(z)))
-      next
-    } else if (inherits(fit2, "glmmTMB")) {
+    if (inherits(fit2, "glmmTMB")) {
       sm <- try(summary(fit2)$coefficients$cond, silent = TRUE)
     } else {
       sm <- try(stats::coef(summary(fit2)), silent = TRUE)
@@ -1025,13 +777,13 @@ run_replication <- function(rep_id, name, scn) {
   preg_correct <- unname(pregibon_values["correct"])
 
   aic_true <- {
-    if (inherits(fit_true_interaction, "try-error") || is.null(fit_true_interaction)) NA_real_ else if (!is.null(fit_true_interaction$aic)) unname(fit_true_interaction$aic) else {
+    if (inherits(fit_true_interaction, "try-error") || is.null(fit_true_interaction)) NA_real_ else {
       aic_value <- try(stats::AIC(fit_true_interaction), silent = TRUE)
       if (inherits(aic_value, "try-error") || !is.finite(aic_value)) NA_real_ else unname(aic_value)
     }
   }
   aic_fitted <- {
-    if (inherits(fit_wrong_interaction, "try-error") || is.null(fit_wrong_interaction)) NA_real_ else if (!is.null(fit_wrong_interaction$aic)) unname(fit_wrong_interaction$aic) else {
+    if (inherits(fit_wrong_interaction, "try-error") || is.null(fit_wrong_interaction)) NA_real_ else {
       aic_value <- try(stats::AIC(fit_wrong_interaction), silent = TRUE)
       if (inherits(aic_value, "try-error") || !is.finite(aic_value)) NA_real_ else unname(aic_value)
     }
@@ -1072,9 +824,14 @@ run_replication <- function(rep_id, name, scn) {
     aic_favors_true_link = if (is.finite(aic_true) && is.finite(aic_fitted)) aic_true <= aic_fitted else NA,
     aic_favors_fitted_link = if (is.finite(aic_true) && is.finite(aic_fitted)) aic_fitted < aic_true else NA,
     aic_fitted_minus_true = if (is.finite(aic_true) && is.finite(aic_fitted)) aic_fitted - aic_true else NA_real_,
-    target_fit_converged = if (!inherits(fit_true_interaction, "try-error") && !is.null(fit_true_interaction$gradient_max)) isTRUE(fit_true_interaction$converged) else NA,
-    target_fit_gradient_max = if (!inherits(fit_true_interaction, "try-error") && !is.null(fit_true_interaction[["gradient_max"]])) as.numeric(fit_true_interaction[["gradient_max"]]) else NA_real_,
-    target_fit_hessian_min_eigen = if (!inherits(fit_true_interaction, "try-error") && !is.null(fit_true_interaction[["hessian_min_eigen"]])) as.numeric(fit_true_interaction[["hessian_min_eigen"]]) else NA_real_,
+    target_fit_converged = if (inherits(fit_true_interaction, "merMod")) {
+      length(fit_true_interaction@optinfo$conv$lme4$messages) == 0 &&
+        !lme4::isSingular(fit_true_interaction, tol = 1e-4)
+    } else {
+      NA
+    },
+    target_fit_gradient_max = NA_real_,
+    target_fit_hessian_min_eigen = NA_real_,
     stringsAsFactors = FALSE
   )
 }
@@ -1091,12 +848,7 @@ if (settings$n_cores > 1L && .Platform$OS.type != "unix") {
   cluster <- parallel::makeCluster(settings$n_cores)
   parallel::clusterSetRNGStream(cluster, iseed = settings$seed)
   parallel::clusterExport(cluster, c(
-      "settings", "chance_logit_inv_local", "fit_chance_binomial_logit",
-      "coef.chance_binomial_logit", "vcov.chance_binomial_logit",
-      "family.chance_binomial_logit", "nobs.chance_binomial_logit",
-      "formula.chance_binomial_logit", "model.frame.chance_binomial_logit",
-      "predict.chance_binomial_logit", "simulate.chance_binomial_logit",
-      "residuals.chance_binomial_logit"))
+      "settings", "chance_logit_inv_local", "diag_scenarios", "run_replication"))
 }
 scenario_results <- list()
 for (name in names(diag_scenarios)) {
@@ -1357,7 +1109,6 @@ cat("- The continuous binary scenario matches the 2 x 2 binary scenario in coeff
 cat("- AIC compares the target interaction model with the misspecified interaction model, with the same formula.\n")
 cat("- AIC always favors one of the two candidate models when both AIC values are available.\n")
 cat("- aic_fitted_minus_true is positive when AIC favors the target link; the scenario summary reports its median, quartiles, and deciles.\n")
-cat("- target_fit_gradient_max and target_fit_hessian_min_eigen audit the custom chance-corrected fit and are NA for glm and glmmTMB fits.\n")
 cat("- false_positive_interaction, dharma_detection_min/max, and pregibon_detection are compatibility aliases of the new column names, kept for the manuscript.\n")
 
 chance <- diag_scenarios$chance_floor
@@ -1381,25 +1132,28 @@ plot_grid$expected_accuracy <- chance_logit_inv_local(plot_grid$eta, chance = ch
 group_num <- stats::rbinom(chance$N, 1, 0.5)
 age <- stats::runif(chance$N, chance$age_range[1], chance$age_range[2])
 age_c <- age - chance$age_center
+u <- stats::rnorm(
+  chance$N, mean = 0,
+  sd = sqrt(chance$target_icc * (pi^2 / 3) / (1 - chance$target_icc))
+)
 eta <- chance$beta_intercept + chance$beta_age * age_c +
-  chance$beta_group * group_num + chance$beta_age_group * age_c * group_num
-p <- chance_logit_inv_local(eta, chance = chance$chance)
-y <- stats::rbinom(chance$N, size = chance$k_trials, prob = p)
+  chance$beta_group * group_num + chance$beta_age_group * age_c * group_num + u
 example_data <- data.frame(
-  age = age,
-  age_c = age_c,
-  group_num = group_num,
-  group = factor(group_num, levels = c(0, 1), labels = c("Group 0", "Group 1")),
-  eta_true = eta,
-  p_true = p,
-  y = y,
-  k = chance$k_trials,
-  accuracy = y / chance$k_trials,
+  id = factor(rep(seq_len(chance$N), each = chance$k_trials)),
+  age = rep(age, each = chance$k_trials),
+  age_c = rep(age_c, each = chance$k_trials),
+  group = factor(rep(group_num, each = chance$k_trials),
+    levels = c(0, 1), labels = c("Group 0", "Group 1")),
   stringsAsFactors = FALSE
 )
+example_data$eta_true <- rep(eta, each = chance$k_trials)
+example_data$p_true <- chance_logit_inv_local(example_data$eta_true, chance = chance$chance)
+example_data$correct <- stats::rbinom(nrow(example_data), size = 1, prob = example_data$p_true)
 
-example_fit <- stats::glm(cbind(y, k - y) ~ age_c * group,
-  data = example_data, family = stats::binomial("logit"))
+example_fit <- lme4::glmer(
+  correct ~ age_c * group + (1 | id),
+  data = example_data, family = stats::binomial("logit")
+)
 example_sim <- DHARMa::simulateResiduals(
   fittedModel = example_fit,
   n = settings$dharma_n_sim,

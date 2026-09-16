@@ -429,20 +429,29 @@ print_table_if_exists(
 
 ## Simulation 1: forced-choice accuracy with a chance floor
 
-For each participant $i$, age is drawn on the range $6$ to $10$ and centered at $8$, group is a two-level factor, and the number of correct responses out of $k = 20$ trials is binomial with
+For each participant $i$, age is drawn on the range $6$ to $10$ and centered at $8$, group is a two-level factor, and 20 repeated binary trial responses are generated. Age and group are constant across trials. The data-generating model is
 
 $$
-p_i = .50 + .50\,\mathrm{logistic}(\eta_i), \qquad
-\eta_i = \beta_0 + 0.60\,\text{age}_c - 0.90\,\text{group} + 0\,(\text{age}_c \times \text{group}).
+u_i \sim N(0, \sigma_u^2), \qquad
+\eta_{ij} = \beta_0 + 0.60\,\text{age}_{c,i} - 0.90\,\text{group}_i
++ 0\,(\text{age}_{c,i} \times \text{group}_i) + u_i,
 $$
 
-The generating scale is the chance-corrected logit with a fixed floor of $.50$, and the age-by-group product term is exactly zero on that scale. Three scenarios move the same structure along the accuracy range through the intercept: lower performance ($\beta_0 = -0.80$), middle performance ($\beta_0 = 0.00$), and higher performance ($\beta_0 = 0.80$). Each replication samples $N = 250$ participants.
+$$
+p_{ij} = .50 + .50\,\mathrm{logistic}(\eta_{ij}), \qquad
+y_{ij} \sim \mathrm{Bernoulli}(p_{ij}).
+$$
 
-Four candidate models are fitted to each replication with the same `age_c * group` interaction formula: (1) a Gaussian identity model on the accuracy proportion; (2) a standard binomial logit on successes out of trials; (3) a standard binomial probit; and (4) a chance-corrected binomial logit fitted by direct maximum likelihood on the binomial likelihood with mean $p = c + (1-c)\,\mathrm{logistic}(\eta)$ and $c = .50$ fixed by design. To avoid false convergence on the flat region of the likelihood near the chance floor, the chance-corrected fit uses three starting values: a zero vector, coefficients from the corresponding standard binomial-logit fit, and coefficients obtained by regressing the empirical above-chance proportions on the model matrix after logit transformation. Each start is optimized with BFGS using an analytic gradient, and the solution with the highest likelihood is retained. The observed Hessian is then computed at that solution and supplies the variance-covariance matrix for the Wald tests. A test is retained only when the optimizer converges, the Hessian is positive definite and sufficiently well conditioned, and the covariance matrix and Wald $p$-values are finite. Replications failing any of these checks are recorded as unusable fits. With this procedure, all four models returned usable tests in all 3,000 replications of each performance scenario.
+The subject random-intercept standard deviation is
+$\sigma_u = \sqrt{.30(\pi^2/3)/(1-.30)} \approx 1.187$, corresponding to latent-scale ICC $.30$ under the usual logistic convention. The age-by-group product term is exactly zero on the conditional chance-corrected-logit scale. Three scenarios move the same fixed-effect structure along the accuracy range through the intercept: lower performance ($\beta_0 = -0.80$), middle performance ($\beta_0 = 0.00$), and higher performance ($\beta_0 = 0.80$). Each replication samples $N = 250$ participants. Deterministic scenario curves are evaluated at $u_i = 0$ and are not population-average probabilities.
+
+Four candidate models are fitted to the same trial-level data with the same `age_c * group + (1 | id)` structure: (1) a Gaussian identity LMM applied intentionally to the binary response; (2) a standard binomial-logit GLMM; (3) a standard binomial-probit GLMM; and (4) a chance-corrected binomial-logit GLMM fitted with `lme4::glmer` and `psyphy::mafc.logit(2)`. Each receives one ordinary fit attempt. The interaction test is the same asymptotic Wald-normal calculation for every model.
+
+A fit is flagged when it errors, has a non-empty `fit@optinfo$conv$lme4$messages`, is singular at tolerance $10^{-4}$, emits a targeted convergence, identifiability, Hessian, non-positive-definite, or degeneracy warning while inferential quantities are extracted, or has a non-finite interaction coefficient, standard error, or $p$-value, or a non-positive standard error. Finite $p$-values from flagged fits are retained. The primary rate is computed among fits passing these checks. The matched model's primary rate is a nominal rejection rate; the alternative models' primary rates are pseudo-interaction detection rates. The separately reported rate among flagged fits is an apparent rejection rate and not a valid inferential error rate.
 
 ```{r}
 #| label: tbl-rejection-forced-choice
-#| tbl-cap: "Product-term rejection rates by forced-choice performance scenario and fitted model. The matched chance-corrected model shows nominal rejection; alternative scales show pseudo-interaction detection. Reject = rejected product-term tests; CI = Wilson 95%. All scenarios used 3,000 replications."
+#| tbl-cap: "Product-term rejection rates by forced-choice performance scenario and fitted mixed model. Primary rates use fits passing the minimal fit-quality checks. Apparent rates among flagged fits are shown separately. CI = Wilson 95%."
 #| disable-apaquarto-processing: true
 #| results: asis
 
@@ -453,14 +462,24 @@ print_table_if_exists(
     Scenario = d$scenario,
     Model = d$model,
     `Rate type` = d$rate_type,
-    `Rejections (n)` = d$n_rejections,
-    `Rejection rate [95% CI]` = fmt_rate_ci(d$rejection_rate, d$ci_low, d$ci_high),
+    `Fits attempted` = d$n_total,
+    `Fits passing checks` = d$n_fit_ok,
+    `Flagged fits` = d$n_fit_problem,
+    `Fit-problem rate` = fmt_num(d$fit_problem_rate, 3),
+    `Primary finite p (n)` = d$n_p_finite_ok,
+    `Primary rejections (n)` = d$n_rejections_ok,
+    `Primary rate [95% CI]` = fmt_rate_ci(d$rejection_rate_ok, d$ci_low_ok, d$ci_high_ok),
+    `Flagged finite p (n)` = d$n_p_finite_problem,
+    `Apparent flagged rejections (n)` = d$n_rejections_problem,
+    `Apparent flagged rate [95% CI]` = fmt_rate_ci(
+      d$rejection_rate_problem, d$ci_low_problem, d$ci_high_problem
+    ),
     check.names = FALSE
   )
 )
 ```
 
-For the matched chance-corrected model, the Monte Carlo standard deviation of the estimated age-by-group coefficient was 0.180 in the lower-performance scenario, 0.115 in the middle-performance scenario, and 0.099 in the higher-performance scenario. Performance closer to the chance floor therefore provides less precise information about changes on the above-chance link scale.
+This table requires fresh output from the revised mixed-model simulation. No values from the earlier fixed-effect simulation should be interpreted as results for this design.
 
 ## Simulation 2: within-family link choice
 
@@ -550,12 +569,15 @@ $$
 \log \mu_i = 2.20 - 0.55\,(\text{age}_i - 6) + 0.45\,\text{group}_i .
 $$
 
-*D2, chance-floor accuracy (chance-corrected logit, fitted with standard logit).* The lower-performance scenario of Simulation 1: $N = 250$ participants, $k = 20$ trials per participant, and
+*D2, chance-floor accuracy (chance-corrected logit, fitted with standard logit).* The lower-performance scenario of Simulation 1: $N = 250$ participants, $k = 20$ trial-level Bernoulli responses per participant, and
 
 $$
-p_i = .50 + .50\,\mathrm{logistic}(\eta_i), \qquad
-\eta_i = -0.80 + 0.60\,\text{age}_{c,i} - 0.90\,\text{group}_i .
+p_{ij} = .50 + .50\,\mathrm{logistic}(\eta_{ij}), \qquad
+\eta_{ij} = -0.80 + 0.60\,\text{age}_{c,i} - 0.90\,\text{group}_i + u_i .
 $$
+
+Here $u_i$ is a subject random intercept with standard deviation
+$\sqrt{.30(\pi^2/3)/(1-.30)}$, corresponding to latent-scale ICC $.30$ under the usual logistic convention. Both the standard-logit and chance-corrected-logit diagnostic models retain the same `(1 | id)` structure.
 
 *D3, binary repeated trials (probit, fitted with logit).* A two-group, two-condition design with $N = 300$ participants, $15$ trials per participant-condition cell, a subject random intercept, and a latent ICC of $.30$:
 
@@ -591,7 +613,7 @@ print_table_if_exists(
     )
     outcome_label <- c(
       expected_count = "expected count",
-      expected_accuracy = "expected accuracy",
+      expected_accuracy_at_random_intercept_0 = "expected accuracy (u = 0)",
       expected_probability_at_random_intercept_0 = "expected probability (u = 0)",
       expected_mean = "expected mean (ms)"
     )
@@ -626,7 +648,7 @@ The diagnostic simulation ties each of the five link-misspecification scenarios 
 
 *The Pregibon-style added-term link check* [@pregibon1980] extracts the fitted linear predictor, adds its square to the model formula, and tests the significance of the added term while retaining the family, link, base formula, and random-effects structure of the model being diagnosed. For GLMMs, the constructed term uses the population-level linear predictor, with the estimated random effects set to zero; this avoids feeding outcome-derived empirical Bayes estimates back into the model as an ordinary covariate. The check is reported as not applicable when the squared predictor does not increase the rank of the fixed-effects design matrix. In particular, the $2 \times 2$ interaction model is saturated over its four design cells, so its squared fitted linear predictor is exactly collinear with the existing fixed effects.
 
-*The chance-corrected fits in D2* are the only ones estimated outside a standard model-fitting function, and they use an extended version of the same defensive direct-likelihood procedure used in Simulation 1, because here the target-link model is one of the two candidates in the AIC comparison and a failed fit would silently remove a replication from that comparison. The model is fitted by direct maximum likelihood with $c = .50$ fixed by design. Five starting values are tried: a vector of zeros, three derived from the corresponding standard-logit fit, and one from a linear fit on the empirical above-chance proportions, which is the scale the likelihood actually works on. Each start is optimized with both BFGS and Nelder--Mead, the solution with the highest likelihood is retained, and it is then polished with a tighter BFGS run. Because `optim()` reports only that a stopping rule was met, and that rule is easily met far from the maximum on the flat region near the chance floor, the retained solution is additionally checked against the score and the curvature of the log-likelihood; the same Hessian supplies the variance-covariance matrix used for the Wald test. Replications that fail these checks are recorded as failed fits.
+*The chance-corrected fits in D2* use `lme4::glmer` with `psyphy::mafc.logit(2)` and the same subject random intercept as the standard-logit GLMM. DHARMa operates directly on the fitted `merMod` object. The Pregibon-style extension, when estimable, refits the same GLMM after adding the squared fixed-effects linear predictor.
 
 *The same-formula AIC comparison* contrasts the target-link and the misspecified-link interaction models, holding the response data, the likelihood family, and the structural formula fixed, so only the mean-link mapping varies. No inconclusive $\Delta$AIC category is used, so the two AIC rows in @tbl-diagnostic-breakdown are complementary whenever both AIC values are available.
 
@@ -974,11 +996,11 @@ if (is.null(diag_long) || is.null(diag_rep)) {
 }
 ```
 
-All rates are based on 3,000 usable replications unless otherwise noted. “Missed” means that none of the applicable prespecified DHARMa checks had $p < .05$; pseudo-interactions for which all five DHARMa p-values were missing are excluded from this conditional denominator. $\Delta\mathrm{AIC} = \mathrm{AIC}(\text{wrong link}) - \mathrm{AIC}(\text{target link})$, so positive values favor the target link and negative values favor the wrong link. The sample size shown with the median and the denominator for $|\Delta\mathrm{AIC}| < 2$ are the finite AIC comparisons. N.A. indicates that the Pregibon-style added term is not identifiable in the saturated $2 \times 2$ interaction model.
+Publication runs request 3,000 replications, and each table reports its usable denominator. “Missed” means that none of the applicable prespecified DHARMa checks had $p < .05$; pseudo-interactions for which all five DHARMa p-values were missing are excluded from this conditional denominator. $\Delta\mathrm{AIC} = \mathrm{AIC}(\text{wrong link}) - \mathrm{AIC}(\text{target link})$, so positive values favor the target link and negative values favor the wrong link. The sample size shown with the median and the denominator for $|\Delta\mathrm{AIC}| < 2$ are the finite AIC comparisons. N.A. indicates that the Pregibon-style added term is not identifiable in the saturated $2 \times 2$ interaction model.
 
 ## Distribution of the AIC difference
 
-The main paper argues that the proportion of replications in which AIC favours the target link is not informative on its own, because winning by less than one AIC unit and winning by fifty describe different situations. @tbl-diagnostic-aic-distribution therefore gives the distribution of $\Delta\mathrm{AIC}$ rather than only its median. The contrast between the count scenario and the chance-floor scenario is the clearest: both favour the target link in most replications, but the count scenario separates the two links by tens of AIC units across the whole distribution, whereas in the chance-floor scenario the lower decile is negative, meaning that in a non-trivial share of replications AIC actively preferred the misspecified link, and roughly two fifths of the comparisons fall within two units of a tie.
+The proportion of replications in which AIC favours the target link is not informative on its own, because winning by less than one AIC unit and winning by fifty describe different situations. @tbl-diagnostic-aic-distribution therefore gives the distribution of $\Delta\mathrm{AIC}$ rather than only its median. The D2 values require regeneration after the chance-floor scenario was converted to the subject-random-intercept design.
 
 ```{r}
 #| label: tbl-diagnostic-aic-distribution

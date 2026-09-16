@@ -1,6 +1,8 @@
 # Targeted diagnostic sensitivity analysis; definitions preserved.
 Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = "1")
 library(glmmTMB)
+library(lme4)
+library(psyphy)
 # Run from the repository root after 01-build-scenario-grid.R.
 # Replications are parallel; scenarios are visited in declared grid order.
 MODE <- tolower(Sys.getenv("ATLAS_MODE", "full"))
@@ -30,105 +32,39 @@ run_one_replication <- function(replication, scenario, dharma_n_sim) {
     group_num <- stats::rbinom(settings$N, 1, 0.5)
     age <- stats::runif(settings$N, scenario$age_min, scenario$age_max)
     age_c <- age - settings$age_center
+    sigma_u <- sqrt(settings$target_icc * (pi^2 / 3) / (1 - settings$target_icc))
+    u <- stats::rnorm(settings$N, mean = 0, sd = sigma_u)
     eta <- scenario$beta_intercept + settings$beta_age * age_c +
-      settings$beta_group * group_num + settings$beta_age_group * age_c * group_num
-    p <- settings$chance + (1 - settings$chance) * stats::plogis(eta)
-    y <- stats::rbinom(settings$N, size = settings$k_trials, prob = p)
-
+      settings$beta_group * group_num +
+      settings$beta_age_group * age_c * group_num + u
     d <- data.frame(
-      age = age,
-      age_c = age_c,
-      group_num = group_num,
+      id = factor(rep(seq_len(settings$N), each = settings$k_trials)),
+      age = rep(age, each = settings$k_trials),
+      age_c = rep(age_c, each = settings$k_trials),
       group = factor(
-        group_num,
-        levels = c(0, 1),
-        labels = c("Group 0", "Group 1")
+        rep(group_num, each = settings$k_trials),
+        levels = c(0, 1), labels = c("Group 0", "Group 1")
       ),
-      y = y,
-      k = settings$k_trials,
-      accuracy = y / settings$k_trials,
       stringsAsFactors = FALSE
     )
-    wrong_fit <- try(stats::glm(cbind(y, k - y) ~ age_c * group,
-        data = d, family = stats::binomial("logit")), silent = TRUE)
-    # Chance-corrected binomial logit: likelihood, three starts, and Wald test.
-    X <- stats::model.matrix(~ age_c * group, data = d)
-    y <- d$y
-    k <- d$k
-    chance <- settings$chance
-    nll <- function(beta) {
-      eta <- drop(X %*% beta)
-      p <- chance + (1 - chance) * stats::plogis(eta)
-      p <- pmin(pmax(p, 1e-10), 1 - 1e-10)
-      -sum(stats::dbinom(y, size = k, prob = p, log = TRUE))
+    d$eta <- rep(eta, each = settings$k_trials)
+    d$p <- settings$chance + (1 - settings$chance) * stats::plogis(d$eta)
+    d$correct <- stats::rbinom(nrow(d), size = 1, prob = d$p)
+
+    wrong_fit <- try(lme4::glmer(
+      correct ~ age_c * group + (1 | id),
+      data = d, family = stats::binomial("logit")
+    ), silent = TRUE)
+    correct_fit <- try(lme4::glmer(
+      correct ~ age_c * group + (1 | id),
+      data = d, family = stats::binomial(psyphy::mafc.logit(2))
+    ), silent = TRUE)
+    if (!inherits(correct_fit, "try-error")) {
+      aic_correct <- stats::AIC(correct_fit)
+      correct_messages <- correct_fit@optinfo$conv$lme4$messages
+      correct_problem <- length(correct_messages) > 0 ||
+        lme4::isSingular(correct_fit, tol = 1e-4)
     }
-    gradient <- function(beta) {
-      eta <- drop(X %*% beta)
-      q <- stats::plogis(eta)
-      p <- chance + (1 - chance) * q
-      p <- pmin(pmax(p, 1e-10), 1 - 1e-10)
-      weight <- ((y - k * p) / (p * (1 - p))) * (1 - chance) * q * (1 - q)
-      -drop(crossprod(X, weight))
-    }
-    zero <- stats::setNames(rep(0, ncol(X)), colnames(X))
-    from_standard <- zero
-    start_fit <- try(stats::glm.fit(X, cbind(y, k - y),
-        family = stats::binomial("logit")), silent = TRUE)
-    if (!inherits(start_fit, "try-error") && all(is.finite(stats::coef(start_fit)))) {
-      from_standard[] <- stats::coef(start_fit)
-    }
-    above <- (y / k - chance) / (1 - chance)
-    above <- pmin(pmax(above, 0.02), 0.98)
-    from_above <- zero
-    above_fit <- try(stats::lm.fit(X, stats::qlogis(above)), silent = TRUE)
-    if (!inherits(above_fit, "try-error") && all(is.finite(stats::coef(above_fit)))) {
-      from_above[] <- stats::coef(above_fit)
-    }
-    candidates <- list()
-    for (start in list(zero, from_standard, from_above)) {
-      candidate <- try(stats::optim(start, nll, gr = gradient, method = "BFGS",
-          control = list(maxit = 1500, reltol = 1e-10)),
-        silent = TRUE)
-      if (!inherits(candidate, "try-error") && is.finite(candidate$value) &&
-          all(is.finite(candidate$par))) {
-        candidates[[length(candidates) + 1L]] <- candidate
-      }
-    }
-    chance_coef <- chance_se <- chance_p <- rep(NA_real_, ncol(X))
-    chance_vcov <- matrix(NA_real_, ncol(X), ncol(X))
-    chance_usable <- FALSE
-    chance_nll <- NA_real_
-    if (length(candidates)) {
-      best <- candidates[[which.min(vapply(candidates, `[[`, numeric(1), "value"))]]
-      chance_coef <- best$par
-      chance_nll <- best$value
-      hessian <- try(stats::optimHess(best$par, nll, gr = gradient), silent = TRUE)
-      well_conditioned <- FALSE
-      if (!inherits(hessian, "try-error") && all(is.finite(hessian))) {
-        hess_sym <- (hessian + t(hessian)) / 2
-        eig <- try(eigen(hess_sym, symmetric = TRUE, only.values = TRUE)$values,
-          silent = TRUE)
-        if (!inherits(eig, "try-error")) {
-          well_conditioned <- all(is.finite(eig)) && min(eig) > 1e-7 &&
-            min(eig) / max(eig) > sqrt(.Machine$double.eps)
-        }
-        if (well_conditioned) {
-          V <- try(solve(hess_sym), silent = TRUE)
-          if (!inherits(V, "try-error") && all(is.finite(V))) chance_vcov <- V
-        }
-      }
-      variances <- diag(chance_vcov)
-      variances[!is.finite(variances) | variances <= 0] <- NA_real_
-      chance_se <- sqrt(variances)
-      z <- chance_coef / chance_se
-      chance_p <- 2 * stats::pnorm(abs(z), lower.tail = FALSE)
-      chance_usable <- isTRUE(best$convergence == 0) && well_conditioned &&
-        all(is.finite(chance_vcov)) && all(is.finite(chance_se)) && all(is.finite(chance_p))
-      if (!chance_usable) chance_p[] <- NA_real_
-    }
-    names(chance_coef) <- names(chance_se) <- names(chance_p) <- colnames(X)
-    aic_correct <- 2 * chance_nll + 2 * ncol(X)
-    correct_problem <- !chance_usable
   } else {
     # Individual binary trials, as in the manuscript diagnostic example.
     id <- rep(seq_len(scenario$n_subjects), each = 2 * scenario$k_trials)
@@ -167,7 +103,9 @@ run_one_replication <- function(replication, scenario, dharma_n_sim) {
     if (scenario$family == "forced_choice") {
       sm <- summary(wrong_fit)$coefficients
       term <- "age_c:groupGroup 1"
-      wrong_problem <- !isTRUE(wrong_fit$converged)
+      wrong_messages <- wrong_fit@optinfo$conv$lme4$messages
+      wrong_problem <- length(wrong_messages) > 0 ||
+        lme4::isSingular(wrong_fit, tol = 1e-4)
     } else {
       sm <- summary(wrong_fit)$coefficients$cond
       term <- "groupGroup 1:conditionCondition 1"
@@ -186,7 +124,7 @@ run_one_replication <- function(replication, scenario, dharma_n_sim) {
         check <- try(DHARMa::testDispersion(simulated, plot = FALSE), silent = TRUE)
         if (!inherits(check, "try-error") && length(check$p.value) == 1L) dharma_dispersion_p <- check$p.value
         if (scenario$family == "forced_choice") {
-          fitted <- as.numeric(stats::predict(wrong_fit, type = "response"))
+          fitted <- as.numeric(stats::predict(wrong_fit, type = "response", re.form = NA))
           if (length(unique(round(fitted[is.finite(fitted)], 10))) >= 8) {
             check <- try(DHARMa::testQuantiles(simulated, plot = FALSE), silent = TRUE)
             if (!inherits(check, "try-error") && length(check$p.value) == 1L) dharma_quantile_fitted_p <- check$p.value
@@ -205,11 +143,14 @@ run_one_replication <- function(replication, scenario, dharma_n_sim) {
     }
     # Pregibon added squared linear predictor, retaining the original formula.
     augmented <- d
-    augmented$eta_hat_sq <- as.numeric(stats::predict(wrong_fit, type = "link"))^2
+    augmented$eta_hat_sq <- as.numeric(stats::predict(
+      wrong_fit, type = "link", re.form = if (scenario$family == "forced_choice") NA else NULL
+    ))^2
     if (scenario$family == "forced_choice") {
-      added_fit <- try(stats::glm(cbind(y, k - y) ~ age_c * group + eta_hat_sq,
-          data = augmented, family = stats::binomial("logit"),
-          start = c(stats::coef(wrong_fit), eta_hat_sq = 0)), silent = TRUE)
+      added_fit <- try(lme4::glmer(
+          correct ~ age_c * group + eta_hat_sq + (1 | id),
+          data = augmented, family = stats::binomial("logit")
+        ), silent = TRUE)
       if (!inherits(added_fit, "try-error")) {
         sm <- summary(added_fit)$coefficients
         if ("eta_hat_sq" %in% rownames(sm)) pregibon_p <- sm["eta_hat_sq", 4]
