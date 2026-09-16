@@ -204,8 +204,8 @@ compact_agreement <- function(d) {
 compact_by_journal <- function(d) {
   data.frame(
     Journal = short_journal(d$journal),
-    `Eligible` = d$eligible_n,
-    `Interaction` = d$interaction_testing_n,
+    `Eligible (n)` = d$eligible_n,
+    `Interaction-testing (n)` = d$interaction_testing_n,
     `Interaction / eligible` = fmt_percent(d$interaction_testing_percent_of_eligible),
     `Non-identity link` = fmt_percent(d$non_identity_link_percent_interaction),
     `Explicit link` = fmt_percent(d$explicit_link_percent_interaction),
@@ -453,7 +453,7 @@ print_table_if_exists(
     Scenario = d$scenario,
     Model = d$model,
     `Rate type` = d$rate_type,
-    Reject = d$n_rejections,
+    `Rejections (n)` = d$n_rejections,
     `Rejection rate [95% CI]` = fmt_rate_ci(d$rejection_rate, d$ci_low, d$ci_high),
     check.names = FALSE
   )
@@ -482,7 +482,7 @@ print_table_if_exists(
     Fitted = d$fitted_link,
     Status = d$link_match,
     `Rate type` = d$rate_type,
-    Reject = d$n_rejections,
+    `Rejections (n)` = d$n_rejections,
     `Rejection rate [95% CI]` = fmt_rate_ci(d$rejection_rate, d$ci_low, d$ci_high),
     `Median beta` = fmt_num(d$median_interaction_coef, 3),
     `Median SE` = fmt_num(d$median_interaction_se, 3),
@@ -532,7 +532,7 @@ print_table_if_exists(
       Scenario = d$scenario,
       Model = d$model,
       `Rate type` = d$rate_type,
-      Reject = d$n_rejections,
+      `Rejections (n)` = d$n_rejections,
       `Rejection rate [95% CI]` = fmt_rate_ci(d$rejection_rate, d$ci_low, d$ci_high),
       check.names = FALSE
     )
@@ -607,11 +607,11 @@ print_table_if_exists(
     data.frame(
       Scenario = d$scenario,
       Predictor = d$predictor_name,
-      Value = fmt_num(d$predictor_value, 1),
+      `Predictor value` = fmt_num(d$predictor_value, 1),
       Group = d$group,
       `Linear predictor` = fmt_num(d$linear_predictor, 2),
       Outcome = labels,
-      Expected = fmt_num(d$expected_value, 3),
+      `Expected outcome` = fmt_num(d$expected_value, 3),
       check.names = FALSE
     )
   }
@@ -677,7 +677,7 @@ print_table_if_exists(
       Scenario = d$scenario,
       Contrast = d$contrast,
       `Probability points` = fmt_num(d$value_probability_points, 3),
-      `Correct out of 20` = fmt_num(d$value_correct_out_of_k_trials, 2),
+      `Difference in correct responses (out of 20)` = fmt_num(d$value_correct_out_of_k_trials, 2),
       `Link scale` = fmt_num(d$link_scale_value, 3),
       check.names = FALSE
     )
@@ -702,8 +702,8 @@ print_table_if_exists(
     data.frame(
       `Generating link` = d$generating_link,
       `Fitted link` = d$fitted_link,
-      Match = d$link_match,
-      `Induced product (fitted scale)` = fmt_num(d$deterministic_product_on_fitted_link_scale, 3),
+      `Link status` = d$link_match,
+      `Induced product term (fitted-link scale)` = fmt_num(d$deterministic_product_on_fitted_link_scale, 3),
       `Response-scale diff-in-diff` = fmt_num(d$deterministic_response_scale_difference_in_differences, 3),
       check.names = FALSE
     )
@@ -753,8 +753,8 @@ print_table_if_exists(
     data.frame(
       Scenario = d$scenario,
       Contrast = d$contrast,
-      `Sum-score units` = fmt_num(d$value_sum_score_units, 3),
-      `Percent of max` = fmt_rate(d$value_percent_of_max),
+      `Contrast (score points)` = fmt_num(d$value_sum_score_units, 3),
+      `Contrast (% of maximum)` = fmt_rate(d$value_percent_of_max),
       `Latent scale` = fmt_num(d$latent_scale_value, 3),
       check.names = FALSE
     )
