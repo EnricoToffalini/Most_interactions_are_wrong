@@ -14,31 +14,34 @@
 #        replaced by a continuous predictor on [0, 1].
 #     5. Gamma positive outcome: true log link, fitted inverse link.
 
+Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = "1")
 rm(list = ls())
+library(glmmTMB)
+library(DHARMa)
 
 # ---------------------------------------------------------------------
 # 0. Project setup
 # ---------------------------------------------------------------------
 
-source("R/project-settings.R")
-source("R/utils-reporting.R")
-source("R/utils-link-functions.R")
-source("R/utils-summaries.R")
-source("R/utils-plots.R")
+# Run from the repository root. Publication runs use 3000 replications.
+B <- as.integer(Sys.getenv("N_SIM", "3000"))
+default_alpha <- as.numeric(Sys.getenv("ALPHA", "0.05"))
 
-ensure_output_dirs()
+for (path in c("tables", "figs", "outputs", "outputs/inspection")) {
+  dir.create(path, recursive = TRUE, showWarnings = FALSE)
+}
 
-report_header("Diagnostic simulation")
+cat("\n", "Diagnostic simulation", "\n")
 
 # ---------------------------------------------------------------------
 # 1. User-tunable settings and scenarios
 # ---------------------------------------------------------------------
 
 settings <- list(
-  B = default_B,
+  B = B,
   n_cores = as.integer(Sys.getenv(
-    "SLURM_CPUS_PER_TASK",
-    Sys.getenv("N_CORES", max(1L, parallel::detectCores(logical = TRUE) - 1L))
+      "N_CORES",
+      Sys.getenv("SLURM_CPUS_PER_TASK", max(1L, parallel::detectCores(logical = TRUE) - 1L))
   )),
   seed = 20260608,
   alpha = default_alpha,
@@ -160,8 +163,8 @@ diag_scenarios <- list(
 dir.create(dirname(settings$output_dharma_example), recursive = TRUE, showWarnings = FALSE)
 set.seed(settings$seed)
 
-report_section("Scenario parameters you can tune")
-print_compact(list_to_table(settings))
+cat("\n", "Scenario parameters you can tune", "\n")
+print(settings)
 cat("\nAIC is used as a same-formula comparison between the target interaction model and the misspecified interaction model.\n")
 cat("DHARMa checks are scenario-aware: quantile checks for continuous predictors, categorical checks for categorical design cells.\n")
 cat("DHARMa and Pregibon-style checks measure detection under the wrong link and provide baseline calibration rates under the correct link.\n")
@@ -172,16 +175,6 @@ cat("DHARMa and Pregibon-style checks measure detection under the wrong link and
 
 chance_logit_inv_local <- function(eta, chance) {
   chance + (1 - chance) * stats::plogis(eta)
-}
-
-latent_residual_variance <- function(link) {
-  if (link == "logit") return(pi^2 / 3)
-  if (link == "probit") return(1)
-  stop("Unknown binary link.", call. = FALSE)
-}
-
-random_intercept_sd <- function(target_icc, link) {
-  sqrt(target_icc * latent_residual_variance(link) / (1 - target_icc))
 }
 
 wilson_ci_local <- function(x, n, conf = 0.95) {
@@ -224,234 +217,24 @@ summarise_logical <- function(values) {
   )
 }
 
-safe_glm <- function(expr) {
-  fit <- try(suppressWarnings(expr), silent = TRUE)
-  if (inherits(fit, "try-error")) return(fit)
-  if (!is.null(fit$converged) && !isTRUE(fit$converged)) {
-    return(structure("glm did not converge", class = "try-error"))
-  }
-  fit
-}
-
-safe_glmmTMB <- function(expr) {
-  fit <- try(suppressWarnings(expr), silent = TRUE)
-  if (inherits(fit, "try-error")) return(fit)
-  fit
-}
-
-safe_aic <- function(fit) {
-  if (inherits(fit, "try-error") || is.null(fit)) return(NA_real_)
-  if (is.list(fit) && !is.null(fit$aic)) return(unname(fit$aic))
-  out <- try(stats::AIC(fit), silent = TRUE)
-  if (inherits(out, "try-error") || length(out) != 1 || !is.finite(out)) return(NA_real_)
-  unname(out)
-}
-
-extract_interaction_p <- function(fit) {
-  if (inherits(fit, "try-error") || is.null(fit)) return(NA_real_)
-  if (inherits(fit, "glmmTMB")) {
-    sm <- try(summary(fit)$coefficients$cond, silent = TRUE)
-  } else {
-    sm <- try(stats::coef(summary(fit)), silent = TRUE)
-  }
-  if (inherits(sm, "try-error")) return(NA_real_)
-  rn <- rownames(sm)
-  term <- rn[grepl(":", rn)][1]
-  if (is.na(term)) return(NA_real_)
-  p_col <- grep("Pr\\(", colnames(sm), value = TRUE)[1]
-  if (is.na(p_col)) return(NA_real_)
-  unname(sm[term, p_col])
-}
-
-extract_interaction_coef <- function(fit) {
-  if (inherits(fit, "try-error") || is.null(fit)) return(NA_real_)
-  if (inherits(fit, "glmmTMB")) {
-    sm <- try(summary(fit)$coefficients$cond, silent = TRUE)
-    if (inherits(sm, "try-error")) return(NA_real_)
-    rn <- rownames(sm)
-    term <- rn[grepl(":", rn)][1]
-    if (is.na(term)) return(NA_real_)
-    return(unname(sm[term, "Estimate"]))
-  }
-  cf <- try(stats::coef(fit), silent = TRUE)
-  if (inherits(cf, "try-error")) return(NA_real_)
-  term <- names(cf)[grepl(":", names(cf))][1]
-  if (is.na(term)) return(NA_real_)
-  unname(cf[term])
-}
-
-extract_p_value <- function(x) {
-  if (inherits(x, "try-error")) return(NA_real_)
-  if (!is.null(x$p.value) && length(x$p.value) == 1) return(unname(x$p.value))
-  NA_real_
-}
-
-quiet_try <- function(expr) {
-  try(suppressMessages(suppressWarnings(expr)), silent = TRUE)
-}
-
-safe_dharma_test <- function(expr) {
-  extract_p_value(quiet_try(expr))
-}
-
-unique_finite_n <- function(x) {
-  x <- x[is.finite(x)]
-  length(unique(round(x, 10)))
-}
-
-can_use_quantile_check <- function(x) {
-  unique_finite_n(x) >= settings$min_unique_for_quantile
-}
-
-safe_predict_numeric <- function(fit, type = "response") {
-  out <- try(stats::predict(fit, type = type), silent = TRUE)
-  if (inherits(out, "try-error")) return(rep(NA_real_, 0))
-  as.numeric(out)
-}
-
-make_empty_dharma <- function() {
-  data.frame(
-    dharma_uniformity_p = NA_real_,
-    dharma_dispersion_p = NA_real_,
-    dharma_quantile_fitted_p = NA_real_,
-    dharma_quantile_predictor_p = NA_real_,
-    dharma_categorical_design_p = NA_real_,
-    dharma_valid_tests = 0L,
-    dharma_tests_used = "",
-    stringsAsFactors = FALSE
-  )
-}
-
 # Scenario-aware DHARMa checks. The important change is that quantile
 # regression is not attempted for categorical predictors.
-dharma_diagnostics <- function(name, fit, data, scn) {
-  empty <- make_empty_dharma()
-  if (inherits(fit, "try-error") || is.null(fit)) return(empty)
-  
-  sim <- quiet_try(
-    DHARMa::simulateResiduals(
-      fittedModel = fit,
-      n = settings$dharma_n_sim,
-      plot = FALSE,
-      seed = NULL
-    )
-  )
-  
-  if (inherits(sim, "try-error")) return(empty)
-  
-  p_uniformity <- safe_dharma_test(DHARMa::testUniformity(sim, plot = FALSE))
-  p_dispersion <- safe_dharma_test(DHARMa::testDispersion(sim, plot = FALSE))
-  
-  fitted_response <- safe_predict_numeric(fit, type = "response")
-  p_quantile_fitted <- NA_real_
-  if (length(fitted_response) == nrow(data) && can_use_quantile_check(fitted_response)) {
-    p_quantile_fitted <- safe_dharma_test(DHARMa::testQuantiles(sim, plot = FALSE))
-  }
-  
-  p_quantile_predictor <- NA_real_
-  p_categorical_design <- NA_real_
-  
-  if (identical(scn$focal_dharma, "continuous_age")) {
-    x <- if ("age_c" %in% names(data)) data$age_c else data$age_offset
-    if (can_use_quantile_check(x)) {
-      p_quantile_predictor <- safe_dharma_test(
-        DHARMa::testQuantiles(sim, predictor = x, plot = FALSE)
-      )
-    }
-  }
-  
-  if (identical(scn$focal_dharma, "continuous_x")) {
-    if (can_use_quantile_check(data$x)) {
-      p_quantile_predictor <- safe_dharma_test(
-        DHARMa::testQuantiles(sim, predictor = data$x, plot = FALSE)
-      )
-    }
-  }
-  
-  if (identical(scn$focal_dharma, "continuous_binary_x")) {
-    if (can_use_quantile_check(data$x)) {
-      p_quantile_predictor <- safe_dharma_test(
-        DHARMa::testQuantiles(sim, predictor = data$x, plot = FALSE)
-      )
-    }
-  }
-  
-  if (identical(scn$focal_dharma, "categorical_design")) {
-    design_cell <- interaction(data$group, data$condition, drop = TRUE)
-    res <- sim$scaledResiduals
-    # DHARMa::testCategorical() returns no scalar $p.value, so it never flowed
-    # through extract_p_value() and this check silently produced NA in every
-    # replication. A Kruskal-Wallis test of the scaled residuals across design
-    # cells is a scalar, version-independent check of cell-specific misfit and
-    # passes cleanly through safe_dharma_test().
-    if (nlevels(design_cell) >= 2 && length(res) == length(design_cell)) {
-      p_categorical_design <- safe_dharma_test(
-        stats::kruskal.test(res ~ design_cell)
-      )
-    }
-  }
-  
-  pvals <- c(
-    uniformity = p_uniformity,
-    dispersion = p_dispersion,
-    quantile_fitted = p_quantile_fitted,
-    quantile_predictor = p_quantile_predictor,
-    categorical_design = p_categorical_design
-  )
-  
-  used <- names(pvals)[!is.na(pvals)]
-  
-  data.frame(
-    dharma_uniformity_p = unname(p_uniformity),
-    dharma_dispersion_p = unname(p_dispersion),
-    dharma_quantile_fitted_p = unname(p_quantile_fitted),
-    dharma_quantile_predictor_p = unname(p_quantile_predictor),
-    dharma_categorical_design_p = unname(p_categorical_design),
-    dharma_valid_tests = length(used),
-    dharma_tests_used = paste(used, collapse = "; "),
-    stringsAsFactors = FALSE
-  )
-}
 
 # Audit fields for fits produced by fit_chance_binomial_logit(). They are NA
 # for glm and glmmTMB fits, which carry no gradient_max element.
-custom_fit_numeric <- function(fit, field) {
-  if (inherits(fit, "try-error") || !is.list(fit)) return(NA_real_)
-  value <- fit[[field]]
-  if (is.null(value) || length(value) != 1 || !is.numeric(value)) return(NA_real_)
-  as.numeric(value)
-}
-
-custom_fit_converged <- function(fit) {
-  if (inherits(fit, "try-error") || !is.list(fit)) return(NA)
-  if (is.null(fit$gradient_max)) return(NA)
-  isTRUE(fit$converged)
-}
-
-aic_winner <- function(aic_true, aic_fitted) {
-  if (!is.finite(aic_true) || !is.finite(aic_fitted)) {
-    return(data.frame(
-      favors_true_link = NA,
-      favors_fitted_link = NA,
-      difference_fitted_minus_true = NA_real_
-    ))
-  }
-  data.frame(
-    favors_true_link = aic_true <= aic_fitted,
-    favors_fitted_link = aic_fitted < aic_true,
-    difference_fitted_minus_true = aic_fitted - aic_true
-  )
-}
 
 # ---------------------------------------------------------------------
 # 3. Model-fitting helpers
 # ---------------------------------------------------------------------
 
+# This local fitter is reused for the original and Pregibon-augmented likelihood.
+# Its five starts, two optimization methods, and polishing step are unchanged.
+# The methods below are the adapter required by the existing DHARMa calls.
 fit_chance_binomial_logit <- function(
-    data,
-    include_interaction = TRUE,
-    chance = 0.50,
-    add_eta_sq = FALSE
+  data,
+  include_interaction = TRUE,
+  chance = 0.50,
+  add_eta_sq = FALSE
 ) {
   rhs_text <- if (include_interaction) "age_c * group" else "age_c + group"
   if (add_eta_sq) rhs_text <- paste(rhs_text, "+ eta_hat_sq")
@@ -459,14 +242,14 @@ fit_chance_binomial_logit <- function(
   X <- stats::model.matrix(rhs, data = data)
   y <- data$y
   k <- data$k
-  
+
   neg_loglik <- function(par) {
     eta <- as.vector(X %*% par)
     p <- chance_logit_inv_local(eta, chance = chance)
     p <- pmin(pmax(p, 1e-10), 1 - 1e-10)
     -sum(stats::dbinom(y, size = k, prob = p, log = TRUE))
   }
-  
+
   # Analytic score. With s = logistic(eta) and p = chance + (1 - chance) * s,
   # dp/deta = (1 - chance) * s * (1 - s), and the binomial contribution in p is
   # (y - k * p) / (p * (1 - p)). Supplying the gradient keeps BFGS on the
@@ -480,27 +263,29 @@ fit_chance_binomial_logit <- function(
     w <- ((y - k * p) / (p * (1 - p))) * (1 - chance) * s * (1 - s)
     -as.vector(crossprod(X, w))
   }
-  
+
   start_form <- stats::as.formula(paste("cbind(y, k - y) ~", rhs_text))
-  
-  start_glm <- safe_glm(
-    stats::glm(
-      start_form,
-      family = stats::binomial("logit"),
-      data = data
-    )
-  )
-  
+
+  start_glm <- {
+    glm_fit <- try(stats::glm(
+        start_form,
+        family = stats::binomial("logit"),
+        data = data
+      ), silent = TRUE)
+    if (!inherits(glm_fit, "try-error") && !isTRUE(glm_fit$converged)) glm_fit <- NULL
+    glm_fit
+  }
+
   zero <- rep(0, ncol(X))
   names(zero) <- colnames(X)
-  
+
   from_glm <- zero
-  if (!inherits(start_glm, "try-error")) {
+  if (!inherits(start_glm, "try-error") && !is.null(start_glm)) {
     cf <- stats::coef(start_glm)
     common <- intersect(names(cf), names(from_glm))
     from_glm[common] <- cf[common]
   }
-  
+
   # Standard-logit coefficients live on a different scale from the
   # chance-corrected ones, so they are only one candidate start among several.
   # This one reads the observed proportions on the above-chance scale the model
@@ -512,9 +297,9 @@ fit_chance_binomial_logit <- function(
   if (!inherits(lin, "try-error") && all(is.finite(stats::coef(lin)))) {
     from_above <- stats::setNames(stats::coef(lin), colnames(X))
   }
-  
+
   starts <- list(zero, from_glm, from_glm / 2, from_glm * 1.5, from_above)
-  
+
   best <- NULL
   for (s in starts) {
     for (m in c("BFGS", "Nelder-Mead")) {
@@ -533,11 +318,11 @@ fit_chance_binomial_logit <- function(
       if (is.null(best) || opt$value < best$value) best <- opt
     }
   }
-  
+
   if (is.null(best)) {
     return(list(converged = FALSE, aic = NA_real_, logLik = NA_real_))
   }
-  
+
   polished <- try(
     stats::optim(
       par = best$par,
@@ -552,23 +337,23 @@ fit_chance_binomial_logit <- function(
       polished$value <= best$value) {
     best <- polished
   }
-  
+
   names(best$par) <- colnames(X)
-  
+
   # optim()'s convergence code only reports that a stopping rule was met, and on
   # the flat region near the chance floor that rule is met far from the maximum.
   # The retained solution is therefore checked against the score and the
   # curvature, and the same Hessian supplies the variance-covariance matrix.
   gradient_max <- max(abs(neg_score(best$par)))
   H <- try(stats::optimHess(best$par, neg_loglik, neg_score), silent = TRUE)
-  
+
   na_vcov <- matrix(
     NA_real_,
     nrow = length(best$par),
     ncol = length(best$par),
     dimnames = list(names(best$par), names(best$par))
   )
-  
+
   if (inherits(H, "try-error")) {
     hessian_min_eigen <- NA_real_
     vcov_fit <- na_vcov
@@ -581,35 +366,35 @@ fit_chance_binomial_logit <- function(
       dimnames(vcov_fit) <- list(names(best$par), names(best$par))
     }
   }
-  
+
   converged <- all(is.finite(best$par)) && is.finite(best$value) &&
     isTRUE(hessian_min_eigen > 1e-6)
-  
+
   loglik <- -best$value
   eta <- as.vector(X %*% best$par)
   fitted_probability <- chance_logit_inv_local(eta, chance = chance)
   model_frame <- stats::model.frame(start_form, data = data)
-  
+
   structure(list(
-    converged = converged,
-    coefficients = best$par,
-    vcov = vcov_fit,
-    logLik = loglik,
-    aic = if (converged) -2 * loglik + 2 * length(best$par) else NA_real_,
-    gradient_max = gradient_max,
-    hessian_min_eigen = hessian_min_eigen,
-    include_interaction = include_interaction,
-    add_eta_sq = add_eta_sq,
-    chance = chance,
-    formula = start_form,
-    data = data,
-    model_frame = model_frame,
-    model_matrix = X,
-    linear_predictors = eta,
-    fitted_probability = fitted_probability,
-    observed = y,
-    trials = k
-  ), class = "chance_binomial_logit")
+      converged = converged,
+      coefficients = best$par,
+      vcov = vcov_fit,
+      logLik = loglik,
+      aic = if (converged) -2 * loglik + 2 * length(best$par) else NA_real_,
+      gradient_max = gradient_max,
+      hessian_min_eigen = hessian_min_eigen,
+      include_interaction = include_interaction,
+      add_eta_sq = add_eta_sq,
+      chance = chance,
+      formula = start_form,
+      data = data,
+      model_frame = model_frame,
+      model_matrix = X,
+      linear_predictors = eta,
+      fitted_probability = fitted_probability,
+      observed = y,
+      trials = k
+    ), class = "chance_binomial_logit")
 }
 coef.chance_binomial_logit <- function(object, ...) {
   object$coefficients
@@ -636,10 +421,10 @@ model.frame.chance_binomial_logit <- function(formula, ...) {
 }
 
 predict.chance_binomial_logit <- function(
-    object,
-    newdata = NULL,
-    type = c("link", "response"),
-    ...
+  object,
+  newdata = NULL,
+  type = c("link", "response"),
+  ...
 ) {
   type <- match.arg(type)
   if (is.null(newdata)) {
@@ -653,10 +438,10 @@ predict.chance_binomial_logit <- function(
 }
 
 simulate.chance_binomial_logit <- function(
-    object,
-    nsim = 1,
-    seed = NULL,
-    ...
+  object,
+  nsim = 1,
+  seed = NULL,
+  ...
 ) {
   if (!is.null(seed)) set.seed(seed)
   out <- replicate(
@@ -673,9 +458,9 @@ simulate.chance_binomial_logit <- function(
 }
 
 residuals.chance_binomial_logit <- function(
-    object,
-    type = c("response", "pearson"),
-    ...
+  object,
+  type = c("response", "pearson"),
+  ...
 ) {
   type <- match.arg(type)
   raw <- object$observed - object$trials * object$fitted_probability
@@ -684,521 +469,580 @@ residuals.chance_binomial_logit <- function(
   raw / sqrt(variance)
 }
 
-fit_binomial_standard <- function(data, link, include_interaction = TRUE, add_eta_sq = FALSE) {
-  rhs <- if (include_interaction) "age_c * group" else "age_c + group"
-  if (add_eta_sq) rhs <- paste(rhs, "+ eta_hat_sq")
-  form <- stats::as.formula(paste("cbind(y, k - y) ~", rhs))
-  safe_glm(
-    stats::glm(
-      form,
-      family = stats::binomial(link = link),
-      data = data
-    )
-  )
-}
-
-fit_poisson_log <- function(data, include_interaction = TRUE, add_eta_sq = FALSE) {
-  rhs <- if (include_interaction) "age_offset * group" else "age_offset + group"
-  if (add_eta_sq) rhs <- paste(rhs, "+ eta_hat_sq")
-  form <- stats::as.formula(paste("y ~", rhs))
-  safe_glm(stats::glm(form, family = stats::poisson(link = "log"), data = data))
-}
-
-fit_poisson_identity <- function(data, include_interaction = TRUE, add_eta_sq = FALSE) {
-  rhs <- if (include_interaction) "age_offset * group" else "age_offset + group"
-  if (add_eta_sq) rhs <- paste(rhs, "+ eta_hat_sq")
-  form <- stats::as.formula(paste("y ~", rhs))
-  
-  start_fit <- try(stats::lm(form, data = data), silent = TRUE)
-  start <- NULL
-  if (!inherits(start_fit, "try-error")) {
-    start <- stats::coef(start_fit)
-    X <- stats::model.matrix(form, data = data)
-    pred <- as.vector(X %*% start)
-    if (any(!is.finite(pred))) start <- NULL
-    if (!is.null(start) && min(pred, na.rm = TRUE) <= 0) {
-      start[1] <- start[1] + abs(min(pred, na.rm = TRUE)) + 1
-    }
-  }
-  
-  if (is.null(start) || any(!is.finite(start))) {
-    safe_glm(stats::glm(form, family = stats::poisson(link = "identity"), data = data))
-  } else {
-    safe_glm(stats::glm(form, family = stats::poisson(link = "identity"), data = data, start = start))
-  }
-}
-
-fit_gamma_log <- function(data, include_interaction = TRUE, add_eta_sq = FALSE) {
-  rhs <- if (include_interaction) "x * group" else "x + group"
-  if (add_eta_sq) rhs <- paste(rhs, "+ eta_hat_sq")
-  form <- stats::as.formula(paste("y ~", rhs))
-  safe_glm(stats::glm(form, family = stats::Gamma(link = "log"), data = data))
-}
-
-fit_gamma_inverse <- function(data, include_interaction = TRUE, add_eta_sq = FALSE) {
-  rhs <- if (include_interaction) "x * group" else "x + group"
-  if (add_eta_sq) rhs <- paste(rhs, "+ eta_hat_sq")
-  form <- stats::as.formula(paste("y ~", rhs))
-  
-  start_fit <- try(stats::lm(stats::as.formula(paste("I(1 / y) ~", rhs)), data = data), silent = TRUE)
-  start <- NULL
-  if (!inherits(start_fit, "try-error")) {
-    start <- stats::coef(start_fit)
-    X <- stats::model.matrix(form, data = data)
-    pred <- as.vector(X %*% start)
-    if (any(!is.finite(pred))) start <- NULL
-    if (!is.null(start) && min(pred, na.rm = TRUE) <= 0) {
-      start[1] <- start[1] + abs(min(pred, na.rm = TRUE)) + 1e-4
-    }
-  }
-  
-  if (is.null(start) || any(!is.finite(start))) {
-    safe_glm(stats::glm(form, family = stats::Gamma(link = "inverse"), data = data))
-  } else {
-    safe_glm(stats::glm(form, family = stats::Gamma(link = "inverse"), data = data, start = start))
-  }
-}
-
-fit_binary_mixed <- function(data, link, include_interaction = TRUE, add_eta_sq = FALSE) {
-  rhs <- if (include_interaction) "group * condition" else "group + condition"
-  if (add_eta_sq) rhs <- paste(rhs, "+ eta_hat_sq")
-  form <- stats::as.formula(paste("y ~", rhs, "+ (1 | id)"))
-  safe_glmmTMB(
-    glmmTMB::glmmTMB(
-      form,
-      data = data,
-      family = stats::binomial(link = link)
-    )
-  )
-}
-
-fit_binary_mixed_continuous <- function(data, link, include_interaction = TRUE, add_eta_sq = FALSE) {
-  rhs <- if (include_interaction) "group * x" else "group + x"
-  if (add_eta_sq) rhs <- paste(rhs, "+ eta_hat_sq")
-  form <- stats::as.formula(paste("y ~", rhs, "+ (1 | id)"))
-  safe_glmmTMB(
-    glmmTMB::glmmTMB(
-      form,
-      data = data,
-      family = stats::binomial(link = link)
-    )
-  )
-}
-
-pregibon_added_term_p <- function(fit, data) {
-  if (inherits(fit, "try-error") || is.null(fit)) return(NA_real_)
-
-  # For mixed models, construct the added term from the fixed-effects linear
-  # predictor only. The default glmmTMB prediction includes estimated random
-  # effects; squaring those empirical Bayes estimates and feeding them back as
-  # an ordinary covariate is badly anti-conservative under the correct link.
-  eta_hat <- try(
-    if (inherits(fit, "glmmTMB")) {
-      stats::predict(fit, type = "link", re.form = NA)
-    } else {
-      stats::predict(fit, type = "link")
-    },
-    silent = TRUE
-  )
-  if (inherits(eta_hat, "try-error") || length(eta_hat) != nrow(data)) return(NA_real_)
-
-  data$eta_hat_sq <- as.numeric(eta_hat)^2
-
-  # A saturated fixed-effects design can already span eta_hat_sq. This occurs
-  # in the 2 x 2 interaction model, whose four cell indicators span any
-  # function of the four fitted cell predictors. The added coefficient is then
-  # not identifiable, so the check is not applicable.
-  if (inherits(fit, "glmmTMB")) {
-    fixed_formula <- try(stats::formula(fit, fixed.only = TRUE), silent = TRUE)
-    if (inherits(fixed_formula, "try-error")) return(NA_real_)
-    augmented_fixed_formula <- stats::update.formula(
-      fixed_formula,
-      . ~ . + eta_hat_sq
-    )
-    X_base <- try(stats::model.matrix(fixed_formula, data = data), silent = TRUE)
-    X_augmented <- try(
-      stats::model.matrix(augmented_fixed_formula, data = data),
-      silent = TRUE
-    )
-    if (inherits(X_base, "try-error") || inherits(X_augmented, "try-error")) {
-      return(NA_real_)
-    }
-    if (qr(X_augmented)$rank <= qr(X_base)$rank) return(NA_real_)
-  }
-  
-  if (inherits(fit, "chance_binomial_logit")) {
-    fit2 <- fit_chance_binomial_logit(
-      data,
-      include_interaction = fit$include_interaction,
-      chance = fit$chance,
-      add_eta_sq = TRUE
-    )
-  } else {
-    augmented_formula <- stats::update.formula(
-      stats::formula(fit),
-      . ~ . + eta_hat_sq
-    )
-    fit_family <- stats::family(fit)
-    if (inherits(fit, "glmmTMB")) {
-      fit2 <- safe_glmmTMB(
-        glmmTMB::glmmTMB(
-          augmented_formula,
-          data = data,
-          family = fit_family
-        )
-      )
-    } else {
-      # glm() reads `start` by position, and model.matrix() orders the added
-      # main effect eta_hat_sq before any interaction term. Appending the zero
-      # to coef(fit) therefore handed the interaction estimate to eta_hat_sq and
-      # zero to the interaction. Under an identity link that start implies
-      # negative fitted means, so the refit aborted with "cannot find valid
-      # starting values" and the check returned NA in nearly every count-scenario
-      # replication. Aligning the start by name keeps it at the current fit.
-      X_start <- try(stats::model.matrix(augmented_formula, data = data), silent = TRUE)
-      if (inherits(X_start, "try-error")) return(NA_real_)
-      start <- stats::setNames(rep(0, ncol(X_start)), colnames(X_start))
-      current <- stats::coef(fit)
-      shared <- intersect(names(current), names(start))
-      start[shared] <- current[shared]
-      fit2 <- safe_glm(
-        stats::glm(
-          augmented_formula,
-          data = data,
-          family = fit_family,
-          start = start
-        )
-      )
-    }
-  }
-  
-  if (inherits(fit2, "try-error") || is.null(fit2)) return(NA_real_)
-  
-  if (inherits(fit2, "chance_binomial_logit")) {
-    if (!isTRUE(fit2$converged) || !"eta_hat_sq" %in% names(fit2$coefficients)) {
-      return(NA_real_)
-    }
-    variance <- fit2$vcov["eta_hat_sq", "eta_hat_sq"]
-    if (!is.finite(variance) || variance <= 0) return(NA_real_)
-    z <- fit2$coefficients["eta_hat_sq"] / sqrt(variance)
-    return(unname(2 * stats::pnorm(-abs(z))))
-  } else if (inherits(fit2, "glmmTMB")) {
-    sm <- try(summary(fit2)$coefficients$cond, silent = TRUE)
-  } else {
-    sm <- try(stats::coef(summary(fit2)), silent = TRUE)
-  }
-  
-  if (inherits(sm, "try-error")) return(NA_real_)
-  if (!"eta_hat_sq" %in% rownames(sm)) return(NA_real_)
-  p_col <- grep("Pr\\(", colnames(sm), value = TRUE)[1]
-  if (is.na(p_col)) return(NA_real_)
-  unname(sm["eta_hat_sq", p_col])
-}
-
 # ---------------------------------------------------------------------
-# 4. Scenario-specific simulators and model dispatch
+# 4. DGPs and initial model fits are written inside run_replication below
 # ---------------------------------------------------------------------
-
-simulate_count_poisson <- function(scn) {
-  group_num <- stats::rbinom(scn$N, 1, 0.5)
-  age <- stats::runif(scn$N, scn$age_range[1], scn$age_range[2])
-  age_offset <- age - scn$age_origin
-  eta <- scn$beta_intercept + scn$beta_age * age_offset +
-    scn$beta_group * group_num + scn$beta_age_group * age_offset * group_num
-  mu <- exp(eta)
-  y <- stats::rpois(scn$N, lambda = mu)
-  data.frame(
-    age = age,
-    age_offset = age_offset,
-    group_num = group_num,
-    group = factor(group_num, levels = c(0, 1), labels = c("Group 0", "Group 1")),
-    eta_true = eta,
-    mu_true = mu,
-    y = y,
-    stringsAsFactors = FALSE
-  )
-}
-
-simulate_chance_floor <- function(scn) {
-  group_num <- stats::rbinom(scn$N, 1, 0.5)
-  age <- stats::runif(scn$N, scn$age_range[1], scn$age_range[2])
-  age_c <- age - scn$age_center
-  eta <- scn$beta_intercept + scn$beta_age * age_c +
-    scn$beta_group * group_num + scn$beta_age_group * age_c * group_num
-  p <- chance_logit_inv_local(eta, chance = scn$chance)
-  y <- stats::rbinom(scn$N, size = scn$k_trials, prob = p)
-  data.frame(
-    age = age,
-    age_c = age_c,
-    group_num = group_num,
-    group = factor(group_num, levels = c(0, 1), labels = c("Group 0", "Group 1")),
-    eta_true = eta,
-    p_true = p,
-    y = y,
-    k = scn$k_trials,
-    accuracy = y / scn$k_trials,
-    stringsAsFactors = FALSE
-  )
-}
-
-simulate_probit_mixed <- function(scn) {
-  n_per_group <- scn$n_subjects / 2
-  id <- rep(seq_len(scn$n_subjects), each = 2 * scn$k_trials)
-  group_by_subject <- rep(c(0, 1), each = n_per_group)
-  d <- data.frame(
-    id = factor(id),
-    group_num = rep(group_by_subject, each = 2 * scn$k_trials),
-    condition_num = rep(rep(c(0, 1), each = scn$k_trials), times = scn$n_subjects),
-    stringsAsFactors = FALSE
-  )
-  u <- stats::rnorm(
-    scn$n_subjects,
-    mean = 0,
-    sd = random_intercept_sd(scn$target_icc, link = "probit")
-  )
-  eta <- scn$beta_intercept + scn$beta_group * d$group_num +
-    scn$beta_condition * d$condition_num +
-    scn$beta_group_condition * d$group_num * d$condition_num +
-    u[as.integer(d$id)]
-  p <- stats::pnorm(eta)
-  d$y <- stats::rbinom(nrow(d), size = 1, prob = p)
-  d$group <- factor(d$group_num, levels = c(0, 1), labels = c("Group 0", "Group 1"))
-  d$condition <- factor(d$condition_num, levels = c(0, 1), labels = c("Condition 0", "Condition 1"))
-  d$eta_true <- eta
-  d$p_true <- p
-  d
-}
-
-simulate_probit_continuous_mixed <- function(scn) {
-  n_per_group <- scn$n_subjects / 2
-  id <- rep(seq_len(scn$n_subjects), each = scn$trials_per_subject)
-  group_by_subject <- rep(c(0, 1), each = n_per_group)
-  d <- data.frame(
-    id = factor(id),
-    group_num = rep(group_by_subject, each = scn$trials_per_subject),
-    x = stats::runif(scn$n_subjects * scn$trials_per_subject, scn$x_range[1], scn$x_range[2]),
-    stringsAsFactors = FALSE
-  )
-  u <- stats::rnorm(
-    scn$n_subjects,
-    mean = 0,
-    sd = random_intercept_sd(scn$target_icc, link = "probit")
-  )
-  eta <- scn$beta_intercept + scn$beta_group * d$group_num +
-    scn$beta_x * d$x + scn$beta_group_x * d$group_num * d$x +
-    u[as.integer(d$id)]
-  p <- stats::pnorm(eta)
-  d$y <- stats::rbinom(nrow(d), size = 1, prob = p)
-  d$group <- factor(d$group_num, levels = c(0, 1), labels = c("Group 0", "Group 1"))
-  d$eta_true <- eta
-  d$p_true <- p
-  d
-}
-
-simulate_gamma_log <- function(scn) {
-  group_num <- stats::rbinom(scn$N, 1, 0.5)
-  x <- stats::runif(scn$N, scn$x_range[1], scn$x_range[2])
-  eta <- scn$beta_intercept + scn$beta_x * x +
-    scn$beta_group * group_num + scn$beta_x_group * x * group_num
-  mu <- exp(eta)
-  y <- stats::rgamma(scn$N, shape = scn$shape, scale = mu / scn$shape)
-  data.frame(
-    x = x,
-    group_num = group_num,
-    group = factor(group_num, levels = c(0, 1), labels = c("Group 0", "Group 1")),
-    eta_true = eta,
-    mu_true = mu,
-    y = y,
-    stringsAsFactors = FALSE
-  )
-}
-
-simulate_scenario <- function(name, scn) {
-  switch(
-    name,
-    count_poisson_log_identity = simulate_count_poisson(scn),
-    chance_floor = simulate_chance_floor(scn),
-    probit_dgp_logit_fit = simulate_probit_mixed(scn),
-    probit_continuous_logit_fit = simulate_probit_continuous_mixed(scn),
-    gamma_log_inverse = simulate_gamma_log(scn),
-    stop("Unknown scenario: ", name, call. = FALSE)
-  )
-}
-
-fit_true_link_model <- function(name, data, scn, include_interaction = TRUE) {
-  switch(
-    name,
-    count_poisson_log_identity = fit_poisson_log(data, include_interaction = include_interaction),
-    chance_floor = fit_chance_binomial_logit(data, include_interaction = include_interaction, chance = scn$chance),
-    probit_dgp_logit_fit = fit_binary_mixed(data, link = "probit", include_interaction = include_interaction),
-    probit_continuous_logit_fit = fit_binary_mixed_continuous(data, link = "probit", include_interaction = include_interaction),
-    gamma_log_inverse = fit_gamma_log(data, include_interaction = include_interaction),
-    stop("Unknown scenario: ", name, call. = FALSE)
-  )
-}
-
-fit_wrong_link_model <- function(name, data, scn, include_interaction = TRUE) {
-  switch(
-    name,
-    count_poisson_log_identity = fit_poisson_identity(data, include_interaction = include_interaction),
-    chance_floor = fit_binomial_standard(data, link = "logit", include_interaction = include_interaction),
-    probit_dgp_logit_fit = fit_binary_mixed(data, link = "logit", include_interaction = include_interaction),
-    probit_continuous_logit_fit = fit_binary_mixed_continuous(data, link = "logit", include_interaction = include_interaction),
-    gamma_log_inverse = fit_gamma_inverse(data, include_interaction = include_interaction),
-    stop("Unknown scenario: ", name, call. = FALSE)
-  )
-}
 
 # ---------------------------------------------------------------------
 # 5. Deterministic scenario tables
 # ---------------------------------------------------------------------
 
-scenario_description <- function(name, scn) {
+scenario_descriptions <- setNames(rep(NA_character_, length(diag_scenarios)), names(diag_scenarios))
+for (name in names(diag_scenarios)) {
+  scn <- diag_scenarios[[name]]
+
   if (name == "count_poisson_log_identity") {
-    return(paste0(
+    scenario_descriptions[name] <- paste0(
       "Simple count example figure coefficients: log(E[y]) = ", scn$beta_intercept,
       " + ", scn$beta_age, " * (age - ", scn$age_origin, ") + ",
       scn$beta_group, " * group; no age-by-group product term."
-    ))
+    )
   }
   if (name == "chance_floor") {
-    return(paste0(
+    scenario_descriptions[name] <- paste0(
       "Simulation 1 lower-performance coefficients: eta = ", scn$beta_intercept,
       " + ", scn$beta_age, " * (age - ", scn$age_center, ") + ",
       scn$beta_group, " * group; p = ", scn$chance,
       " + (1 - ", scn$chance, ") * logistic(eta); no age-by-group product term."
-    ))
+    )
   }
   if (name == "probit_dgp_logit_fit") {
-    return(paste0(
+    scenario_descriptions[name] <- paste0(
       "Simulation 2 probit reference coefficients: eta = ", scn$beta_intercept,
       " + ", scn$beta_group, " * group + ", scn$beta_condition,
       " * condition + subject random intercept; latent ICC = ", scn$target_icc,
       "; no group-by-condition product term."
-    ))
+    )
   }
   if (name == "probit_continuous_logit_fit") {
-    return(paste0(
+    scenario_descriptions[name] <- paste0(
       "Matched continuous counterpart to the 2 x 2 binary scenario: eta = ",
       scn$beta_intercept, " + ", scn$beta_group, " * group + ",
       scn$beta_x, " * x + subject random intercept; x ~ Uniform(",
       scn$x_range[1], ", ", scn$x_range[2], "). Thus the x = 0 to x = 1 contrast has the same probit-scale size as the condition 0 to 1 contrast; latent ICC = ", scn$target_icc, "; no group-by-x product term."
-    ))
+    )
   }
   if (name == "gamma_log_inverse") {
-    return(paste0(
+    scenario_descriptions[name] <- paste0(
       "Gamma response-time example, log-link scale: log(E[y]) = log(400) + ", scn$beta_x,
       " * x + ", scn$beta_group,
       " * group; Gamma shape = ", scn$shape,
       "; no x-by-group product term."
-    ))
-  }
-  NA_character_
-}
-
-make_scenario_values <- function(name, scn) {
-  if (name == "count_poisson_log_identity") {
-    g <- expand.grid(age = c(6, 8, 10), group_num = c(0, 1))
-    g$age_offset <- g$age - scn$age_origin
-    eta <- scn$beta_intercept + scn$beta_age * g$age_offset + scn$beta_group * g$group_num
-    expected <- exp(eta)
-    predictor_name <- "age"
-    predictor_value <- g$age
-    outcome_label <- "expected_count"
-  } else if (name == "chance_floor") {
-    g <- expand.grid(age = c(6, 8, 10), group_num = c(0, 1))
-    g$age_c <- g$age - scn$age_center
-    eta <- scn$beta_intercept + scn$beta_age * g$age_c + scn$beta_group * g$group_num
-    expected <- chance_logit_inv_local(eta, scn$chance)
-    predictor_name <- "age"
-    predictor_value <- g$age
-    outcome_label <- "expected_accuracy"
-  } else if (name == "probit_dgp_logit_fit") {
-    g <- expand.grid(condition_num = c(0, 1), group_num = c(0, 1))
-    eta <- scn$beta_intercept + scn$beta_group * g$group_num + scn$beta_condition * g$condition_num
-    expected <- stats::pnorm(eta)
-    predictor_name <- "condition"
-    predictor_value <- g$condition_num
-    outcome_label <- "expected_probability_at_random_intercept_0"
-  } else if (name == "probit_continuous_logit_fit") {
-    # Low, mid, high on the predictor's own range. Hard-coding 0 as the middle
-    # value collapsed onto the lower bound whenever x_range starts at 0.
-    g <- expand.grid(
-      x = c(scn$x_range[1], mean(scn$x_range), scn$x_range[2]),
-      group_num = c(0, 1)
     )
-    eta <- scn$beta_intercept + scn$beta_group * g$group_num + scn$beta_x * g$x
-    expected <- stats::pnorm(eta)
-    predictor_name <- "x"
-    predictor_value <- g$x
-    outcome_label <- "expected_probability_at_random_intercept_0"
-  } else if (name == "gamma_log_inverse") {
-    g <- expand.grid(x = c(-2, 0, 2), group_num = c(0, 1))
-    eta <- scn$beta_intercept + scn$beta_x * g$x + scn$beta_group * g$group_num
-    expected <- exp(eta)
-    predictor_name <- "x"
-    predictor_value <- g$x
-    outcome_label <- "expected_mean"
-  } else {
-    stop("Unknown scenario: ", name, call. = FALSE)
   }
-  
-  data.frame(
-    scenario = scn$scenario,
-    paper_anchor = scn$paper_anchor,
-    outcome_family = scn$outcome_family,
-    true_link_function = scn$true_link_function,
-    fitted_link_function = scn$fitted_link_function,
-    true_model_label = scn$true_model_label,
-    fitted_model_label = scn$fitted_model_label,
-    predictor_name = predictor_name,
-    predictor_value = predictor_value,
-    group = factor(g$group_num, levels = c(0, 1), labels = c("Group 0", "Group 1")),
-    linear_predictor = eta,
-    expected_value = expected,
-    expected_value_label = outcome_label,
-    quantitative_description = scenario_description(name, scn),
-    variability_summary = scn$variability_summary,
-    stringsAsFactors = FALSE
-  )
+
 }
 
 scenario_table <- do.call(
   rbind,
-  Map(make_scenario_values, names(diag_scenarios), diag_scenarios)
+  lapply(names(diag_scenarios), function(name) {
+      scn <- diag_scenarios[[name]]
+
+      if (name == "count_poisson_log_identity") {
+        g <- expand.grid(age = c(6, 8, 10), group_num = c(0, 1))
+        g$age_offset <- g$age - scn$age_origin
+        eta <- scn$beta_intercept + scn$beta_age * g$age_offset + scn$beta_group * g$group_num
+        expected <- exp(eta)
+        predictor_name <- "age"
+        predictor_value <- g$age
+        outcome_label <- "expected_count"
+      } else if (name == "chance_floor") {
+        g <- expand.grid(age = c(6, 8, 10), group_num = c(0, 1))
+        g$age_c <- g$age - scn$age_center
+        eta <- scn$beta_intercept + scn$beta_age * g$age_c + scn$beta_group * g$group_num
+        expected <- chance_logit_inv_local(eta, scn$chance)
+        predictor_name <- "age"
+        predictor_value <- g$age
+        outcome_label <- "expected_accuracy"
+      } else if (name == "probit_dgp_logit_fit") {
+        g <- expand.grid(condition_num = c(0, 1), group_num = c(0, 1))
+        eta <- scn$beta_intercept + scn$beta_group * g$group_num + scn$beta_condition * g$condition_num
+        expected <- stats::pnorm(eta)
+        predictor_name <- "condition"
+        predictor_value <- g$condition_num
+        outcome_label <- "expected_probability_at_random_intercept_0"
+      } else if (name == "probit_continuous_logit_fit") {
+        # Low, mid, high on the predictor's own range. Hard-coding 0 as the middle
+        # value collapsed onto the lower bound whenever x_range starts at 0.
+        g <- expand.grid(
+          x = c(scn$x_range[1], mean(scn$x_range), scn$x_range[2]),
+          group_num = c(0, 1)
+        )
+        eta <- scn$beta_intercept + scn$beta_group * g$group_num + scn$beta_x * g$x
+        expected <- stats::pnorm(eta)
+        predictor_name <- "x"
+        predictor_value <- g$x
+        outcome_label <- "expected_probability_at_random_intercept_0"
+      } else if (name == "gamma_log_inverse") {
+        g <- expand.grid(x = c(-2, 0, 2), group_num = c(0, 1))
+        eta <- scn$beta_intercept + scn$beta_x * g$x + scn$beta_group * g$group_num
+        expected <- exp(eta)
+        predictor_name <- "x"
+        predictor_value <- g$x
+        outcome_label <- "expected_mean"
+      } else {
+        stop("Unknown scenario: ", name, call. = FALSE)
+      }
+
+      data.frame(
+        scenario = scn$scenario,
+        paper_anchor = scn$paper_anchor,
+        outcome_family = scn$outcome_family,
+        true_link_function = scn$true_link_function,
+        fitted_link_function = scn$fitted_link_function,
+        true_model_label = scn$true_model_label,
+        fitted_model_label = scn$fitted_model_label,
+        predictor_name = predictor_name,
+        predictor_value = predictor_value,
+        group = factor(g$group_num, levels = c(0, 1), labels = c("Group 0", "Group 1")),
+        linear_predictor = eta,
+        expected_value = expected,
+        expected_value_label = outcome_label,
+        quantitative_description = scenario_descriptions[[name]],
+        variability_summary = scn$variability_summary,
+        stringsAsFactors = FALSE
+      )
+
+  })
 )
 
 utils::write.csv(scenario_table, settings$output_scenario_table, row.names = FALSE)
 
-report_section("Implied scenario values")
-print_compact(scenario_table)
+cat("\n", "Implied scenario values", "\n")
+print(scenario_table)
 
 # ---------------------------------------------------------------------
 # 6. Repeated simulation
 # ---------------------------------------------------------------------
 
-run_replication <- function(name, scn, rep_id) {
-  d <- simulate_scenario(name, scn)
-  
-  fit_wrong_interaction <- fit_wrong_link_model(name, d, scn, include_interaction = TRUE)
-  fit_true_interaction <- fit_true_link_model(name, d, scn, include_interaction = TRUE)
-  
-  dh_wrong <- dharma_diagnostics(name, fit_wrong_interaction, d, scn)
-  dh_correct <- dharma_diagnostics(name, fit_true_interaction, d, scn)
-  preg_wrong <- pregibon_added_term_p(fit_wrong_interaction, d)
-  preg_correct <- pregibon_added_term_p(fit_true_interaction, d)
-  
-  aic_result <- aic_winner(
-    aic_true = safe_aic(fit_true_interaction),
-    aic_fitted = safe_aic(fit_wrong_interaction)
-  )
-  
+run_replication <- function(rep_id, name, scn) {
+  if (name == "count_poisson_log_identity") {
+    group_num <- stats::rbinom(scn$N, 1, 0.5)
+    age <- stats::runif(scn$N, scn$age_range[1], scn$age_range[2])
+    age_offset <- age - scn$age_origin
+    eta <- scn$beta_intercept + scn$beta_age * age_offset +
+      scn$beta_group * group_num + scn$beta_age_group * age_offset * group_num
+    mu <- exp(eta)
+    y <- stats::rpois(scn$N, lambda = mu)
+    d <- data.frame(
+      age = age,
+      age_offset = age_offset,
+      group_num = group_num,
+      group = factor(group_num, levels = c(0, 1), labels = c("Group 0", "Group 1")),
+      eta_true = eta,
+      mu_true = mu,
+      y = y,
+      stringsAsFactors = FALSE
+    )
+
+    form <- y ~ age_offset * group
+    start_fit <- try(stats::lm(form, data = d), silent = TRUE)
+    start <- NULL
+    if (!inherits(start_fit, "try-error")) {
+      start <- stats::coef(start_fit)
+      X <- stats::model.matrix(form, data = d)
+      pred <- as.vector(X %*% start)
+      if (any(!is.finite(pred))) start <- NULL
+      if (!is.null(start) && min(pred, na.rm = TRUE) <= 0) {
+        start[1] <- start[1] + abs(min(pred, na.rm = TRUE)) + 1
+      }
+    }
+
+    fit_wrong_interaction <- if (is.null(start) || any(!is.finite(start))) {
+      {
+        glm_fit <- try(stats::glm(form, family = stats::poisson(link = "identity"), data = d), silent = TRUE)
+        if (!inherits(glm_fit, "try-error") && !isTRUE(glm_fit$converged)) glm_fit <- NULL
+        glm_fit
+      }
+    } else {
+      {
+        glm_fit <- try(stats::glm(form, family = stats::poisson(link = "identity"), data = d, start = start), silent = TRUE)
+        if (!inherits(glm_fit, "try-error") && !isTRUE(glm_fit$converged)) glm_fit <- NULL
+        glm_fit
+      }
+    }
+
+    fit_true_interaction <- try(stats::glm(y ~ age_offset * group, data = d, family = stats::poisson("log")), silent = TRUE)
+    if (!inherits(fit_true_interaction, "try-error") && !isTRUE(fit_true_interaction$converged)) fit_true_interaction <- NULL
+  } else if (name == "chance_floor") {
+    group_num <- stats::rbinom(scn$N, 1, 0.5)
+    age <- stats::runif(scn$N, scn$age_range[1], scn$age_range[2])
+    age_c <- age - scn$age_center
+    eta <- scn$beta_intercept + scn$beta_age * age_c +
+      scn$beta_group * group_num + scn$beta_age_group * age_c * group_num
+    p <- chance_logit_inv_local(eta, chance = scn$chance)
+    y <- stats::rbinom(scn$N, size = scn$k_trials, prob = p)
+    d <- data.frame(
+      age = age,
+      age_c = age_c,
+      group_num = group_num,
+      group = factor(group_num, levels = c(0, 1), labels = c("Group 0", "Group 1")),
+      eta_true = eta,
+      p_true = p,
+      y = y,
+      k = scn$k_trials,
+      accuracy = y / scn$k_trials,
+      stringsAsFactors = FALSE
+    )
+
+    fit_wrong_interaction <- try(stats::glm(cbind(y, k - y) ~ age_c * group, data = d, family = stats::binomial("logit")), silent = TRUE)
+    if (!inherits(fit_wrong_interaction, "try-error") && !isTRUE(fit_wrong_interaction$converged)) fit_wrong_interaction <- NULL
+
+    fit_true_interaction <- fit_chance_binomial_logit(d, chance = scn$chance)
+  } else if (name == "probit_dgp_logit_fit") {
+    n_per_group <- scn$n_subjects / 2
+    id <- rep(seq_len(scn$n_subjects), each = 2 * scn$k_trials)
+    group_by_subject <- rep(c(0, 1), each = n_per_group)
+    d <- data.frame(
+      id = factor(id),
+      group_num = rep(group_by_subject, each = 2 * scn$k_trials),
+      condition_num = rep(rep(c(0, 1), each = scn$k_trials), times = scn$n_subjects),
+      stringsAsFactors = FALSE
+    )
+    u <- stats::rnorm(
+      scn$n_subjects,
+      mean = 0,
+      sd = sqrt((scn$target_icc) / (1 - (scn$target_icc)))
+    )
+    eta <- scn$beta_intercept + scn$beta_group * d$group_num +
+      scn$beta_condition * d$condition_num +
+      scn$beta_group_condition * d$group_num * d$condition_num +
+      u[as.integer(d$id)]
+    p <- stats::pnorm(eta)
+    d$y <- stats::rbinom(nrow(d), size = 1, prob = p)
+    d$group <- factor(d$group_num, levels = c(0, 1), labels = c("Group 0", "Group 1"))
+    d$condition <- factor(d$condition_num, levels = c(0, 1), labels = c("Condition 0", "Condition 1"))
+    d$eta_true <- eta
+    d$p_true <- p
+
+    fit_wrong_interaction <- try(glmmTMB::glmmTMB(y ~ group * condition + (1 | id), data = d, family = stats::binomial("logit")), silent = TRUE)
+
+    fit_true_interaction <- try(glmmTMB::glmmTMB(y ~ group * condition + (1 | id), data = d, family = stats::binomial("probit")), silent = TRUE)
+  } else if (name == "probit_continuous_logit_fit") {
+    n_per_group <- scn$n_subjects / 2
+    id <- rep(seq_len(scn$n_subjects), each = scn$trials_per_subject)
+    group_by_subject <- rep(c(0, 1), each = n_per_group)
+    d <- data.frame(
+      id = factor(id),
+      group_num = rep(group_by_subject, each = scn$trials_per_subject),
+      x = stats::runif(scn$n_subjects * scn$trials_per_subject, scn$x_range[1], scn$x_range[2]),
+      stringsAsFactors = FALSE
+    )
+    u <- stats::rnorm(
+      scn$n_subjects,
+      mean = 0,
+      sd = sqrt((scn$target_icc) / (1 - (scn$target_icc)))
+    )
+    eta <- scn$beta_intercept + scn$beta_group * d$group_num +
+      scn$beta_x * d$x + scn$beta_group_x * d$group_num * d$x +
+      u[as.integer(d$id)]
+    p <- stats::pnorm(eta)
+    d$y <- stats::rbinom(nrow(d), size = 1, prob = p)
+    d$group <- factor(d$group_num, levels = c(0, 1), labels = c("Group 0", "Group 1"))
+    d$eta_true <- eta
+    d$p_true <- p
+
+    fit_wrong_interaction <- try(glmmTMB::glmmTMB(y ~ group * x + (1 | id), data = d, family = stats::binomial("logit")), silent = TRUE)
+
+    fit_true_interaction <- try(glmmTMB::glmmTMB(y ~ group * x + (1 | id), data = d, family = stats::binomial("probit")), silent = TRUE)
+  } else if (name == "gamma_log_inverse") {
+    group_num <- stats::rbinom(scn$N, 1, 0.5)
+    x <- stats::runif(scn$N, scn$x_range[1], scn$x_range[2])
+    eta <- scn$beta_intercept + scn$beta_x * x +
+      scn$beta_group * group_num + scn$beta_x_group * x * group_num
+    mu <- exp(eta)
+    y <- stats::rgamma(scn$N, shape = scn$shape, scale = mu / scn$shape)
+    d <- data.frame(
+      x = x,
+      group_num = group_num,
+      group = factor(group_num, levels = c(0, 1), labels = c("Group 0", "Group 1")),
+      eta_true = eta,
+      mu_true = mu,
+      y = y,
+      stringsAsFactors = FALSE
+    )
+
+    form <- y ~ x * group
+    start_fit <- try(stats::lm(I(1 / y) ~ x * group, data = d), silent = TRUE)
+    start <- NULL
+    if (!inherits(start_fit, "try-error")) {
+      start <- stats::coef(start_fit)
+      X <- stats::model.matrix(form, data = d)
+      pred <- as.vector(X %*% start)
+      if (any(!is.finite(pred))) start <- NULL
+      if (!is.null(start) && min(pred, na.rm = TRUE) <= 0) {
+        start[1] <- start[1] + abs(min(pred, na.rm = TRUE)) + 1e-4
+      }
+    }
+
+    fit_wrong_interaction <- if (is.null(start) || any(!is.finite(start))) {
+      {
+        glm_fit <- try(stats::glm(form, family = stats::Gamma(link = "inverse"), data = d), silent = TRUE)
+        if (!inherits(glm_fit, "try-error") && !isTRUE(glm_fit$converged)) glm_fit <- NULL
+        glm_fit
+      }
+    } else {
+      {
+        glm_fit <- try(stats::glm(form, family = stats::Gamma(link = "inverse"), data = d, start = start), silent = TRUE)
+        if (!inherits(glm_fit, "try-error") && !isTRUE(glm_fit$converged)) glm_fit <- NULL
+        glm_fit
+      }
+    }
+
+    fit_true_interaction <- try(stats::glm(y ~ x * group, data = d, family = stats::Gamma("log")), silent = TRUE)
+    if (!inherits(fit_true_interaction, "try-error") && !isTRUE(fit_true_interaction$converged)) fit_true_interaction <- NULL
+  }
+
+  interaction_p <- interaction_coef <- NA_real_
+  if (!inherits(fit_wrong_interaction, "try-error") && !is.null(fit_wrong_interaction)) {
+    if (name %in% c("probit_dgp_logit_fit", "probit_continuous_logit_fit")) {
+      sm <- summary(fit_wrong_interaction)$coefficients$cond
+    } else {
+      sm <- summary(fit_wrong_interaction)$coefficients
+    }
+    term <- if (name == "count_poisson_log_identity") "age_offset:groupGroup 1" else if (name == "chance_floor") "age_c:groupGroup 1" else if (name == "probit_dgp_logit_fit") "groupGroup 1:conditionCondition 1" else if (name == "probit_continuous_logit_fit") "groupGroup 1:x" else "x:groupGroup 1"
+    if (term %in% rownames(sm)) {
+      interaction_p <- unname(sm[term, 4])
+      interaction_coef <- unname(sm[term, 1])
+    }
+  }
+  # Preserve diagnostic order: DHARMa wrong/correct, then Pregibon wrong/correct.
+  dharma_rows <- list()
+  for (specification in c("wrong", "correct")) {
+    fit <- if (specification == "wrong") fit_wrong_interaction else fit_true_interaction
+    data <- d
+    empty <- data.frame(
+      dharma_uniformity_p = NA_real_,
+      dharma_dispersion_p = NA_real_,
+      dharma_quantile_fitted_p = NA_real_,
+      dharma_quantile_predictor_p = NA_real_,
+      dharma_categorical_design_p = NA_real_,
+      dharma_valid_tests = 0L,
+      dharma_tests_used = "",
+      stringsAsFactors = FALSE
+    )
+    dharma_rows[[specification]] <- empty
+    if (inherits(fit, "try-error") || is.null(fit)) next
+
+    sim <- try(DHARMa::simulateResiduals(
+        fittedModel = fit,
+        n = settings$dharma_n_sim,
+        plot = FALSE,
+        seed = NULL
+      ), silent = TRUE)
+
+    if (inherits(sim, "try-error")) next
+
+    p_uniformity <- {
+      check <- try(DHARMa::testUniformity(sim, plot = FALSE), silent = TRUE)
+      if (inherits(check, "try-error") || length(check$p.value) != 1L) NA_real_ else unname(check$p.value)
+    }
+    p_dispersion <- {
+      check <- try(DHARMa::testDispersion(sim, plot = FALSE), silent = TRUE)
+      if (inherits(check, "try-error") || length(check$p.value) != 1L) NA_real_ else unname(check$p.value)
+    }
+
+    fitted_response <- as.numeric(stats::predict(fit, type = "response"))
+    p_quantile_fitted <- NA_real_
+    if (length(fitted_response) == nrow(data) && length(unique(round((fitted_response)[is.finite(fitted_response)], 10))) >= settings$min_unique_for_quantile) {
+      p_quantile_fitted <- {
+        check <- try(DHARMa::testQuantiles(sim, plot = FALSE), silent = TRUE)
+        if (inherits(check, "try-error") || length(check$p.value) != 1L) NA_real_ else unname(check$p.value)
+      }
+    }
+
+    p_quantile_predictor <- NA_real_
+    p_categorical_design <- NA_real_
+
+    if (identical(scn$focal_dharma, "continuous_age")) {
+      x <- if ("age_c" %in% names(data)) data$age_c else data$age_offset
+      if (length(unique(round((x)[is.finite(x)], 10))) >= settings$min_unique_for_quantile) {
+        p_quantile_predictor <- {
+          check <- try(DHARMa::testQuantiles(sim, predictor = x, plot = FALSE), silent = TRUE)
+          if (inherits(check, "try-error") || length(check$p.value) != 1L) NA_real_ else unname(check$p.value)
+        }
+      }
+    }
+
+    if (identical(scn$focal_dharma, "continuous_x")) {
+      if (length(unique(round((data$x)[is.finite(data$x)], 10))) >= settings$min_unique_for_quantile) {
+        p_quantile_predictor <- {
+          check <- try(DHARMa::testQuantiles(sim, predictor = data$x, plot = FALSE), silent = TRUE)
+          if (inherits(check, "try-error") || length(check$p.value) != 1L) NA_real_ else unname(check$p.value)
+        }
+      }
+    }
+
+    if (identical(scn$focal_dharma, "continuous_binary_x")) {
+      if (length(unique(round((data$x)[is.finite(data$x)], 10))) >= settings$min_unique_for_quantile) {
+        p_quantile_predictor <- {
+          check <- try(DHARMa::testQuantiles(sim, predictor = data$x, plot = FALSE), silent = TRUE)
+          if (inherits(check, "try-error") || length(check$p.value) != 1L) NA_real_ else unname(check$p.value)
+        }
+      }
+    }
+
+    if (identical(scn$focal_dharma, "categorical_design")) {
+      design_cell <- interaction(data$group, data$condition, drop = TRUE)
+      res <- sim$scaledResiduals
+      # Preserve the existing Kruskal-Wallis test of scaled residuals by design
+      # cell; DHARMa::testCategorical does not supply the scalar p-value used here.
+      if (nlevels(design_cell) >= 2 && length(res) == length(design_cell)) {
+        p_categorical_design <- {
+          check <- try(stats::kruskal.test(res ~ design_cell), silent = TRUE)
+          if (inherits(check, "try-error") || length(check$p.value) != 1L) NA_real_ else unname(check$p.value)
+        }
+      }
+    }
+
+    pvals <- c(
+      uniformity = p_uniformity,
+      dispersion = p_dispersion,
+      quantile_fitted = p_quantile_fitted,
+      quantile_predictor = p_quantile_predictor,
+      categorical_design = p_categorical_design
+    )
+
+    used <- names(pvals)[!is.na(pvals)]
+
+    dharma_rows[[specification]] <- data.frame(
+      dharma_uniformity_p = unname(p_uniformity),
+      dharma_dispersion_p = unname(p_dispersion),
+      dharma_quantile_fitted_p = unname(p_quantile_fitted),
+      dharma_quantile_predictor_p = unname(p_quantile_predictor),
+      dharma_categorical_design_p = unname(p_categorical_design),
+      dharma_valid_tests = length(used),
+      dharma_tests_used = paste(used, collapse = "; "),
+      stringsAsFactors = FALSE
+    )
+  }
+  dh_wrong <- dharma_rows$wrong
+  dh_correct <- dharma_rows$correct
+  pregibon_values <- c(wrong = NA_real_, correct = NA_real_)
+  for (specification in c("wrong", "correct")) {
+    fit <- if (specification == "wrong") fit_wrong_interaction else fit_true_interaction
+    data <- d
+    if (inherits(fit, "try-error") || is.null(fit)) next
+
+    # For mixed models, construct the added term from the fixed-effects linear
+    # predictor only. The default glmmTMB prediction includes estimated random
+    # effects; squaring those empirical Bayes estimates and feeding them back as
+    # an ordinary covariate is badly anti-conservative under the correct link.
+    eta_hat <- try(
+      if (inherits(fit, "glmmTMB")) {
+        stats::predict(fit, type = "link", re.form = NA)
+      } else {
+        stats::predict(fit, type = "link")
+      },
+      silent = TRUE
+    )
+    if (inherits(eta_hat, "try-error") || length(eta_hat) != nrow(data)) next
+
+    data$eta_hat_sq <- as.numeric(eta_hat)^2
+
+    # A saturated fixed-effects design can already span eta_hat_sq. This occurs
+    # in the 2 x 2 interaction model, whose four cell indicators span any
+    # function of the four fitted cell predictors. The added coefficient is then
+    # not identifiable, so the check is not applicable.
+    if (inherits(fit, "glmmTMB")) {
+      fixed_formula <- try(stats::formula(fit, fixed.only = TRUE), silent = TRUE)
+      if (inherits(fixed_formula, "try-error")) next
+      augmented_fixed_formula <- stats::update.formula(
+        fixed_formula,
+        . ~ . + eta_hat_sq
+      )
+      X_base <- try(stats::model.matrix(fixed_formula, data = data), silent = TRUE)
+      X_augmented <- try(
+        stats::model.matrix(augmented_fixed_formula, data = data),
+        silent = TRUE
+      )
+      if (inherits(X_base, "try-error") || inherits(X_augmented, "try-error")) {
+        next
+      }
+      if (qr(X_augmented)$rank <= qr(X_base)$rank) next
+    }
+
+    if (inherits(fit, "chance_binomial_logit")) {
+      fit2 <- fit_chance_binomial_logit(
+        data,
+        include_interaction = fit$include_interaction,
+        chance = fit$chance,
+        add_eta_sq = TRUE
+      )
+    } else {
+      augmented_formula <- stats::update.formula(
+        stats::formula(fit),
+        . ~ . + eta_hat_sq
+      )
+      fit_family <- stats::family(fit)
+      if (inherits(fit, "glmmTMB")) {
+        fit2 <- try(glmmTMB::glmmTMB(
+            augmented_formula,
+            data = data,
+            family = fit_family
+          ), silent = TRUE)
+      } else {
+        # glm() reads `start` by position, and model.matrix() orders the added
+        # main effect eta_hat_sq before any interaction term. Appending the zero
+        # to coef(fit) therefore handed the interaction estimate to eta_hat_sq and
+        # zero to the interaction. Under an identity link that start implies
+        # negative fitted means, so the refit aborted with "cannot find valid
+        # starting values" and the check returned NA in nearly every count-scenario
+        # replication. Aligning the start by name keeps it at the current fit.
+        X_start <- try(stats::model.matrix(augmented_formula, data = data), silent = TRUE)
+        if (inherits(X_start, "try-error")) next
+        start <- stats::setNames(rep(0, ncol(X_start)), colnames(X_start))
+        current <- stats::coef(fit)
+        shared <- intersect(names(current), names(start))
+        start[shared] <- current[shared]
+        fit2 <- {
+          glm_fit <- try(stats::glm(
+              augmented_formula,
+              data = data,
+              family = fit_family,
+              start = start
+            ), silent = TRUE)
+          if (!inherits(glm_fit, "try-error") && !isTRUE(glm_fit$converged)) glm_fit <- NULL
+          glm_fit
+        }
+      }
+    }
+
+    if (inherits(fit2, "try-error") || is.null(fit2)) next
+
+    if (inherits(fit2, "chance_binomial_logit")) {
+      if (!isTRUE(fit2$converged) || !"eta_hat_sq" %in% names(fit2$coefficients)) {
+        next
+      }
+      variance <- fit2$vcov["eta_hat_sq", "eta_hat_sq"]
+      if (!is.finite(variance) || variance <= 0) next
+      z <- fit2$coefficients["eta_hat_sq"] / sqrt(variance)
+      pregibon_values[specification] <- unname(2 * stats::pnorm(-abs(z)))
+      next
+    } else if (inherits(fit2, "glmmTMB")) {
+      sm <- try(summary(fit2)$coefficients$cond, silent = TRUE)
+    } else {
+      sm <- try(stats::coef(summary(fit2)), silent = TRUE)
+    }
+
+    if (inherits(sm, "try-error")) next
+    if (!"eta_hat_sq" %in% rownames(sm)) next
+    p_col <- grep("Pr\\(", colnames(sm), value = TRUE)[1]
+    if (is.na(p_col)) next
+    pregibon_values[specification] <- unname(sm["eta_hat_sq", p_col])
+  }
+  preg_wrong <- unname(pregibon_values["wrong"])
+  preg_correct <- unname(pregibon_values["correct"])
+
+  aic_true <- {
+    if (inherits(fit_true_interaction, "try-error") || is.null(fit_true_interaction)) NA_real_ else if (!is.null(fit_true_interaction$aic)) unname(fit_true_interaction$aic) else {
+      aic_value <- try(stats::AIC(fit_true_interaction), silent = TRUE)
+      if (inherits(aic_value, "try-error") || !is.finite(aic_value)) NA_real_ else unname(aic_value)
+    }
+  }
+  aic_fitted <- {
+    if (inherits(fit_wrong_interaction, "try-error") || is.null(fit_wrong_interaction)) NA_real_ else if (!is.null(fit_wrong_interaction$aic)) unname(fit_wrong_interaction$aic) else {
+      aic_value <- try(stats::AIC(fit_wrong_interaction), silent = TRUE)
+      if (inherits(aic_value, "try-error") || !is.finite(aic_value)) NA_real_ else unname(aic_value)
+    }
+  }
+
   data.frame(
     scenario = scn$scenario,
     true_link_function = scn$true_link_function,
     fitted_link_function = scn$fitted_link_function,
-    interaction_p = extract_interaction_p(fit_wrong_interaction),
-    interaction_coef = extract_interaction_coef(fit_wrong_interaction),
+    interaction_p = interaction_p,
+    interaction_coef = interaction_coef,
     dharma_uniformity_p = dh_wrong$dharma_uniformity_p,
     dharma_dispersion_p = dh_wrong$dharma_dispersion_p,
     dharma_quantile_fitted_p = dh_wrong$dharma_quantile_fitted_p,
@@ -1223,48 +1067,16 @@ run_replication <- function(name, scn, rep_id) {
     dharma_correct_tests_used = dh_correct$dharma_tests_used,
     pregibon_wrong_p = preg_wrong,
     pregibon_correct_p = preg_correct,
-    aic_true_link_interaction = safe_aic(fit_true_interaction),
-    aic_fitted_link_interaction = safe_aic(fit_wrong_interaction),
-    aic_favors_true_link = aic_result$favors_true_link,
-    aic_favors_fitted_link = aic_result$favors_fitted_link,
-    aic_fitted_minus_true = aic_result$difference_fitted_minus_true,
-    target_fit_converged = custom_fit_converged(fit_true_interaction),
-    target_fit_gradient_max = custom_fit_numeric(fit_true_interaction, "gradient_max"),
-    target_fit_hessian_min_eigen = custom_fit_numeric(fit_true_interaction, "hessian_min_eigen"),
+    aic_true_link_interaction = aic_true,
+    aic_fitted_link_interaction = aic_fitted,
+    aic_favors_true_link = if (is.finite(aic_true) && is.finite(aic_fitted)) aic_true <= aic_fitted else NA,
+    aic_favors_fitted_link = if (is.finite(aic_true) && is.finite(aic_fitted)) aic_fitted < aic_true else NA,
+    aic_fitted_minus_true = if (is.finite(aic_true) && is.finite(aic_fitted)) aic_fitted - aic_true else NA_real_,
+    target_fit_converged = if (!inherits(fit_true_interaction, "try-error") && !is.null(fit_true_interaction$gradient_max)) isTRUE(fit_true_interaction$converged) else NA,
+    target_fit_gradient_max = if (!inherits(fit_true_interaction, "try-error") && !is.null(fit_true_interaction[["gradient_max"]])) as.numeric(fit_true_interaction[["gradient_max"]]) else NA_real_,
+    target_fit_hessian_min_eigen = if (!inherits(fit_true_interaction, "try-error") && !is.null(fit_true_interaction[["hessian_min_eigen"]])) as.numeric(fit_true_interaction[["hessian_min_eigen"]]) else NA_real_,
     stringsAsFactors = FALSE
   )
-}
-
-Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = "1")
-
-run_scenario <- function(name, scn, scenario_index, n_scenarios) {
-  started <- proc.time()[["elapsed"]]
-  cat(
-    "Starting scenario ", scenario_index, "/", n_scenarios, ": ",
-    scn$scenario, "\n",
-    sep = ""
-  )
-  
-  if (settings$n_cores > 1L && .Platform$OS.type == "unix") {
-    out <- parallel::mclapply(
-      seq_len(settings$B),
-      function(b) run_replication(name, scn, b),
-      mc.cores = settings$n_cores,
-      mc.set.seed = TRUE
-    )
-  } else {
-    out <- lapply(seq_len(settings$B), function(b) {
-      run_replication(name, scn, b)
-    })
-  }
-  
-  elapsed_minutes <- (proc.time()[["elapsed"]] - started) / 60
-  cat(
-    "Completed scenario ", scenario_index, "/", n_scenarios, " in ",
-    formatC(elapsed_minutes, format = "f", digits = 1), " minutes\n",
-    sep = ""
-  )
-  do.call(rbind, out)
 }
 
 cat(
@@ -1274,95 +1086,102 @@ cat(
   sep = ""
 )
 
-scenario_names <- names(diag_scenarios)
-simulation_results <- do.call(
-  rbind,
-  Map(
-    function(name, scn, scenario_index) {
-      run_scenario(
-        name,
-        scn,
-        scenario_index = scenario_index,
-        n_scenarios = length(diag_scenarios)
-      )
-    },
-    scenario_names,
-    diag_scenarios,
-    seq_along(diag_scenarios)
-  )
-)
+cluster <- NULL
+if (settings$n_cores > 1L && .Platform$OS.type != "unix") {
+  cluster <- parallel::makeCluster(settings$n_cores)
+  parallel::clusterSetRNGStream(cluster, iseed = settings$seed)
+  parallel::clusterExport(cluster, c(
+      "settings", "chance_logit_inv_local", "fit_chance_binomial_logit",
+      "coef.chance_binomial_logit", "vcov.chance_binomial_logit",
+      "family.chance_binomial_logit", "nobs.chance_binomial_logit",
+      "formula.chance_binomial_logit", "model.frame.chance_binomial_logit",
+      "predict.chance_binomial_logit", "simulate.chance_binomial_logit",
+      "residuals.chance_binomial_logit"))
+}
+scenario_results <- list()
+for (name in names(diag_scenarios)) {
+  scn <- diag_scenarios[[name]]
+  cat("Scenario:", scn$scenario, "B =", settings$B, "cores =", settings$n_cores, "\n")
+  if (settings$n_cores > 1L && .Platform$OS.type == "unix") {
+    out <- parallel::mclapply(seq_len(settings$B), run_replication,
+      name = name, scn = scn, mc.cores = settings$n_cores, mc.set.seed = TRUE)
+  } else if (!is.null(cluster)) {
+    out <- parallel::parLapply(cluster, seq_len(settings$B), run_replication, name = name, scn = scn)
+  } else {
+    out <- lapply(seq_len(settings$B), run_replication, name = name, scn = scn)
+  }
+  scenario_results[[length(scenario_results) + 1L]] <- do.call(rbind, out)
+}
+if (!is.null(cluster)) parallel::stopCluster(cluster)
+simulation_results <- do.call(rbind, scenario_results)
 
 # ---------------------------------------------------------------------
 # 7. Summaries
 # ---------------------------------------------------------------------
 
-make_long_summary_one <- function(name, dat, scn) {
-  summaries <- list(
-    interaction = summarise_p_values(dat$interaction_p),
-    dharma_uniformity = summarise_p_values(dat$dharma_uniformity_p),
-    dharma_dispersion = summarise_p_values(dat$dharma_dispersion_p),
-    dharma_quantile_fitted = summarise_p_values(dat$dharma_quantile_fitted_p),
-    dharma_quantile_predictor = summarise_p_values(dat$dharma_quantile_predictor_p),
-    dharma_categorical_design = summarise_p_values(dat$dharma_categorical_design_p),
-    pregibon = summarise_p_values(dat$pregibon_link_test_p),
-    aic_true = summarise_logical(dat$aic_favors_true_link),
-    aic_fitted = summarise_logical(dat$aic_favors_fitted_link)
-  )
-  
-  keys <- names(summaries)
-  quantities <- c(
-    interaction = "Pseudo-interaction detection",
-    dharma_uniformity = "DHARMa uniformity",
-    dharma_dispersion = "DHARMa dispersion",
-    dharma_quantile_fitted = "DHARMa residual quantiles over fitted values",
-    dharma_quantile_predictor = "DHARMa residual quantiles over focal predictor",
-    dharma_categorical_design = "DHARMa residual distribution across design cells",
-    pregibon = "Pregibon-style added-term link check, secondary",
-    aic_true = "AIC same interaction formula favors true link",
-    aic_fitted = "AIC same interaction formula favors fitted link"
-  )
-  families <- c(
-    interaction = "Interaction test",
-    dharma_uniformity = "DHARMa",
-    dharma_dispersion = "DHARMa",
-    dharma_quantile_fitted = "DHARMa",
-    dharma_quantile_predictor = "DHARMa",
-    dharma_categorical_design = "DHARMa",
-    pregibon = "Pregibon-style link check",
-    aic_true = "AIC link comparison",
-    aic_fitted = "AIC link comparison"
-  )
-  
-  do.call(
-    rbind,
-    lapply(keys, function(key) {
-      cbind(
-        data.frame(
-          scenario = scn$scenario,
-          paper_anchor = scn$paper_anchor,
-          outcome_family = scn$outcome_family,
-          true_link_function = scn$true_link_function,
-          fitted_link_function = scn$fitted_link_function,
-          true_model_label = scn$true_model_label,
-          fitted_model_label = scn$fitted_model_label,
-          quantitative_description = scenario_description(name, scn),
-          variability_summary = scn$variability_summary,
-          quantity = unname(quantities[key]),
-          diagnostic_family = unname(families[key]),
-          stringsAsFactors = FALSE
-        ),
-        summaries[[key]]
-      )
-    })
-  )
-}
-
 long_summary <- do.call(
   rbind,
   lapply(names(diag_scenarios), function(name) {
-    scn <- diag_scenarios[[name]]
-    dat <- simulation_results[simulation_results$scenario == scn$scenario, ]
-    make_long_summary_one(name, dat, scn)
+      scn <- diag_scenarios[[name]]
+      dat <- simulation_results[simulation_results$scenario == scn$scenario, ]
+      summaries <- list(
+        interaction = summarise_p_values(dat$interaction_p),
+        dharma_uniformity = summarise_p_values(dat$dharma_uniformity_p),
+        dharma_dispersion = summarise_p_values(dat$dharma_dispersion_p),
+        dharma_quantile_fitted = summarise_p_values(dat$dharma_quantile_fitted_p),
+        dharma_quantile_predictor = summarise_p_values(dat$dharma_quantile_predictor_p),
+        dharma_categorical_design = summarise_p_values(dat$dharma_categorical_design_p),
+        pregibon = summarise_p_values(dat$pregibon_link_test_p),
+        aic_true = summarise_logical(dat$aic_favors_true_link),
+        aic_fitted = summarise_logical(dat$aic_favors_fitted_link)
+      )
+
+      keys <- names(summaries)
+      quantities <- c(
+        interaction = "Pseudo-interaction detection",
+        dharma_uniformity = "DHARMa uniformity",
+        dharma_dispersion = "DHARMa dispersion",
+        dharma_quantile_fitted = "DHARMa residual quantiles over fitted values",
+        dharma_quantile_predictor = "DHARMa residual quantiles over focal predictor",
+        dharma_categorical_design = "DHARMa residual distribution across design cells",
+        pregibon = "Pregibon-style added-term link check, secondary",
+        aic_true = "AIC same interaction formula favors true link",
+        aic_fitted = "AIC same interaction formula favors fitted link"
+      )
+      families <- c(
+        interaction = "Interaction test",
+        dharma_uniformity = "DHARMa",
+        dharma_dispersion = "DHARMa",
+        dharma_quantile_fitted = "DHARMa",
+        dharma_quantile_predictor = "DHARMa",
+        dharma_categorical_design = "DHARMa",
+        pregibon = "Pregibon-style link check",
+        aic_true = "AIC link comparison",
+        aic_fitted = "AIC link comparison"
+      )
+
+      do.call(
+        rbind,
+        lapply(keys, function(key) {
+            cbind(
+              data.frame(
+                scenario = scn$scenario,
+                paper_anchor = scn$paper_anchor,
+                outcome_family = scn$outcome_family,
+                true_link_function = scn$true_link_function,
+                fitted_link_function = scn$fitted_link_function,
+                true_model_label = scn$true_model_label,
+                fitted_model_label = scn$fitted_model_label,
+                quantitative_description = scenario_descriptions[[name]],
+                variability_summary = scn$variability_summary,
+                quantity = unname(quantities[key]),
+                diagnostic_family = unname(families[key]),
+                stringsAsFactors = FALSE
+              ),
+              summaries[[key]]
+            )
+        })
+      )
   })
 )
 
@@ -1394,131 +1213,123 @@ calibration_diagnostics <- data.frame(
   stringsAsFactors = FALSE
 )
 
-make_calibration_summary_one <- function(dat, scn) {
-  applicable <- rep(TRUE, nrow(calibration_diagnostics))
-  if (identical(scn$focal_dharma, "categorical_design")) {
-    applicable[calibration_diagnostics$suffix == "quantile_predictor_p"] <- FALSE
-  } else {
-    applicable[calibration_diagnostics$suffix == "categorical_design_p"] <- FALSE
-  }
-  diagnostics <- calibration_diagnostics[applicable, , drop = FALSE]
-  
-  do.call(
-    rbind,
-    lapply(c("correct", "wrong"), function(specification) {
-      do.call(
-        rbind,
-        lapply(seq_len(nrow(diagnostics)), function(i) {
-          suffix <- diagnostics$suffix[i]
-          column <- if (is.na(suffix)) {
-            paste0("pregibon_", specification, "_p")
-          } else {
-            paste0("dharma_", specification, "_", suffix)
-          }
-          summary <- summarise_p_values(dat[[column]])
-          data.frame(
-            scenario = scn$scenario,
-            diagnostic = diagnostics$diagnostic[i],
-            model_specification = if (specification == "correct") {
-              "Correct link"
-            } else {
-              "Wrong link"
-            },
-            n_attempted = nrow(dat),
-            n_successful = summary$n_successful_fits,
-            flagging_rate = summary$rate,
-            ci_low = summary$ci_low,
-            ci_high = summary$ci_high,
-            stringsAsFactors = FALSE
-          )
-        })
-      )
-    })
-  )
-}
-
 calibration_summary <- do.call(
   rbind,
   lapply(names(diag_scenarios), function(name) {
-    scn <- diag_scenarios[[name]]
-    dat <- simulation_results[simulation_results$scenario == scn$scenario, ]
-    make_calibration_summary_one(dat, scn)
+      scn <- diag_scenarios[[name]]
+      dat <- simulation_results[simulation_results$scenario == scn$scenario, ]
+      applicable <- rep(TRUE, nrow(calibration_diagnostics))
+      if (identical(scn$focal_dharma, "categorical_design")) {
+        applicable[calibration_diagnostics$suffix == "quantile_predictor_p"] <- FALSE
+      } else {
+        applicable[calibration_diagnostics$suffix == "categorical_design_p"] <- FALSE
+      }
+      diagnostics <- calibration_diagnostics[applicable, , drop = FALSE]
+
+      do.call(
+        rbind,
+        lapply(c("correct", "wrong"), function(specification) {
+            do.call(
+              rbind,
+              lapply(seq_len(nrow(diagnostics)), function(i) {
+                  suffix <- diagnostics$suffix[i]
+                  column <- if (is.na(suffix)) {
+                    paste0("pregibon_", specification, "_p")
+                  } else {
+                    paste0("dharma_", specification, "_", suffix)
+                  }
+                  summary <- summarise_p_values(dat[[column]])
+                  data.frame(
+                    scenario = scn$scenario,
+                    diagnostic = diagnostics$diagnostic[i],
+                    model_specification = if (specification == "correct") {
+                      "Correct link"
+                    } else {
+                      "Wrong link"
+                    },
+                    n_attempted = nrow(dat),
+                    n_successful = summary$n_successful_fits,
+                    flagging_rate = summary$rate,
+                    ci_low = summary$ci_low,
+                    ci_high = summary$ci_high,
+                    stringsAsFactors = FALSE
+                  )
+              })
+            )
+        })
+      )
   })
 )
-
-make_scenario_summary_one <- function(name, dat, scn) {
-  interaction <- summarise_p_values(dat$interaction_p)
-  pregibon <- summarise_p_values(dat$pregibon_link_test_p)
-  aic_true <- summarise_logical(dat$aic_favors_true_link)
-  aic_fitted <- summarise_logical(dat$aic_favors_fitted_link)
-  
-  dharma_summaries <- lapply(valid_dharma_rate_names, function(col) summarise_p_values(dat[[col]]))
-  names(dharma_summaries) <- valid_dharma_rate_names
-  dharma_rates <- vapply(dharma_summaries, function(x) x$rate, numeric(1))
-  dharma_ns <- vapply(dharma_summaries, function(x) x$n_successful_fits, integer(1))
-  valid <- dharma_ns > 0 & !is.na(dharma_rates)
-  
-  if (any(valid)) {
-    dharma_min <- min(dharma_rates[valid], na.rm = TRUE)
-    dharma_max <- max(dharma_rates[valid], na.rm = TRUE)
-    dharma_used_names <- names(dharma_rates)[valid]
-  } else {
-    dharma_min <- NA_real_
-    dharma_max <- NA_real_
-    dharma_used_names <- character(0)
-  }
-  
-  data.frame(
-    scenario = scn$scenario,
-    paper_anchor = scn$paper_anchor,
-    outcome_family = scn$outcome_family,
-    true_link_function = scn$true_link_function,
-    fitted_link_function = scn$fitted_link_function,
-    true_model_label = scn$true_model_label,
-    fitted_model_label = scn$fitted_model_label,
-    quantitative_description = scenario_description(name, scn),
-    variability_summary = scn$variability_summary,
-    n_replications = interaction$n_successful_fits,
-    pseudo_interaction_detection_rate = interaction$rate,
-    pseudo_interaction_detection_ci_low = interaction$ci_low,
-    pseudo_interaction_detection_ci_high = interaction$ci_high,
-    dharma_detection_rate_min = dharma_min,
-    dharma_detection_rate_max = dharma_max,
-    dharma_checks_used = paste(dharma_used_names, collapse = "; "),
-    dharma_n_checks_used = length(dharma_used_names),
-    pregibon_detection_rate = pregibon$rate,
-    pregibon_detection_ci_low = pregibon$ci_low,
-    pregibon_detection_ci_high = pregibon$ci_high,
-    aic_favors_target = aic_true$rate,
-    aic_favors_true_link = aic_true$rate,
-    aic_favors_fitted_link = aic_fitted$rate,
-    n_aic_pairs = sum(is.finite(dat$aic_fitted_minus_true)),
-    median_aic_fitted_minus_true = stats::median(dat$aic_fitted_minus_true, na.rm = TRUE),
-    q10_aic_fitted_minus_true = unname(stats::quantile(dat$aic_fitted_minus_true, 0.10, na.rm = TRUE)),
-    q25_aic_fitted_minus_true = unname(stats::quantile(dat$aic_fitted_minus_true, 0.25, na.rm = TRUE)),
-    q75_aic_fitted_minus_true = unname(stats::quantile(dat$aic_fitted_minus_true, 0.75, na.rm = TRUE)),
-    q90_aic_fitted_minus_true = unname(stats::quantile(dat$aic_fitted_minus_true, 0.90, na.rm = TRUE)),
-    aic_difference_within_2 = mean(abs(dat$aic_fitted_minus_true) < 2, na.rm = TRUE),
-    target_fit_converged_rate = mean(dat$target_fit_converged, na.rm = TRUE),
-    target_fit_gradient_max = if (any(is.finite(dat$target_fit_gradient_max))) max(dat$target_fit_gradient_max, na.rm = TRUE) else NA_real_,
-    # Compatibility aliases. The manuscript reads these column names, so both
-    # spellings are written until paper.qmd is updated to the new ones.
-    false_positive_interaction = interaction$rate,
-    false_positive_interaction_ci_low = interaction$ci_low,
-    false_positive_interaction_ci_high = interaction$ci_high,
-    dharma_detection_min = dharma_min,
-    dharma_detection_max = dharma_max,
-    pregibon_detection = pregibon$rate,
-    stringsAsFactors = FALSE
-  )
-}
 
 scenario_summary <- do.call(
   rbind,
   lapply(names(diag_scenarios), function(name) {
-    scn <- diag_scenarios[[name]]
-    dat <- simulation_results[simulation_results$scenario == scn$scenario, ]
-    make_scenario_summary_one(name, dat, scn)
+      scn <- diag_scenarios[[name]]
+      dat <- simulation_results[simulation_results$scenario == scn$scenario, ]
+      interaction <- summarise_p_values(dat$interaction_p)
+      pregibon <- summarise_p_values(dat$pregibon_link_test_p)
+      aic_true <- summarise_logical(dat$aic_favors_true_link)
+      aic_fitted <- summarise_logical(dat$aic_favors_fitted_link)
+
+      dharma_summaries <- lapply(valid_dharma_rate_names, function(col) summarise_p_values(dat[[col]]))
+      names(dharma_summaries) <- valid_dharma_rate_names
+      dharma_rates <- vapply(dharma_summaries, function(x) x$rate, numeric(1))
+      dharma_ns <- vapply(dharma_summaries, function(x) x$n_successful_fits, integer(1))
+      valid <- dharma_ns > 0 & !is.na(dharma_rates)
+
+      if (any(valid)) {
+        dharma_min <- min(dharma_rates[valid], na.rm = TRUE)
+        dharma_max <- max(dharma_rates[valid], na.rm = TRUE)
+        dharma_used_names <- names(dharma_rates)[valid]
+      } else {
+        dharma_min <- NA_real_
+        dharma_max <- NA_real_
+        dharma_used_names <- character(0)
+      }
+
+      data.frame(
+        scenario = scn$scenario,
+        paper_anchor = scn$paper_anchor,
+        outcome_family = scn$outcome_family,
+        true_link_function = scn$true_link_function,
+        fitted_link_function = scn$fitted_link_function,
+        true_model_label = scn$true_model_label,
+        fitted_model_label = scn$fitted_model_label,
+        quantitative_description = scenario_descriptions[[name]],
+        variability_summary = scn$variability_summary,
+        n_replications = interaction$n_successful_fits,
+        pseudo_interaction_detection_rate = interaction$rate,
+        pseudo_interaction_detection_ci_low = interaction$ci_low,
+        pseudo_interaction_detection_ci_high = interaction$ci_high,
+        dharma_detection_rate_min = dharma_min,
+        dharma_detection_rate_max = dharma_max,
+        dharma_checks_used = paste(dharma_used_names, collapse = "; "),
+        dharma_n_checks_used = length(dharma_used_names),
+        pregibon_detection_rate = pregibon$rate,
+        pregibon_detection_ci_low = pregibon$ci_low,
+        pregibon_detection_ci_high = pregibon$ci_high,
+        aic_favors_target = aic_true$rate,
+        aic_favors_true_link = aic_true$rate,
+        aic_favors_fitted_link = aic_fitted$rate,
+        n_aic_pairs = sum(is.finite(dat$aic_fitted_minus_true)),
+        median_aic_fitted_minus_true = stats::median(dat$aic_fitted_minus_true, na.rm = TRUE),
+        q10_aic_fitted_minus_true = unname(stats::quantile(dat$aic_fitted_minus_true, 0.10, na.rm = TRUE)),
+        q25_aic_fitted_minus_true = unname(stats::quantile(dat$aic_fitted_minus_true, 0.25, na.rm = TRUE)),
+        q75_aic_fitted_minus_true = unname(stats::quantile(dat$aic_fitted_minus_true, 0.75, na.rm = TRUE)),
+        q90_aic_fitted_minus_true = unname(stats::quantile(dat$aic_fitted_minus_true, 0.90, na.rm = TRUE)),
+        aic_difference_within_2 = mean(abs(dat$aic_fitted_minus_true) < 2, na.rm = TRUE),
+        target_fit_converged_rate = mean(dat$target_fit_converged, na.rm = TRUE),
+        target_fit_gradient_max = if (any(is.finite(dat$target_fit_gradient_max))) max(dat$target_fit_gradient_max, na.rm = TRUE) else NA_real_,
+        # Compatibility aliases. The manuscript reads these column names, so both
+        # spellings are written until paper.qmd is updated to the new ones.
+        false_positive_interaction = interaction$rate,
+        false_positive_interaction_ci_low = interaction$ci_low,
+        false_positive_interaction_ci_high = interaction$ci_high,
+        dharma_detection_min = dharma_min,
+        dharma_detection_max = dharma_max,
+        pregibon_detection = pregibon$rate,
+        stringsAsFactors = FALSE
+      )
   })
 )
 
@@ -1528,12 +1339,12 @@ utils::write.csv(scenario_summary, settings$output_scenario_summary, row.names =
 utils::write.csv(scenario_summary, settings$output_scenario_summary_paper, row.names = FALSE)
 utils::write.csv(calibration_summary, settings$output_diagnostic_calibration, row.names = FALSE)
 
-report_section("Long diagnostic summary")
-print_compact(long_summary)
-report_section("Scenario-level diagnostic summary")
-print_compact(scenario_summary)
-report_section("Diagnostic calibration summary")
-print_compact(calibration_summary)
+cat("\n", "Long diagnostic summary", "\n")
+print(long_summary)
+cat("\n", "Scenario-level diagnostic summary", "\n")
+print(scenario_summary)
+cat("\n", "Diagnostic calibration summary", "\n")
+print(calibration_summary)
 
 cat("\nInterpretation aid:\n")
 cat("- The pseudo-interaction detection rate uses the fitted wrong-link interaction model.\n")
@@ -1566,8 +1377,29 @@ plot_grid$eta <- chance$beta_intercept + chance$beta_age * plot_grid$age_c +
 plot_grid$expected_accuracy <- chance_logit_inv_local(plot_grid$eta, chance = chance$chance)
 
 # Save one representative DHARMa plot for inspection. This is not a main-text figure.
-example_data <- simulate_chance_floor(chance)
-example_fit <- fit_wrong_link_model("chance_floor", example_data, chance, include_interaction = TRUE)
+
+group_num <- stats::rbinom(chance$N, 1, 0.5)
+age <- stats::runif(chance$N, chance$age_range[1], chance$age_range[2])
+age_c <- age - chance$age_center
+eta <- chance$beta_intercept + chance$beta_age * age_c +
+  chance$beta_group * group_num + chance$beta_age_group * age_c * group_num
+p <- chance_logit_inv_local(eta, chance = chance$chance)
+y <- stats::rbinom(chance$N, size = chance$k_trials, prob = p)
+example_data <- data.frame(
+  age = age,
+  age_c = age_c,
+  group_num = group_num,
+  group = factor(group_num, levels = c(0, 1), labels = c("Group 0", "Group 1")),
+  eta_true = eta,
+  p_true = p,
+  y = y,
+  k = chance$k_trials,
+  accuracy = y / chance$k_trials,
+  stringsAsFactors = FALSE
+)
+
+example_fit <- stats::glm(cbind(y, k - y) ~ age_c * group,
+  data = example_data, family = stats::binomial("logit"))
 example_sim <- DHARMa::simulateResiduals(
   fittedModel = example_fit,
   n = settings$dharma_n_sim,
@@ -1608,7 +1440,7 @@ saveRDS(
   file = settings$output_rds
 )
 
-report_section("Saved files")
+cat("\n", "Saved files", "\n")
 cat("- ", settings$output_scenario_table, "\n", sep = "")
 cat("- ", settings$output_replications, "\n", sep = "")
 cat("- ", settings$output_long_summary, "\n", sep = "")
