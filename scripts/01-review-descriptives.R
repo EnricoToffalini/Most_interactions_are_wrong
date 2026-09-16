@@ -92,6 +92,7 @@ for (i in seq_along(sheet_data)) {
   sheet_data[[i]] <- sheet_data[[i]][columns]
 }
 eligibility_data <- do.call(rbind, sheet_data)
+n_screened <- sum(!is.na(as01(eligibility_data$Eligible)))
 
 # Exact column names in the checked-in final review dataset.
 journal_col <- "Source.title"
@@ -122,20 +123,20 @@ n_explicit <- sum(as01(interaction_data$Explicit_link_function) == 1, na.rm = TR
 n_incorrect_identity <- sum(as01(interaction_data$Incorrect_identity_link_function) == 1, na.rm = TRUE)
 n_significant_incorrect_identity <- sum(
   interaction_data$Incorrect_identity_link_function == 1 &
-  interaction_data$Finds_significant_interaction == 1,
+    interaction_data$Finds_significant_interaction == 1,
   na.rm = TRUE
 )
 
 review_summary_table <- data.frame(
   row_id = c("eligible_empirical", "testing_interactions", "non_identity_link", "explicit_link",
-    "incorrect_identity", "significant_incorrect_identity", "eligible_not_testing_interactions"),
-  quantity = c("Eligible empirical articles", "Eligible empirical articles testing at least one interaction",
-    "Interaction-testing articles using at least one non-identity link",
-    "Interaction-testing articles with clearly identifiable link function",
-    "Interaction-testing articles with Gaussian-identity analyses on constrained observed outcomes",
-    "Gaussian-identity cases with at least one significant interaction", "Eligible empirical articles not testing interactions"),
+             "incorrect_identity", "significant_incorrect_identity", "eligible_not_testing_interactions"),
+  quantity = c("Screened articles satisfying the eligibility criteria", "Eligible empirical articles testing at least one interaction",
+               "Interaction-testing articles using at least one non-identity link",
+               "Interaction-testing articles with clearly identifiable link function",
+               "Interaction-testing articles with Gaussian-identity analyses on constrained observed outcomes",
+               "Gaussian-identity cases with at least one significant interaction", "Eligible empirical articles not testing interactions"),
   n = c(n_eligible, n_interactions, n_non_identity, n_explicit, n_incorrect_identity, n_significant_incorrect_identity, n_non_interactions),
-  denominator_n = c(n_eligible, n_eligible, n_interactions, n_interactions, n_interactions, n_incorrect_identity, n_eligible),
+  denominator_n = c(n_screened, n_eligible, n_interactions, n_interactions, n_interactions, n_incorrect_identity, n_eligible),
   stringsAsFactors = FALSE)
 review_summary_table$percent <- pct(review_summary_table$n, review_summary_table$denominator_n)
 review_summary_table$ci_low <- review_summary_table$ci_high <- NA_real_
@@ -173,14 +174,14 @@ outcome_spec <- data.frame(
     "Difference / distance scores"
   ),
   patterns = I(list(
-      c("\\bbinary\\b", "\\baccuracy\\b", "\\baccuracies\\b", "\\bproportion", "\\bproportions\\b", "\\bpercent\\b", "\\bpercentage\\b"),
-      c("\\bsum score", "\\bsum scores", "\\bcomposite", "\\bcomposites", "\\bindex\\b", "\\bindices\\b", "\\bscale score", "\\btotal score"),
-      c("\\bordinal\\b", "\\blikert\\b", "\\brating\\b", "\\bratings\\b", "\\branked\\b", "\\brankings\\b"),
-      c("\\bresponse time", "\\bresponse times", "\\brt\\b", "\\blatency\\b", "\\blatencies\\b", "\\bduration\\b", "\\bdurations\\b", "\\btime\\b", "\\b1/rt\\b", "\\blog\\(rt\\)\\b", "\\blogrt\\b", "\\bzrt\\b", "\\btimes\\b"),
-      c("\\bcount\\b", "\\bcounts\\b", "\\berror count", "\\berror counts", "\\bfrequency\\b", "\\bfrequencies\\b"),
-      c("\\bneural\\b", "\\bphysiological\\b", "\\beeg\\b", "\\bfmri\\b", "\\beri?p\\b", "\\bheart rate\\b", "\\bscr\\b", "\\bemg\\b", "\\bpupil", "\\bamplitude\\b", "\\blogamplitude\\b", "\\bhr\\b", "\\bblood pressure\\b"),
-      c("\\bcorrelation\\b", "\\bcorrelations\\b", "\\bassociation\\b", "\\bassociations\\b", "\\bcovariance\\b", "\\bcor\\b", "\\bzcor\\b"),
-      c("\\bdifference score", "\\bdifference scores", "\\bdistance\\b", "\\bdistances\\b", "\\bdiscrepancy\\b", "\\bdiscrepancies\\b", "\\bdifferences\\b", "\\bdifference-score\\b", "\\bangular\\b")
+    c("\\bbinary\\b", "\\baccuracy\\b", "\\baccuracies\\b", "\\bproportion", "\\bproportions\\b", "\\bpercent\\b", "\\bpercentage\\b"),
+    c("\\bsum score", "\\bsum scores", "\\bcomposite", "\\bcomposites", "\\bindex\\b", "\\bindices\\b", "\\bscale score", "\\btotal score"),
+    c("\\bordinal\\b", "\\blikert\\b", "\\brating\\b", "\\bratings\\b", "\\branked\\b", "\\brankings\\b"),
+    c("\\bresponse time", "\\bresponse times", "\\brt\\b", "\\blatency\\b", "\\blatencies\\b", "\\bduration\\b", "\\bdurations\\b", "\\btime\\b", "\\b1/rt\\b", "\\blog\\(rt\\)\\b", "\\blogrt\\b", "\\bzrt\\b", "\\btimes\\b"),
+    c("\\bcount\\b", "\\bcounts\\b", "\\berror count", "\\berror counts", "\\bfrequency\\b", "\\bfrequencies\\b"),
+    c("\\bneural\\b", "\\bphysiological\\b", "\\beeg\\b", "\\bfmri\\b", "\\beri?p\\b", "\\bheart rate\\b", "\\bscr\\b", "\\bemg\\b", "\\bpupil", "\\bamplitude\\b", "\\blogamplitude\\b", "\\bhr\\b", "\\bblood pressure\\b"),
+    c("\\bcorrelation\\b", "\\bcorrelations\\b", "\\bassociation\\b", "\\bassociations\\b", "\\bcovariance\\b", "\\bcor\\b", "\\bzcor\\b"),
+    c("\\bdifference score", "\\bdifference scores", "\\bdistance\\b", "\\bdistances\\b", "\\bdiscrepancy\\b", "\\bdiscrepancies\\b", "\\bdifferences\\b", "\\bdifference-score\\b", "\\bangular\\b")
   )),
   stringsAsFactors = FALSE
 )
@@ -188,15 +189,15 @@ outcome_spec <- data.frame(
 outcome_table <- do.call(
   rbind,
   lapply(seq_len(nrow(outcome_spec)), function(i) {
-      n_i <- sum(grepl(paste(outcome_spec$patterns[[i]], collapse = "|"), response_types, perl = TRUE), na.rm = TRUE)
-      data.frame(
-        row_id = outcome_spec$row_id[[i]],
-        outcome_type = outcome_spec$outcome_type[[i]],
-        n = n_i,
-        denominator_n = n_interactions,
-        percent = pct(n_i, n_interactions),
-        stringsAsFactors = FALSE
-      )
+    n_i <- sum(grepl(paste(outcome_spec$patterns[[i]], collapse = "|"), response_types, perl = TRUE), na.rm = TRUE)
+    data.frame(
+      row_id = outcome_spec$row_id[[i]],
+      outcome_type = outcome_spec$outcome_type[[i]],
+      n = n_i,
+      denominator_n = n_interactions,
+      percent = pct(n_i, n_interactions),
+      stringsAsFactors = FALSE
+    )
   })
 )
 
@@ -204,25 +205,25 @@ journals <- sort(unique(eligible_data[[journal_col]]))
 by_journal_table <- do.call(
   rbind,
   lapply(journals, function(j) {
-      eligible_j <- eligible_data[eligible_data[[journal_col]] == j, , drop = FALSE]
-      interaction_j <- interaction_data[interaction_data[[journal_col]] == j, , drop = FALSE]
-      incorrect_identity_j <- interaction_j$Incorrect_identity_link_function == 1
-      significant_incorrect_identity_j <- incorrect_identity_j & interaction_j$Finds_significant_interaction == 1
-      data.frame(
-        journal = j,
-        eligible_n = nrow(eligible_j),
-        interaction_testing_n = nrow(interaction_j),
-        interaction_testing_percent_of_eligible = pct(nrow(interaction_j), nrow(eligible_j)),
-        non_identity_link_n = sum(as01(interaction_j$Uses_non_identity_link_function) == 1, na.rm = TRUE),
-        non_identity_link_percent_interaction = pct(sum(as01(interaction_j$Uses_non_identity_link_function) == 1, na.rm = TRUE), nrow(interaction_j)),
-        explicit_link_n = sum(as01(interaction_j$Explicit_link_function) == 1, na.rm = TRUE),
-        explicit_link_percent_interaction = pct(sum(as01(interaction_j$Explicit_link_function) == 1, na.rm = TRUE), nrow(interaction_j)),
-        incorrect_identity_n = sum(as01(interaction_j$Incorrect_identity_link_function) == 1, na.rm = TRUE),
-        incorrect_identity_percent_interaction = pct(sum(as01(interaction_j$Incorrect_identity_link_function) == 1, na.rm = TRUE), nrow(interaction_j)),
-        significant_incorrect_identity_n = sum(significant_incorrect_identity_j, na.rm = TRUE),
-        significant_incorrect_identity_percent_incorrect = pct(sum(significant_incorrect_identity_j, na.rm = TRUE), sum(incorrect_identity_j, na.rm = TRUE)),
-        stringsAsFactors = FALSE
-      )
+    eligible_j <- eligible_data[eligible_data[[journal_col]] == j, , drop = FALSE]
+    interaction_j <- interaction_data[interaction_data[[journal_col]] == j, , drop = FALSE]
+    incorrect_identity_j <- interaction_j$Incorrect_identity_link_function == 1
+    significant_incorrect_identity_j <- incorrect_identity_j & interaction_j$Finds_significant_interaction == 1
+    data.frame(
+      journal = j,
+      eligible_n = nrow(eligible_j),
+      interaction_testing_n = nrow(interaction_j),
+      interaction_testing_percent_of_eligible = pct(nrow(interaction_j), nrow(eligible_j)),
+      non_identity_link_n = sum(as01(interaction_j$Uses_non_identity_link_function) == 1, na.rm = TRUE),
+      non_identity_link_percent_interaction = pct(sum(as01(interaction_j$Uses_non_identity_link_function) == 1, na.rm = TRUE), nrow(interaction_j)),
+      explicit_link_n = sum(as01(interaction_j$Explicit_link_function) == 1, na.rm = TRUE),
+      explicit_link_percent_interaction = pct(sum(as01(interaction_j$Explicit_link_function) == 1, na.rm = TRUE), nrow(interaction_j)),
+      incorrect_identity_n = sum(as01(interaction_j$Incorrect_identity_link_function) == 1, na.rm = TRUE),
+      incorrect_identity_percent_interaction = pct(sum(as01(interaction_j$Incorrect_identity_link_function) == 1, na.rm = TRUE), nrow(interaction_j)),
+      significant_incorrect_identity_n = sum(significant_incorrect_identity_j, na.rm = TRUE),
+      significant_incorrect_identity_percent_incorrect = pct(sum(significant_incorrect_identity_j, na.rm = TRUE), sum(incorrect_identity_j, na.rm = TRUE)),
+      stringsAsFactors = FALSE
+    )
   })
 )
 
@@ -240,67 +241,67 @@ agreement_spec <- data.frame(
 intercoder_agreement_table <- do.call(
   rbind,
   lapply(seq_len(nrow(agreement_spec)), function(i) {
-      v <- agreement_spec$variable[[i]]
-      cd1 <- paste0("CD1_", v)
-      cd2 <- paste0("CD2_", v)
-      x <- interaction_data[[cd1]]
-      y <- interaction_data[[cd2]]
-
-      keep <- !is.na(x) & !is.na(y)
-      x <- as01(x[keep])
-      y <- as01(y[keep])
-      keep <- !is.na(x) & !is.na(y)
-      x <- x[keep]
-      y <- y[keep]
-      n <- length(x)
-      if (!n) {
-        out <- data.frame(
-          n_double_coded = 0,
-          agreement = NA_real_,
-          kappa = NA_real_,
-          coder1_yes_percent = NA_real_,
-          coder2_yes_percent = NA_real_,
-          coder1_no_percent = NA_real_,
-          coder2_no_percent = NA_real_,
-          n_disagreements = 0,
-          n_00 = 0,
-          n_01 = 0,
-          n_10 = 0,
-          n_11 = 0
-        )
-      } else {
-        n_00 <- sum(x == 0 & y == 0)
-        n_01 <- sum(x == 0 & y == 1)
-        n_10 <- sum(x == 1 & y == 0)
-        n_11 <- sum(x == 1 & y == 1)
-        p0 <- (n_00 + n_11) / n
-        px1 <- mean(x == 1)
-        py1 <- mean(y == 1)
-        pe <- px1 * py1 + (1 - px1) * (1 - py1)
-        kappa <- if (isTRUE(all.equal(pe, 1))) NA_real_ else (p0 - pe) / (1 - pe)
-        out <- data.frame(
-          n_double_coded = n,
-          agreement = p0,
-          kappa = kappa,
-          coder1_yes_percent = 100 * mean(x == 1),
-          coder2_yes_percent = 100 * mean(y == 1),
-          coder1_no_percent = 100 * mean(x == 0),
-          coder2_no_percent = 100 * mean(y == 0),
-          n_disagreements = n_01 + n_10,
-          n_00 = n_00,
-          n_01 = n_01,
-          n_10 = n_10,
-          n_11 = n_11
-        )
-
-      }
-
-      cbind(
-        variable = v,
-        label = agreement_spec$label[[i]],
-        out,
-        stringsAsFactors = FALSE
+    v <- agreement_spec$variable[[i]]
+    cd1 <- paste0("CD1_", v)
+    cd2 <- paste0("CD2_", v)
+    x <- interaction_data[[cd1]]
+    y <- interaction_data[[cd2]]
+    
+    keep <- !is.na(x) & !is.na(y)
+    x <- as01(x[keep])
+    y <- as01(y[keep])
+    keep <- !is.na(x) & !is.na(y)
+    x <- x[keep]
+    y <- y[keep]
+    n <- length(x)
+    if (!n) {
+      out <- data.frame(
+        n_double_coded = 0,
+        agreement = NA_real_,
+        kappa = NA_real_,
+        coder1_yes_percent = NA_real_,
+        coder2_yes_percent = NA_real_,
+        coder1_no_percent = NA_real_,
+        coder2_no_percent = NA_real_,
+        n_disagreements = 0,
+        n_00 = 0,
+        n_01 = 0,
+        n_10 = 0,
+        n_11 = 0
       )
+    } else {
+      n_00 <- sum(x == 0 & y == 0)
+      n_01 <- sum(x == 0 & y == 1)
+      n_10 <- sum(x == 1 & y == 0)
+      n_11 <- sum(x == 1 & y == 1)
+      p0 <- (n_00 + n_11) / n
+      px1 <- mean(x == 1)
+      py1 <- mean(y == 1)
+      pe <- px1 * py1 + (1 - px1) * (1 - py1)
+      kappa <- if (isTRUE(all.equal(pe, 1))) NA_real_ else (p0 - pe) / (1 - pe)
+      out <- data.frame(
+        n_double_coded = n,
+        agreement = p0,
+        kappa = kappa,
+        coder1_yes_percent = 100 * mean(x == 1),
+        coder2_yes_percent = 100 * mean(y == 1),
+        coder1_no_percent = 100 * mean(x == 0),
+        coder2_no_percent = 100 * mean(y == 0),
+        n_disagreements = n_01 + n_10,
+        n_00 = n_00,
+        n_01 = n_01,
+        n_10 = n_10,
+        n_11 = n_11
+      )
+      
+    }
+    
+    cbind(
+      variable = v,
+      label = agreement_spec$label[[i]],
+      out,
+      stringsAsFactors = FALSE
+    )
   })
 )
 
@@ -316,6 +317,7 @@ sem_basis <- if (any(sem_hits_explicit)) "explicit exclusion field" else "note-b
 screening_flow_table <- data.frame(
   step = c(
     "records retrieved across journal sheets",
+    "articles screened for eligibility",
     "eligible empirical articles in final dataset",
     "eligible articles testing at least one interaction",
     "eligible articles not testing interactions",
@@ -323,6 +325,7 @@ screening_flow_table <- data.frame(
   ),
   n = c(
     sum(apply(screening_data, 1, function(row) any(!is.na(row) & trimws(as.character(row)) != ""))),
+    n_screened,
     n_eligible,
     n_interactions,
     n_non_interactions,
@@ -330,6 +333,7 @@ screening_flow_table <- data.frame(
   ),
   basis = c(
     "non-empty rows across all screening workbook sheets (one per journal)",
+    "articles screened for eligibility across all five journals",
     if (!is.null(eligible_col)) "Eligible == 1 in final review dataset" else "final review dataset row count",
     if (!is.null(tests_interactions_col)) "Tests_interactions == 1 in eligible rows" else "review flags present in final dataset",
     "eligible minus interaction-testing",

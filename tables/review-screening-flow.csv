@@ -1,5 +1,6 @@
 "step","n","basis"
 "records retrieved across journal sheets",2175,"non-empty rows across all screening workbook sheets (one per journal)"
+"articles screened for eligibility",360,"articles screened for eligibility across all five journals"
 "eligible empirical articles in final dataset",331,"Eligible == 1 in final review dataset"
 "eligible articles testing at least one interaction",200,"Tests_interactions == 1 in eligible rows"
 "eligible articles not testing interactions",131,"eligible minus interaction-testing"
