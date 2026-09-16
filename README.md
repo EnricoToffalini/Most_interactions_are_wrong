@@ -10,16 +10,16 @@ The project examines how interaction claims in psychology depend on the scale on
 
 The paper has three main components.
 
-1. **Descriptive review of current practice**  
+1. **Descriptive review of current practice**
    We summarize how often recent psychological articles test interactions, how often outcome family and link functions are made explicit, and how often interaction tests are applied to outcomes for which identity-link additivity is not self-evident.
 
-2. **Conceptual framework**  
+2. **Conceptual framework**
    We distinguish:
    - wrong-family problems, where the outcome model does not respect the response type;
    - wrong-link problems, where the family may be plausible but the link defines an inadequate scale of additivity;
    - measurement-metric problems, where the observed score may not be the scale on which the theoretical interaction claim is meant to hold.
 
-3. **Worked examples and simulations**  
+3. **Worked examples and simulations**
    The simulations show how plausible but inadequate links can generate pseudo-interactions when the data-generating process contains no product term on the known generating scale. Matched-scale conditions report nominal rejection rates, mismatched-scale conditions report pseudo-interaction detection rates, and displays combining both use neutral product-term rejection rates. The main cases are:
    - forced-choice accuracy with a non-zero chance floor;
    - bounded and discrete sum scores;
@@ -28,25 +28,26 @@ The paper has three main components.
 
 ## Reproducibility
 
-The analyses are written in R. The manuscript is written in Quarto.
-
-To reproduce the main outputs, run the scripts from the root of the repository:
-
-```r
-source("run.R")
-```
-
-Then render the manuscript:
+Run every command from the repository root. The analysis scripts contain their
+own settings, DGPs, model fits, summaries, and plotting code. Package requirements
+are explicit: `ggplot2`, `readxl` (review), `glmmTMB` (mixed models), and `DHARMa`
+(diagnostics). Provision the package environment separately; `run.R` neither
+installs packages nor restores `renv`.
 
 ```bash
+Rscript run.R
 quarto render paper/paper-v2.qmd
+quarto render paper/Supplement-A-Technical-details.qmd
 ```
 
-If the repository includes an `renv.lock` file, restore the package environment before running the analyses:
+`run.R` runs the review, two figures, three main simulations, and diagnostics in
+order. The optional `scripts/00-sandbox-one-scenario.R` is run separately.
 
-```r
-renv::restore()
-```
+The refactor was reviewed statically. **No R / Quarto / simulation code was
+executed during the refactor.** Existing generated results are historical and
+have not been recomputed or relabeled as new 3000-replication results. See
+[DE-ENGINEERING.md](DE-ENGINEERING.md) for corrections, limits, and the complete
+manual validation sequence.
 
 ## Interactive simulation atlas
 
@@ -60,36 +61,79 @@ offline workflow.
 
 ## Main scripts
 
-- `01-review-descriptives.R`  
+- `01-review-descriptives.R`
   Produces descriptive summaries of the preregistered review.
 
-- `02a-figure-motivating-example.R`  
+- `02a-figure-motivating-example.R`
   Generates the motivating example showing how different links imply different interaction conclusions.
 
-- `02b-figure-logit-probit-fitted-example.R`  
+- `02b-figure-logit-probit-fitted-example.R`
   Generates the fitted logit-versus-probit example used for the within-family link discussion.
 
-- `03a-simulation-forced-choice.R`  
+- `03a-simulation-forced-choice.R`
   Simulates forced-choice accuracy data with a non-zero chance floor and compares standard and chance-corrected links.
 
-- `03b-simulation-sum-scores.R`  
+- `03c-simulation-sum-scores.R`
   Simulates bounded, discrete sum scores from an underlying latent scale and compares manifest-score and alternative analyses.
 
-- `03c-simulation-within-family-links.R`  
+- `03b-simulation-within-family-links.R`
   Examines how logit and probit links can differ for interaction claims even within the binomial family.
 
-- `04-diagnostic-worked-example.R`  
+- `04-diagnostic-worked-example.R`
   Compares pseudo-interaction detection rates with diagnostic detection rates and same-formula AIC comparisons under deliberately wrong-link fits.
 
-## Computational notes
+## Computational settings and individual runs
 
-Simulation settings are defined inside each script. Many scripts use environment variables to control the number of replications and cores. For example:
+**FULL means 3000 Monte Carlo replications per scenario**, for forced choice,
+within-family logit/probit, sum scores, and all corresponding Atlas scenarios.
+The default is `B <- as.integer(Sys.getenv("N_SIM", "3000"))` in each main
+simulation. `N_SIM` is an explicit override for smoke/debug runs; small values
+are not publication results. Main-script alpha remains .05 by default (`ALPHA`
+can override it); Atlas alpha remains .05.
 
 ```bash
-N_SIM=1000 N_CORES=4 Rscript scripts/03a-simulation-forced-choice.R
+# Individual full main simulations
+N_SIM=3000 N_CORES=4 Rscript scripts/03a-simulation-forced-choice.R
+N_SIM=3000 N_CORES=4 Rscript scripts/03b-simulation-within-family-links.R
+N_SIM=3000 N_CORES=4 Rscript scripts/03c-simulation-sum-scores.R
+N_SIM=3000 N_CORES=4 Rscript scripts/04-diagnostic-worked-example.R
+
+# Very small check; writes to the usual main-output paths
+N_SIM=3 N_CORES=2 DHARMA_N_SIM=25 Rscript run.R
 ```
 
-For quick checks, use smaller values of `N_SIM`. For manuscript results, use the values reported in the paper or supplement.
+Worker count is read in this order: **`N_CORES`**, then
+**`SLURM_CPUS_PER_TASK`**, then `detectCores() - 1` (at least one).
+Scenarios run in sequence; replications run in parallel. Linux uses
+`parallel::mclapply()`; Windows uses a PSOCK cluster with explicit worker
+dependencies. Set `N_CORES=1` for a serial comparison. BLAS/OpenMP worker threads
+are limited to one. No RStudio session or pre-existing workspace is required.
+
+The main scripts retain their original seeds and Linux fork RNG calls. New
+Windows parallel runs use `clusterSetRNGStream()` with the script seed; they
+are not expected to reproduce the old Windows serial draws. Atlas seeds are
+explicit per scenario and replication, independent of worker scheduling.
+
+For example, inside a SLURM allocation, from the repository root:
+
+```bash
+export N_SIM=3000
+# Leave N_CORES unset to use SLURM_CPUS_PER_TASK.
+srun Rscript --vanilla scripts/03b-simulation-within-family-links.R
+```
+
+On PowerShell, set variables before running the same script names:
+
+```powershell
+$env:N_SIM = "3"
+$env:N_CORES = "2"
+$env:DHARMA_N_SIM = "25"
+Rscript run.R
+```
+
+The [Atlas README](simulation-atlas/README.md) gives the grid, family runner,
+summarization, restart, and Supplement B commands. Supplement B reads
+precomputed summaries and does not run simulations.
 
 ## Data
 

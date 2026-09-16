@@ -18,6 +18,9 @@ export BLIS_NUM_THREADS=1
 export VECLIB_MAXIMUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
 
+# Full publication replication count (all families).
+export N_SIM=3000
+
 # Attiva l'ambiente Conda
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate r460

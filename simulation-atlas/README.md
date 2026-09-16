@@ -1,159 +1,127 @@
 # Precomputed simulation atlas
 
-## Purpose and scope
+The Atlas repeats the three manuscript analyses over an explicit sensitivity
+grid. It writes precomputed summaries for Supplement B and the Shiny app.
+Generating interactions remain zero. Scenario IDs, ordering, parameter
+combinations, model labels, and slice memberships are retained.
 
-This self-contained auxiliary module generates precomputed summaries consumed
-by the separate Shiny interface in `shiny-app/`. It complements the manuscript
-simulations without replacing them. The
-manuscript keeps a small number of tuned, transparent worked scenarios. The
-atlas varies sample size, the two additive main effects, scale location, and a
-small number of family-specific design or measurement parameters around those
-same anchors. The generating-scale product term is exactly zero in every row.
+## Files
 
-The grid uses sensitivity slices instead of a full Cartesian product. In a
-one-dimensional slice, only the named parameter differs from its central
-anchor; the main-effect surface varies only the two additive main effects. This
-keeps the scientific comparisons readable and the offline computation bounded.
-Duplicate anchor combinations are stored once, with all of their memberships
-in `slice_membership`.
+- `01-build-scenario-grid.R`: declares the core scenarios and diagnostic grid;
+  writes `data/scenario-grid.csv` and `data/diagnostic-grid.csv`.
+- `02a-run-forced-choice.R`: mirrors `scripts/03a-simulation-forced-choice.R`,
+  including the chance likelihood, three starts, Hessian and Wald checks.
+- `02b-run-within-family.R`: mirrors `scripts/03b-simulation-within-family-links.R`.
+  It retains aggregated binomial draws and the existing GLM at ICC = 0.
+- `02c-run-sum-scores.R`: mirrors `scripts/03c-simulation-sum-scores.R`, including
+  ordinal item draws, the continuity correction, and all three fitted models.
+- `02d-run-diagnostics.R`: preserves the targeted AIC, DHARMa and Pregibon
+  calculations. Within-family diagnostic data retain individual binary trials.
+- `02-run-atlas.R`: optional four-line runner for the family scripts above.
+- `03-summarize-atlas.R`: reads raw results and writes the existing app-facing
+  CSV/RDS summary schemas. It performs no model fitting.
+- `raw/`: one ignored RDS file per scenario, run mode, and B.
+- `Supplement-B-Simulation-atlas.qmd`: reads precomputed CSV summaries.
 
-The three families follow the current manuscript code:
+There is no `simulation-atlas/R/` helper framework. Parameters, seed arithmetic,
+DGPs, fits, and interaction extraction are local to each family runner. The
+diagnostic-grid file is created by the grid script; it has not been generated
+during the static refactor.
 
-- forced-choice accuracy follows `scripts/03a-simulation-forced-choice.R`;
-- bounded sum scores follow `scripts/03c-simulation-sum-scores.R`;
-- within-family logit/probit comparisons follow
-  `scripts/03b-simulation-within-family-links.R`.
+## Settings
 
-The targeted diagnostic component adapts the applicable AIC, DHARMa, and
-Pregibon-style checks from `scripts/04-diagnostic-worked-example.R`. Checks that
-are not structurally meaningful are recorded as inapplicable rather than
-forced. In particular, the paper does not define a same-response,
-same-likelihood diagnostic comparison for its sum-score models. The core
-within-family runner aggregates identical Bernoulli trials to binomial counts,
-which has the same likelihood but is much cheaper; the diagnostic anchor keeps
-the manuscript's trial-level layout for its DHARMa checks.
+| Environment variable | Default / meaning |
+| --- | --- |
+| `ATLAS_MODE` | `full`; `smoke` selects one core anchor per family and two diagnostic anchors |
+| `N_SIM` | **3000 for every full scenario**; 3 for smoke, unless explicitly overridden |
+| `N_CORES` | Explicit worker override |
+| `SLURM_CPUS_PER_TASK` | Worker count when `N_CORES` is unset |
+| `ATLAS_OVERWRITE` | `FALSE`; skip any existing scenario file; `TRUE` recomputes it |
+| `ATLAS_RUN_DHARMA` | `FALSE`; `TRUE` includes the DHARMa residual checks |
+| `DHARMA_N_SIM` | 250 full / 25 smoke simulated datasets per DHARMa check |
 
-## Contents
+There is no separate within-family B setting. The grid's `B` column records the
+intended full design, 3000. Raw and summary `B_requested` records the actual run.
+Use the **same `ATLAS_MODE` and `N_SIM` for execution and summarization**.
+The summarizer does not infer a mode or a replication count from old files.
 
-- `01-build-scenario-grid.R`: builds and validates the partial-factorial grid,
-  including text-based checks against the current manuscript anchor settings.
-- `02-run-atlas.R`: offline, resumable Monte Carlo runner for the core and
-  targeted diagnostic atlas.
-- `03-summarize-atlas.R`: creates compact CSV and RDS summaries for the app.
-- `R/`: family-specific generating, fitting, deterministic, and diagnostic
-  helpers local to the atlas.
-- `data/scenario-grid.csv`: readable, stable scenario definitions.
-- `data/*-smoke.csv` and `data/*-smoke.rds`: tiny validation results, when
-  present. They are never presented as full results.
-- `data/atlas-summary.csv/.rds` and
-  `data/diagnostic-atlas-summary.csv/.rds`: full app-facing summaries, created
-  only after a full run.
-- `raw/`: ignored replication-level RDS files, one per scenario and run type.
+If neither core variable is set, workers default to `detectCores() - 1`, with a
+minimum of one. Scenarios run sequentially; replications use `mclapply()` on
+Linux and `parLapply()` on Windows. There is no nested parallelism. Workers use
+one BLAS/OpenMP thread. Each family passes its scenario and deterministic
+quantities directly to its replication function.
 
-## Reproducibility and modes
-
-Everything you can change lives in one clearly marked settings block at the top
-of `02-run-atlas.R`. There are no environment variables and nothing to edit
-under `R/`. The block is:
-
-```r
-MODE         <- "smoke"   # "smoke" (quick check) or "full" (the real run)
-RUN_DHARMA   <- FALSE     # TRUE also runs the DHARMa residual checks
-N_CORES      <- 1         # scenarios computed in parallel
-OVERWRITE    <- FALSE     # TRUE recomputes already complete raw files
-B            <- NA        # NA = the default for the chosen MODE
-B_WITHIN     <- NA        # NA = the default for the chosen MODE
-DHARMA_N_SIM <- NA        # NA = the default for the chosen MODE
-```
-
-`MODE = "smoke"` runs only one manuscript anchor per core family and the two
-applicable paper diagnostic anchors, with B = 3 (2 for within-family). Smoke B
-must be 2 or 3. Smoke summaries have `-smoke` in their filenames and
-`run_type = "smoke"`.
-
-`MODE = "full"` runs every declared core scenario, with B = 500 for
-forced-choice and sum scores and B = 300 for the more expensive within-family
-models. Full mode never reduces B silently. `DHARMA_N_SIM` defaults to 25 in
-smoke mode and 250 in full mode.
-
-`03-summarize-atlas.R` has its own short settings block, but it normally needs
-no editing: it summarizes whatever `02-run-atlas.R` left in `raw/`, preferring
-full results over smoke ones, and reads B off the raw file names so the two
-scripts cannot silently disagree.
-
-DHARMa dominates diagnostic runtime, so `RUN_DHARMA` is `FALSE` by default. That
-pass still computes the AIC link comparison and the Pregibon-style added-term
-check, writes its raw files as `diagnostic-nodharma-*.rds`, and marks the DHARMa
-rows as applicable but not computed. Setting `RUN_DHARMA <- TRUE` and running
-`02-run-atlas.R` again later writes the ordinary `diagnostic-*.rds` files
-alongside them; `03-summarize-atlas.R` then prefers the complete set
-automatically, so only the summarizer has to be re-run. Note that
-`applicable = FALSE` means a check is structurally meaningless for that family,
-whereas `computed = FALSE` means it was simply not run; the app reports the two
-differently.
-
-Every replication receives its own deterministic seed:
+Seed arithmetic appears directly in the family scripts:
 
 ```text
-seed = (base_seed + stream_offset + scenario_number * 10000 + replication)
-       modulo .Machine$integer.max
+seed = (20260807 + family_offset + stream_offset
+        + scenario_number * 10000 + replication) modulo .Machine$integer.max
+family_offset: forced choice 1000000; sum scores 2000000; within family 3000000
+stream_offset: core 0; diagnostics 4000000
 ```
 
-The fixed base seed is 20260807. Family and core/diagnostic stream offsets are
-fixed in `R/atlas-common.R`. Results therefore do not depend on the number of
-workers or scheduling order.
+## Run from the repository root
 
-## Commands
-
-Always run from the repository root. First build the grid, which takes no
-settings:
+Build the two declared grids first:
 
 ```bash
 Rscript simulation-atlas/01-build-scenario-grid.R
 ```
 
-Then run the atlas itself. With the settings block as shipped
-(`MODE <- "smoke"`, `RUN_DHARMA <- FALSE`) this is a quick check:
+Small smoke run, including the diagnostic interfaces:
 
 ```bash
+export ATLAS_MODE=smoke N_SIM=3 N_CORES=2
+export ATLAS_RUN_DHARMA=TRUE DHARMA_N_SIM=25 ATLAS_OVERWRITE=TRUE
 Rscript simulation-atlas/02-run-atlas.R
 Rscript simulation-atlas/03-summarize-atlas.R
-Rscript shiny-app/smoke-test.R
 ```
 
-For the real run, open `simulation-atlas/02-run-atlas.R`, set `MODE <- "full"`
-and `N_CORES` to the number of cores you want to use, then run exactly the same
-two commands. Nothing else changes, and `03-summarize-atlas.R` picks the full
-results up on its own.
+Smoke summaries have `-smoke` suffixes and `run_type = "smoke"`.
 
-The same works from an R console at the repository root:
+Full Atlas, including diagnostics:
 
-```r
-source("simulation-atlas/02-run-atlas.R")
-source("simulation-atlas/03-summarize-atlas.R")
+```bash
+export ATLAS_MODE=full N_SIM=3000
+export ATLAS_RUN_DHARMA=TRUE DHARMA_N_SIM=250
+export ATLAS_OVERWRITE=FALSE
+Rscript simulation-atlas/02a-run-forced-choice.R
+Rscript simulation-atlas/02b-run-within-family.R
+Rscript simulation-atlas/02c-run-sum-scores.R
+Rscript simulation-atlas/02d-run-diagnostics.R
+Rscript simulation-atlas/03-summarize-atlas.R
+quarto render simulation-atlas/Supplement-B-Simulation-atlas.qmd
 ```
 
-Launch the app after summarizing:
+On SLURM, leave `N_CORES` unset to use `SLURM_CPUS_PER_TASK` and prefix the R
+commands with `srun`. The existing `slurm/05-atlas.slurm` shows this sequence.
+On PowerShell use `$env:ATLAS_MODE = "full"`, `$env:N_SIM = "3000"`, etc., then
+run the same script paths.
 
-```r
-shiny::runApp("shiny-app")
-```
+## Restarting and precomputed results
 
-The within-family random-intercept GLMMs and their DHARMa diagnostic checks
-dominate runtime: a single within-family replication costs roughly twenty-five
-times a forced-choice one. Expect the full run to take a few hours on a desktop
-with `N_CORES` around 7. The runner skips a complete scenario/B raw file unless
-`OVERWRITE <- TRUE`, so an interrupted full run can be resumed by simply
-starting `02-run-atlas.R` again.
+Rerun a family script to skip existing scenario files. There is no completeness
+or atomic-write framework. Delete an interrupted scenario file manually, or use
+`ATLAS_OVERWRITE=TRUE`. For the first old-versus-new comparison, preserve the old
+raw directory separately and regenerate all compared files: existing B=3000
+files would otherwise be skipped even if produced by older code.
 
-## Version control and archive policy
+DHARMa-free runs still compute AIC and Pregibon and write
+`diagnostic-nodharma-*.rds`. A later pass with `ATLAS_RUN_DHARMA=TRUE` writes
+`diagnostic-*.rds`. The summarizer prefers a complete set of the latter filenames,
+otherwise reads the DHARMa-free set. It does not inspect file completeness.
+`computed = FALSE` and `applicable = FALSE` retain their distinct meanings.
+Sum-score diagnostics remain structurally inapplicable.
 
-The grid, code, README files, and compact summaries belong in Git. Raw
-replication-level RDS files under `raw/` do not: they may be large and are
-ignored except for `.gitkeep`. After a full run, archive those raw files and the
-listed reproducibility materials on OSF or another durable repository; see
-`OSF-UPLOAD.md`.
+Full summaries remain `data/atlas-summary.csv/.rds` and
+`data/diagnostic-atlas-summary.csv/.rds`. Supplement B and the Shiny app consume
+these files; neither executes Atlas simulations. Tracked summaries and rendered
+artifacts were not recomputed during the refactor. Their historical B values
+must not be mistaken for the new full-run specification.
 
-The Shiny app reads compact precomputed summaries directly from this folder's
-`data/` directory. It performs no Monte Carlo simulation and no model fitting
-at runtime; this folder is independent of the Shiny UI.
+The main diagnostic script and Atlas retain their existing differences in
+Pregibon calculations and applicability. This refactor does not reconcile or
+reinterpret those methods. See [the static audit](../DE-ENGINEERING.md).
+
+Keep code, grids, and compact summaries in Git. Raw replications remain ignored
+and can be archived with the existing project archive materials.

@@ -10,7 +10,7 @@
 #SBATCH --time=00:00:00
 
 # Disabilita il multi-threading automatico delle librerie algebriche sottostanti (BLAS, OpenMP, MKL)
-# per evitare sovrapposizioni e contesa di thread con clusterApplyLB / worker R
+# per evitare sovrapposizioni e contesa di thread con mclapply / worker R
 export OMP_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
 export MKL_NUM_THREADS=1
@@ -21,6 +21,9 @@ export NUMEXPR_NUM_THREADS=1
 # Configurazione Atlas via variabili d'ambiente (default: MODE="full", RUN_DHARMA="FALSE")
 export ATLAS_MODE="full"
 export ATLAS_RUN_DHARMA="TRUE"
+
+# Full publication replication count (all families).
+export N_SIM=3000
 
 # Attiva l'ambiente Conda
 source ~/miniconda3/etc/profile.d/conda.sh
