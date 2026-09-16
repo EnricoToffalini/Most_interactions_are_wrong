@@ -34,11 +34,12 @@ extract_mixed_fit <- function(captured, newdata, gaussian = FALSE) {
     "positive definite", "degenerate", sep = "|"
   )
   if (is.null(captured$fit)) {
+    problem_parts <- c(captured$error, captured$warnings)
+    problem_parts <- problem_parts[nzchar(problem_parts)]
     return(data.frame(
       interaction_p = NA_real_, interaction_coef = NA_real_, interaction_se = NA_real_,
       response_scale_did = NA_real_, fit_problem = TRUE,
-      problem_message = captured$error, singular = NA,
-      warning_message = paste(captured$warnings, collapse = " | "),
+      problem_message = paste(unique(problem_parts), collapse = " | "),
       stringsAsFactors = FALSE
     ))
   }
@@ -106,10 +107,6 @@ extract_mixed_fit <- function(captured, newdata, gaussian = FALSE) {
     response_scale_did = unname(did),
     fit_problem = fit_problem,
     problem_message = paste(unique(problem_parts), collapse = " | "),
-    singular = singular,
-    warning_message = paste(
-      unique(c(captured$warnings, extraction_warnings)), collapse = " | "
-    ),
     stringsAsFactors = FALSE
   )
 }
@@ -192,7 +189,7 @@ run_one_replication <- function(replication, scenario, deterministic) {
     "fitted_link", "interaction_p", "interaction_coef", "interaction_se",
     "response_scale_did", "outcome_scale_did", "deterministic_pseudo_interaction",
     "deterministic_response_scale_did", "fit_success", "convergence_problem",
-    "fit_problem", "problem_message", "singular", "warning_message"
+    "problem_message"
   )]
 }
 

@@ -32,11 +32,7 @@ core_split <- split(core_raw, interaction(core_raw$scenario_id, core_raw$model_l
 core_metrics <- do.call(rbind, lapply(core_split, function(data) {
 
       attempted <- nrow(data)
-      problem <- if ("fit_problem" %in% names(data)) {
-        data$fit_problem %in% TRUE
-      } else {
-        data$convergence_problem %in% TRUE
-      }
+      problem <- data$convergence_problem %in% TRUE
       successful <- !problem & is.finite(data$interaction_p)
       flagged_finite <- problem & is.finite(data$interaction_p)
       n_successful <- sum(successful)
@@ -52,7 +48,7 @@ core_metrics <- do.call(rbind, lapply(core_split, function(data) {
         scenario_id = data$scenario_id[1],
         model_label = data$model_label[1],
         fitted_link = data$fitted_link[1],
-        fit_structure = if ("fit_structure" %in% names(data)) data$fit_structure[1] else NA_character_,
+        fit_structure = data$fit_structure[1],
         B_requested = data$B_requested[1],
         n_attempted = attempted,
         n_fit_ok = sum(!problem),
