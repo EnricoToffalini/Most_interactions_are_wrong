@@ -207,6 +207,7 @@ compact_by_journal <- function(d) {
     `Eligible (n)` = d$eligible_n,
     `Interaction-testing (n)` = d$interaction_testing_n,
     `Interaction / eligible` = fmt_percent(d$interaction_testing_percent_of_eligible),
+    `Coded (n)` = d$observed_outcome_interaction_n,
     `Non-identity link` = fmt_percent(d$non_identity_link_percent_interaction),
     `Explicit link` = fmt_percent(d$explicit_link_percent_interaction),
     `Gaussian-identity flagged` = fmt_percent(d$incorrect_identity_percent_interaction),
@@ -225,11 +226,11 @@ This supplement reports extended review methods and reliability, followed by the
 
 The review protocol was preregistered before any record was screened and is available at <https://osf.io/bdu73/>, together with the coding data dictionary. The protocol specified a descriptive review of recent psychological research articles from five pre-specified journals, one per major area: *Psychological Science* (general), *Journal of Experimental Psychology: General* (experimental), *Journal of Personality and Social Psychology* (social), *Developmental Science* (developmental), and *Psychological Medicine* (clinical). Journals were selected on a discretionary combination of criteria stated in the protocol: first-quartile Impact Factor in the 2023 Journal Citation Reports, not primarily publishing reviews, not narrowly specialized, and strong general reputation in the respective field, as jointly evaluated by the coauthors.
 
-Article records were retrieved from Elsevier's Scopus database for all articles published in these journals in 2024. For each journal, the full record list was randomly ordered and then screened in that order until 40 eligible interaction-testing articles were included, for a planned total of 200 interaction-testing articles across the five journals. Screening a larger set also allowed estimating the proportion of eligible empirical articles that test interactions. The design is targeted and descriptive: it characterizes reporting practice in influential outlets during the sampled year. It is not a random or stratified sample of all psychology journals, and the estimates are not prevalence estimates for the discipline.
+Article records were retrieved from Elsevier's Scopus database for all articles published in these journals in 2024. For each journal, the full record list was randomly ordered and then screened in that order until 40 eligible articles testing at least one interaction on an observed outcome were included, for the planned total of 200 coded articles across the five journals. The preregistered rule referred to interaction-testing articles in general; the restriction to observed outcomes is a protocol deviation described below. Screening a larger set also allowed estimating the proportion of eligible empirical articles that test interactions. The design is targeted and descriptive: it characterizes reporting practice in influential outlets during the sampled year. It is not a random or stratified sample of all psychology journals, and the estimates are not prevalence estimates for the discipline.
 
 ## Eligibility and coding workflow
 
-Eligible articles were empirical articles presenting original psychological research. The following were excluded, per protocol: reviews and meta-analyses; editorials, commentaries, opinion papers, and theoretical articles without empirical data; qualitative-only articles; replication-only studies; and psychometric validation studies. Articles were coded in detail only if they tested at least one interaction, through statistical modeling or ANOVA. The coding scheme targeted observed-outcome analyses; articles whose relevant tests were conducted only at the latent-variable level, or whose empirical analyses relied only on structural equation models, were excluded from detailed coding.
+Eligible articles were empirical articles presenting original psychological research. The following were excluded, per protocol: reviews and meta-analyses; editorials, commentaries, opinion papers, and theoretical articles without empirical data; qualitative-only articles; replication-only studies; and psychometric validation studies. Articles were coded in detail only if they tested at least one interaction, through statistical modeling or ANOVA. Analyzing latent variables or fitting structural equation models was not in itself a reason for exclusion. Because the family and link coding requires an observed outcome, articles whose interaction tests all concerned latent outcomes (for example, latent moderation in a structural equation model, or moderation of latent variance components in a twin model) were recorded as eligible and interaction-testing, but were not coded in detail and did not count toward the 40 articles per journal. The preregistration did not specify this restriction, so we treat it as a protocol deviation. It was applied during screening, and we retained the resulting sample rather than reconstructing the point at which screening would otherwise have stopped. Articles combining latent-variable analyses with at least one observed-outcome interaction were coded, with the coding restricted to their observed-outcome interactions.
 
 The resulting screening flow is reported in @tbl-screening-flow.
 
@@ -258,7 +259,7 @@ print_table_if_exists(
 )
 ```
 
-Each interaction-testing article was independently coded by two researchers. Discrepancies were resolved through discussion or, if needed, by consulting the other coauthors. Generative AI tools were used only as an optional aid to locate relevant passages within an article; all coding used in the review is human.
+Each of the 200 coded articles was independently coded by two researchers. Discrepancies were resolved through discussion or, if needed, by consulting the other coauthors. Generative AI tools were used only as an optional aid to locate relevant passages within an article; all coding used in the review is human.
 
 <!-- The coded variable names use underscores in the coding sheet and in the R
      code. Underscores are unbreakable in the PDF table, so the names are
@@ -327,7 +328,7 @@ print_table_if_exists(
 
 ## By-journal descriptives
 
-@tbl-by-journal reports the review descriptives by journal. Percentages are computed within interaction-testing articles, except for the interaction-testing percentage, which is computed within eligible articles. The main paper reports only the range of these quantities across journals and the position of *Psychological Medicine*, which had the lowest screening proportion and the highest non-identity-link proportion in this sample.
+@tbl-by-journal reports the review descriptives by journal. Link percentages are computed within the coded articles (eligible articles with at least one observed-outcome interaction, 40 per journal), whereas the interaction-testing percentage counts interactions on observed or latent outcomes and is computed within eligible articles. The main paper reports only the range of these quantities across journals and the position of *Psychological Medicine*, which had the lowest screening proportion and the highest non-identity-link proportion in this sample.
 
 ```{r}
 #| label: tbl-by-journal

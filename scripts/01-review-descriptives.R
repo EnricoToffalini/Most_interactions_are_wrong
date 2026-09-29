@@ -5,10 +5,11 @@ dir.create("outputs", recursive = TRUE, showWarnings = FALSE)
 
 # The screening and eligibility workbooks store one sheet per journal
 # (DS, JEPG, JPSP, PM, PS). Reading only sheet 1 counts a single journal, so
-# both the screening-record count and the SEM keyword search must span all
-# sheets. Columns are coerced to character so sheets with different inferred
-# types row-bind cleanly; both consumers (row counting and keyword search)
-# treat cells as text, so this is lossless for those uses.
+# all counts must span all sheets. Columns are coerced to character so sheets
+# with different inferred types row-bind cleanly; 0/1 flags are recoded with as01().
+# Article-level decisions (Eligible, Tests_interactions,
+# Tests_observed_outcome_interactions) come from the screening workbook; the final
+# review dataset holds the detailed-coding sample (observed-outcome interactions).
 
 as01 <- function(x) {
   x <- trimws(as.character(x))
@@ -54,15 +55,11 @@ settings <- list(
     "tables/review-intercoder-agreement.csv",
     "tables/review-screening-flow.csv",
     "outputs/review-summary.rds"
-  ),
-  sem_keywords = c(
-    "sem", "structural equation", "latent factor", "latent variable",
-    "latent variables", "latent trajectory", "latent growth"
   )
 )
 
 final_data <- utils::read.csv(settings$data_file, stringsAsFactors = FALSE, check.names = FALSE)
-# Read every journal sheet, retaining character cells for row counts and keyword search.
+# Read every journal sheet, retaining character cells for row counts.
 sheets <- readxl::excel_sheets(settings$screening_file)
 sheet_data <- list()
 for (sheet in sheets) {
@@ -77,7 +74,7 @@ for (i in seq_along(sheet_data)) {
   sheet_data[[i]] <- sheet_data[[i]][columns]
 }
 screening_data <- do.call(rbind, sheet_data)
-# Read every journal sheet, retaining character cells for row counts and keyword search.
+# Read every journal sheet of the screening workbook (authoritative article-level decisions).
 sheets <- readxl::excel_sheets(settings$eligibility_file)
 sheet_data <- list()
 for (sheet in sheets) {
@@ -107,17 +104,23 @@ for (v in required_main_vars) {
   final_data[[v]] <- as01(final_data[[v]])
 }
 
-eligible_col <- "Eligible"
-tests_interactions_col <- "Tests_interactions"
-eligible_data <- final_data[as01(final_data$Eligible) == 1, , drop = FALSE]
-interaction_data <- eligible_data[as01(eligible_data$Tests_interactions) == 1, , drop = FALSE]
-
+# Screening counts from the adjudicated flags in the screening workbook
+eligibility_data$Eligible <- as01(eligibility_data$Eligible)
+eligibility_data$Tests_interactions <- as01(eligibility_data$Tests_interactions)
+eligibility_data$Tests_observed_outcome_interactions <- as01(eligibility_data$Tests_observed_outcome_interactions)
+eligible_data <- eligibility_data[eligibility_data$Eligible %in% 1, , drop = FALSE]
 eligible_data[[journal_col]] <- normalize_journal(eligible_data[[journal_col]])
-interaction_data[[journal_col]] <- normalize_journal(interaction_data[[journal_col]])
 
 n_eligible <- nrow(eligible_data)
-n_interactions <- nrow(interaction_data)
+n_interactions <- sum(eligible_data$Tests_interactions == 1)
 n_non_interactions <- n_eligible - n_interactions
+n_observed <- sum(eligible_data$Tests_interactions == 1 & eligible_data$Tests_observed_outcome_interactions == 1)
+n_latent_only <- sum(eligible_data$Tests_interactions == 1 & eligible_data$Tests_observed_outcome_interactions == 0)
+
+# Detailed-coding sample: eligible articles with at least one observed-outcome interaction
+interaction_data <- final_data[as01(final_data$Eligible) == 1 & as01(final_data$Tests_observed_outcome_interactions) == 1, , drop = FALSE]
+interaction_data[[journal_col]] <- normalize_journal(interaction_data[[journal_col]])
+stopifnot(nrow(interaction_data) == n_observed, nrow(interaction_data) == nrow(final_data))
 n_non_identity <- sum(as01(interaction_data$Uses_non_identity_link_function) == 1, na.rm = TRUE)
 n_explicit <- sum(as01(interaction_data$Explicit_link_function) == 1, na.rm = TRUE)
 n_incorrect_identity <- sum(as01(interaction_data$Incorrect_identity_link_function) == 1, na.rm = TRUE)
@@ -128,15 +131,18 @@ n_significant_incorrect_identity <- sum(
 )
 
 review_summary_table <- data.frame(
-  row_id = c("eligible_empirical", "testing_interactions", "non_identity_link", "explicit_link",
+  row_id = c("eligible_empirical", "testing_interactions", "observed_outcome_interactions", "latent_only_interactions",
+             "non_identity_link", "explicit_link",
              "incorrect_identity", "significant_incorrect_identity", "eligible_not_testing_interactions"),
   quantity = c("Screened articles satisfying the eligibility criteria", "Eligible empirical articles testing at least one interaction",
-               "Interaction-testing articles using at least one non-identity link",
-               "Interaction-testing articles with clearly identifiable link function",
-               "Interaction-testing articles with Gaussian-identity analyses on constrained observed outcomes",
+               "Interaction-testing articles with at least one observed-outcome interaction (coded sample)",
+               "Interaction-testing articles with interactions on latent outcomes only",
+               "Coded articles using at least one non-identity link",
+               "Coded articles with clearly identifiable link function",
+               "Coded articles with Gaussian-identity analyses on constrained observed outcomes",
                "Gaussian-identity cases with at least one significant interaction", "Eligible empirical articles not testing interactions"),
-  n = c(n_eligible, n_interactions, n_non_identity, n_explicit, n_incorrect_identity, n_significant_incorrect_identity, n_non_interactions),
-  denominator_n = c(n_screened, n_eligible, n_interactions, n_interactions, n_interactions, n_incorrect_identity, n_eligible),
+  n = c(n_eligible, n_interactions, n_observed, n_latent_only, n_non_identity, n_explicit, n_incorrect_identity, n_significant_incorrect_identity, n_non_interactions),
+  denominator_n = c(n_screened, n_eligible, n_interactions, n_interactions, n_observed, n_observed, n_observed, n_incorrect_identity, n_eligible),
   stringsAsFactors = FALSE)
 review_summary_table$percent <- pct(review_summary_table$n, review_summary_table$denominator_n)
 review_summary_table$ci_low <- review_summary_table$ci_high <- NA_real_
@@ -194,8 +200,8 @@ outcome_table <- do.call(
       row_id = outcome_spec$row_id[[i]],
       outcome_type = outcome_spec$outcome_type[[i]],
       n = n_i,
-      denominator_n = n_interactions,
-      percent = pct(n_i, n_interactions),
+      denominator_n = n_observed,
+      percent = pct(n_i, n_observed),
       stringsAsFactors = FALSE
     )
   })
@@ -206,14 +212,16 @@ by_journal_table <- do.call(
   rbind,
   lapply(journals, function(j) {
     eligible_j <- eligible_data[eligible_data[[journal_col]] == j, , drop = FALSE]
+    any_interaction_j <- sum(eligible_j$Tests_interactions == 1)
     interaction_j <- interaction_data[interaction_data[[journal_col]] == j, , drop = FALSE]
     incorrect_identity_j <- interaction_j$Incorrect_identity_link_function == 1
     significant_incorrect_identity_j <- incorrect_identity_j & interaction_j$Finds_significant_interaction == 1
     data.frame(
       journal = j,
       eligible_n = nrow(eligible_j),
-      interaction_testing_n = nrow(interaction_j),
-      interaction_testing_percent_of_eligible = pct(nrow(interaction_j), nrow(eligible_j)),
+      interaction_testing_n = any_interaction_j,
+      interaction_testing_percent_of_eligible = pct(any_interaction_j, nrow(eligible_j)),
+      observed_outcome_interaction_n = nrow(interaction_j),
       non_identity_link_n = sum(as01(interaction_j$Uses_non_identity_link_function) == 1, na.rm = TRUE),
       non_identity_link_percent_interaction = pct(sum(as01(interaction_j$Uses_non_identity_link_function) == 1, na.rm = TRUE), nrow(interaction_j)),
       explicit_link_n = sum(as01(interaction_j$Explicit_link_function) == 1, na.rm = TRUE),
@@ -305,23 +313,15 @@ intercoder_agreement_table <- do.call(
   })
 )
 
-note_cols <- intersect(c("CD1_Notes", "CD2_Notes", "Combined_notes"), names(eligibility_data))
-text_cols <- names(eligibility_data)[grepl("exclude|exclusion|reason", names(eligibility_data), ignore.case = TRUE)]
-sem_regex <- paste0("\\b(", paste(settings$sem_keywords, collapse = "|"), ")\\b")
-
-sem_hits_explicit <- if (!length(text_cols)) rep(FALSE, nrow(eligibility_data)) else apply(eligibility_data[, text_cols, drop = FALSE], 1, function(row) any(grepl(sem_regex, paste(row, collapse = " | "), ignore.case = TRUE)))
-sem_hits_notes <- if (!length(note_cols)) rep(FALSE, nrow(eligibility_data)) else apply(eligibility_data[, note_cols, drop = FALSE], 1, function(row) any(grepl(sem_regex, paste(row, collapse = " | "), ignore.case = TRUE)))
-sem_n <- if (any(sem_hits_explicit)) sum(sem_hits_explicit, na.rm = TRUE) else sum(sem_hits_notes, na.rm = TRUE)
-sem_basis <- if (any(sem_hits_explicit)) "explicit exclusion field" else "note-based keyword search"
-
 screening_flow_table <- data.frame(
   step = c(
     "records retrieved across journal sheets",
     "articles screened for eligibility",
-    "eligible empirical articles in final dataset",
+    "eligible empirical articles",
     "eligible articles testing at least one interaction",
     "eligible articles not testing interactions",
-    "note-based SEM / latent-variable-only exclusions"
+    "interaction-testing articles with at least one observed-outcome interaction (coded)",
+    "interaction-testing articles with interactions on latent outcomes only"
   ),
   n = c(
     sum(apply(screening_data, 1, function(row) any(!is.na(row) & trimws(as.character(row)) != ""))),
@@ -329,15 +329,17 @@ screening_flow_table <- data.frame(
     n_eligible,
     n_interactions,
     n_non_interactions,
-    sem_n
+    n_observed,
+    n_latent_only
   ),
   basis = c(
     "non-empty rows across all screening workbook sheets (one per journal)",
     "articles screened for eligibility across all five journals",
-    if (!is.null(eligible_col)) "Eligible == 1 in final review dataset" else "final review dataset row count",
-    if (!is.null(tests_interactions_col)) "Tests_interactions == 1 in eligible rows" else "review flags present in final dataset",
+    "Eligible == 1 in screening workbook",
+    "Tests_interactions == 1 in eligible rows",
     "eligible minus interaction-testing",
-    sem_basis
+    "Tests_observed_outcome_interactions == 1 in interaction-testing rows",
+    "Tests_observed_outcome_interactions == 0 in interaction-testing rows"
   ),
   stringsAsFactors = FALSE
 )
@@ -355,6 +357,8 @@ summary_rds <- list(
   n_rows_raw = sum(apply(screening_data, 1, function(row) any(!is.na(row) & trimws(as.character(row)) != ""))),
   n_rows_eligible = n_eligible,
   n_rows_interaction_testing = n_interactions,
+  n_rows_observed_outcome_interactions = n_observed,
+  n_rows_latent_only_interactions = n_latent_only,
   review_summary_table = review_summary_table,
   outcome_table = outcome_table,
   by_journal_table = by_journal_table,
