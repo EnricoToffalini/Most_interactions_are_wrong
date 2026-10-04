@@ -43,11 +43,8 @@ quarto render paper/Supplement-A-Technical-details.qmd
 `run.R` runs the review, two figures, three main simulations, and diagnostics in
 order. The optional `scripts/00-sandbox-one-scenario.R` is run separately.
 
-The refactor was reviewed statically. **No R / Quarto / simulation code was
-executed during the refactor.** Existing generated results are historical and
-have not been recomputed or relabeled as new 3000-replication results. See
-[DE-ENGINEERING.md](DE-ENGINEERING.md) for corrections, limits, and the complete
-manual validation sequence.
+Existing generated results in `tables/`, `figs/` and `outputs/` are historical and
+have not been recomputed as new 3000-replication results.
 
 ## Interactive simulation atlas
 
@@ -104,15 +101,15 @@ N_SIM=3 N_CORES=2 DHARMA_N_SIM=25 Rscript run.R
 
 Worker count is read in this order: **`N_CORES`**, then
 **`SLURM_CPUS_PER_TASK`**, then `detectCores() - 1` (at least one).
-Scenarios run in sequence; replications run in parallel. Linux uses
-`parallel::mclapply()`; Windows uses a PSOCK cluster with explicit worker
-dependencies. Set `N_CORES=1` for a serial comparison. BLAS/OpenMP worker threads
-are limited to one. No RStudio session or pre-existing workspace is required.
+Scenarios run in sequence; replications run in parallel on a PSOCK cluster
+(`makeCluster()` + `parLapply()`, the same code on Linux, SLURM and Windows).
+BLAS/OpenMP worker threads are limited to one. No RStudio session or
+pre-existing workspace is required.
 
-The main scripts retain their original seeds and Linux fork RNG calls. New
-Windows parallel runs use `clusterSetRNGStream()` with the script seed; they
-are not expected to reproduce the old Windows serial draws. Atlas seeds are
-explicit per scenario and replication, independent of worker scheduling.
+Every replication sets its own seed (`set.seed(seed + 100000 * scenario + replication)`
+in the main scripts; explicit per-scenario and per-replication seeds in the Atlas),
+so results do not depend on the number of cores or on worker scheduling, and a
+single replication can be rerun by hand for debugging.
 
 For example, inside a SLURM allocation, from the repository root:
 

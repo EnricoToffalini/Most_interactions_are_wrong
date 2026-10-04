@@ -10,7 +10,7 @@
 #SBATCH --time=00:00:00
 
 # Disabilita il multi-threading automatico delle librerie algebriche sottostanti (BLAS, OpenMP, MKL)
-# per evitare sovrapposizioni e contesa di thread con mclapply
+# per evitare sovrapposizioni e contesa di thread tra i worker R paralleli
 export OMP_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
 export MKL_NUM_THREADS=1

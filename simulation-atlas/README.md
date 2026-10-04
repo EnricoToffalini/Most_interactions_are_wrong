@@ -49,8 +49,8 @@ Use the **same `ATLAS_MODE` and `N_SIM` for execution and summarization**.
 The summarizer does not infer a mode or a replication count from old files.
 
 If neither core variable is set, workers default to `detectCores() - 1`, with a
-minimum of one. Scenarios run sequentially; replications use `mclapply()` on
-Linux and `parLapply()` on Windows. There is no nested parallelism. Workers use
+minimum of one. Scenarios run sequentially; replications run on a PSOCK cluster
+(`makeCluster()` + `parLapply()`) on every platform. There is no nested parallelism. Workers use
 one BLAS/OpenMP thread. Each family passes its scenario and deterministic
 quantities directly to its replication function.
 
@@ -124,7 +124,7 @@ must not be mistaken for the new full-run specification.
 
 The main diagnostic script and Atlas retain their existing differences in
 Pregibon calculations and applicability. This refactor does not reconcile or
-reinterpret those methods. See [the static audit](../DE-ENGINEERING.md).
+reinterpret those methods.
 
 Keep code, grids, and compact summaries in Git. Raw replications remain ignored
 and can be archived with the existing project archive materials.
