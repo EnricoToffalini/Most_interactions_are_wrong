@@ -23,13 +23,14 @@ n_subjects <- 700
 k_trials <- 15 # trials per subject and condition
 target_icc <- 0.30
 links <- c("logit", "probit")
+
 # Calibrate the logit scale to match probit probabilities in the reference cells.
 # The factor minimizes mean squared probability differences at random intercept = 0.
 reference_cells <- expand.grid(group_num = 0:1, condition_num = 0:1)
 eta_probit <- 1.50 - reference_cells$group_num - reference_cells$condition_num
 p_probit <- pnorm(eta_probit)
 scale_loss <- function(scale) mean((plogis(scale * eta_probit) - p_probit)^2)
-logit_probit_scale <- optimize(scale_loss, interval = c(1, 2))$minimum
+logit_probit_scale <- round(optimize(scale_loss, interval = c(1, 2))$minimum, 2)
 
 scenario_parameters <- data.frame(generating_link = links, coefficient_scale = c(logit_probit_scale, 1))
 scenario_parameters$beta_intercept <- scenario_parameters$coefficient_scale * 1.50
