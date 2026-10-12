@@ -9,6 +9,7 @@ rm(list = ls())
 Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = "1")
 library(ggplot2)
 library(parallel)
+source("scripts/common-helpers.R")
 
 B <- as.integer(Sys.getenv("N_SIM", "3000")) # replications per scenario (3000 for the paper)
 n_cores <- as.integer(Sys.getenv("N_CORES", Sys.getenv("SLURM_CPUS_PER_TASK", max(1, detectCores() - 1))))
@@ -178,15 +179,13 @@ for (s in scenarios$scenario) {
     n <- sum(ok)
     x <- sum(dat$p_value[ok] < alpha)
     # Wilson 95% interval
-    z <- qnorm(0.975)
+    ci <- wilson_ci95(x, n)
     rate <- if (n > 0) x / n else NA
-    center <- (rate + z^2 / (2 * n)) / (1 + z^2 / n)
-    half <- z * sqrt((rate * (1 - rate) + z^2 / (4 * n)) / n) / (1 + z^2 / n)
     cf <- dat$interaction_coef[is.finite(dat$interaction_coef)]
     did <- dat$change_in_group_difference_outcome_units[is.finite(dat$change_in_group_difference_outcome_units)]
     simulation_summary <- rbind(simulation_summary, data.frame(scenario = s, model = m,
       n_successful_fits = n, n_rejections = x, rejection_rate = rate,
-      ci_low = if (n > 0) center - half else NA, ci_high = if (n > 0) center + half else NA,
+      ci_low = ci[1], ci_high = ci[2],
       median_interaction_coef = median(cf), mean_interaction_coef = if (length(cf)) mean(cf) else NA, sd_interaction_coef = sd(cf),
       q25_interaction_coef = unname(quantile(cf, 0.25)), q75_interaction_coef = unname(quantile(cf, 0.75)),
       q025_interaction_coef = unname(quantile(cf, 0.025)), q975_interaction_coef = unname(quantile(cf, 0.975)),
@@ -208,23 +207,6 @@ cat("median_change_in_group_difference_outcome_units: model-implied change in th
 ####################################################
 # Figures
 ####################################################
-
-theme_paper <- function(size) {
-  theme_minimal(base_size = size) +
-    theme(plot.title = element_text(face = "bold", size = size + 1, margin = margin(b = 3)),
-          plot.subtitle = element_text(size = size - 1, color = "grey25", margin = margin(b = 6)),
-          axis.title = element_text(size = size),
-          axis.text = element_text(size = size - 1, color = "grey20"),
-          strip.text = element_text(face = "bold", size = size - 1),
-          legend.position = "bottom",
-          legend.title = element_text(size = size - 1),
-          legend.text = element_text(size = size - 1),
-          legend.key.width = unit(1.25, "lines"),
-          panel.grid.minor = element_blank(),
-          panel.grid.major = element_line(linewidth = 0.25, color = "grey88"),
-          panel.spacing = unit(0.9, "lines"),
-          plot.margin = margin(6, 8, 6, 8))
-}
 
 # light lines at equal steps on the latent scale, mapped to expected sum scores
 latent_grid <- NULL

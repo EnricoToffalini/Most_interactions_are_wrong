@@ -18,6 +18,7 @@ library(lme4)
 library(psyphy)
 library(DHARMa)
 library(parallel)
+source("scripts/common-helpers.R")
 
 B <- as.integer(Sys.getenv("N_SIM", "3000")) # replications per scenario (3000 for the paper)
 n_cores <- as.integer(Sys.getenv("N_CORES", Sys.getenv("SLURM_CPUS_PER_TASK", max(1, detectCores() - 1))))
@@ -355,12 +356,9 @@ rate_summary <- function(flag) {
   flag <- flag[!is.na(flag)]
   n <- length(flag)
   x <- sum(flag)
-  z <- qnorm(0.975)
-  p <- x / n
-  center <- (p + z^2 / (2 * n)) / (1 + z^2 / n)
-  half <- z * sqrt((p * (1 - p) + z^2 / (4 * n)) / n) / (1 + z^2 / n)
-  data.frame(n_successful_fits = n, n_significant = x, rate = if (n > 0) p else NA,
-             ci_low = if (n > 0) max(0, center - half) else NA, ci_high = if (n > 0) min(1, center + half) else NA)
+  ci <- wilson_ci95(x, n)
+  data.frame(n_successful_fits = n, n_significant = x, rate = if (n > 0) x / n else NA,
+             ci_low = if (n > 0) max(0, ci[1]) else NA, ci_high = if (n > 0) min(1, ci[2]) else NA)
 }
 
 quantities <- data.frame(

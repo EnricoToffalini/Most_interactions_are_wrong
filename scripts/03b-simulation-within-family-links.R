@@ -10,6 +10,7 @@ Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = 
 library(ggplot2)
 library(glmmTMB)
 library(parallel)
+source("scripts/common-helpers.R")
 
 B <- as.integer(Sys.getenv("N_SIM", "3000")) # replications per generating link (3000 for the paper)
 n_cores <- as.integer(Sys.getenv("N_CORES", Sys.getenv("SLURM_CPUS_PER_TASK", max(1, detectCores() - 1))))
@@ -139,14 +140,12 @@ for (gen in links) {
     n <- sum(!is.na(dat$p_value))
     x <- sum(dat$p_value < alpha, na.rm = TRUE)
     # Wilson 95% interval
-    z <- qnorm(0.975)
+    ci <- wilson_ci95(x, n)
     rate <- if (n > 0) x / n else NA
-    center <- (rate + z^2 / (2 * n)) / (1 + z^2 / n)
-    half <- z * sqrt((rate * (1 - rate) + z^2 / (4 * n)) / n) / (1 + z^2 / n)
     contr <- scenario_contrasts[scenario_contrasts$generating_link == gen & scenario_contrasts$fitted_link == fitted, ]
     simulation_summary <- rbind(simulation_summary, data.frame(generating_link = gen, fitted_link = fitted,
       link_match = dat$link_match[1], n_successful_fits = n, n_rejections = x, rejection_rate = rate,
-      ci_low = center - half, ci_high = center + half,
+      ci_low = ci[1], ci_high = ci[2],
       median_interaction_coef = median(dat$interaction_coef, na.rm = TRUE),
       median_interaction_se = median(dat$interaction_se, na.rm = TRUE),
       deterministic_product_on_fitted_link_scale = contr$deterministic_product_on_fitted_link_scale,
@@ -160,23 +159,6 @@ print(simulation_summary[, c("generating_link", "fitted_link", "n_successful_fit
 ####################################################
 # Figures
 ####################################################
-
-theme_paper <- function(size) {
-  theme_minimal(base_size = size) +
-    theme(plot.title = element_text(face = "bold", size = size + 1, margin = margin(b = 3)),
-          plot.subtitle = element_text(size = size - 1, color = "grey25", margin = margin(b = 6)),
-          axis.title = element_text(size = size),
-          axis.text = element_text(size = size - 1, color = "grey20"),
-          strip.text = element_text(face = "bold", size = size - 1),
-          legend.position = "bottom",
-          legend.title = element_text(size = size - 1),
-          legend.text = element_text(size = size - 1),
-          legend.key.width = unit(1.25, "lines"),
-          panel.grid.minor = element_blank(),
-          panel.grid.major = element_line(linewidth = 0.25, color = "grey88"),
-          panel.spacing = unit(0.9, "lines"),
-          plot.margin = margin(6, 8, 6, 8))
-}
 
 cell_probability_table$generating_link_label <- factor(cell_probability_table$generating_link_label, levels = link_labels)
 # light lines at equal steps on each generating-link scale

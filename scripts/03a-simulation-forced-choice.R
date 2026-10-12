@@ -11,6 +11,7 @@ library(ggplot2)
 library(lme4)
 library(psyphy)
 library(parallel)
+source("scripts/common-helpers.R")
 
 B <- as.integer(Sys.getenv("N_SIM", "3000")) # replications per scenario (3000 for the paper)
 n_cores <- as.integer(Sys.getenv("N_CORES", Sys.getenv("SLURM_CPUS_PER_TASK", max(1, detectCores() - 1))))
@@ -200,15 +201,6 @@ simulation_results <- do.call(rbind, results)
 # Summary
 ####################################################
 
-wilson <- function(x, n) {
-  if (n == 0) return(c(NA, NA))
-  z <- qnorm(0.975)
-  p <- x / n
-  center <- (p + z^2 / (2 * n)) / (1 + z^2 / n)
-  half <- z * sqrt((p * (1 - p) + z^2 / (4 * n)) / n) / (1 + z^2 / n)
-  c(center - half, center + half)
-}
-
 # "ok" = finite p-value from a fit passing the minimal lme4 checks (primary);
 # "problem" = finite p-value from a flagged fit
 simulation_summary <- NULL
@@ -221,8 +213,8 @@ for (s in scenarios$scenario) {
     n_problem <- sum(flagged)
     reject_ok <- sum(dat$p_value[ok] < alpha)
     reject_problem <- sum(dat$p_value[flagged] < alpha)
-    ci_ok <- wilson(reject_ok, n_ok)
-    ci_problem <- wilson(reject_problem, n_problem)
+    ci_ok <- wilson_ci95(reject_ok, n_ok)
+    ci_problem <- wilson_ci95(reject_problem, n_problem)
     coefs <- dat$interaction_coef[is.finite(dat$interaction_coef)]
     did <- dat$change_in_group_difference_outcome_units[is.finite(dat$change_in_group_difference_outcome_units)]
     simulation_summary <- rbind(simulation_summary, data.frame(
@@ -256,22 +248,6 @@ cat("median_change_in_group_difference_outcome_units is the model-implied change
 # Figures
 ####################################################
 
-theme_paper <- function(size) {
-  theme_minimal(base_size = size) +
-    theme(plot.title = element_text(face = "bold", size = size + 1, margin = margin(b = 3)),
-          plot.subtitle = element_text(size = size - 1, color = "grey25", margin = margin(b = 6)),
-          axis.title = element_text(size = size),
-          axis.text = element_text(size = size - 1, color = "grey20"),
-          strip.text = element_text(face = "bold", size = size - 1),
-          legend.position = "bottom",
-          legend.title = element_text(size = size - 1),
-          legend.text = element_text(size = size - 1),
-          legend.key.width = unit(1.25, "lines"),
-          panel.grid.minor = element_blank(),
-          panel.grid.major = element_line(linewidth = 0.25, color = "grey88"),
-          panel.spacing = unit(0.9, "lines"),
-          plot.margin = margin(6, 8, 6, 8))
-}
 model_shapes <- c("Gaussian identity" = 16, "Standard binomial logit" = 15, "Standard binomial probit" = 18, "Chance-corrected binomial logit" = 17)
 
 # grey band below the chance floor; light lines at equal steps on the chance-corrected logit scale
