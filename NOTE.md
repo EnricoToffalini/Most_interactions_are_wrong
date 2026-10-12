@@ -1,0 +1,1 @@
+- in 03b non c'è un estrazione degli errori dei fit (singular, etc.) e di conseuguenza un qualche tipo di diagnostica su questo. Forse serve farlo?
