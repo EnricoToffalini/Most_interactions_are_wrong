@@ -34,7 +34,7 @@ conda activate r460
 
 # Esecuzione pipeline simulation-atlas
 srun Rscript --vanilla simulation-atlas/01-build-scenario-grid.R
-# Run each family explicitly; 02-run-atlas.R is only a wrapper around these four.
+# Run each family in a separate R process.
 srun Rscript --vanilla simulation-atlas/02a-run-forced-choice.R
 srun Rscript --vanilla simulation-atlas/02b-run-within-family.R
 srun Rscript --vanilla simulation-atlas/02c-run-sum-scores.R

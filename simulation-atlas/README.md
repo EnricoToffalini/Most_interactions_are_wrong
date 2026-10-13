@@ -19,7 +19,6 @@ combinations, model labels, and slice memberships are retained.
 - `02d-run-diagnostics.R`: preserves the targeted AIC, DHARMa and Pregibon
   calculations. Forced-choice and within-family diagnostic data use individual
   binary trials and retain their manuscript random-intercept structures.
-- `02-run-atlas.R`: optional four-line runner for the family scripts above.
 - `03-summarize-atlas.R`: reads raw results and writes app-facing CSV/RDS
   summaries, including acceptable-fit and flagged-fit rates. It performs no
   model fitting.
@@ -27,9 +26,7 @@ combinations, model labels, and slice memberships are retained.
 - `Supplement-B-Simulation-atlas.qmd`: reads precomputed CSV summaries.
 
 There is no `simulation-atlas/R/` helper framework. Parameters, seed arithmetic,
-DGPs, fits, and interaction extraction are local to each family runner. The
-diagnostic-grid file is created by the grid script; it has not been generated
-during the static refactor.
+DGPs, fits, and interaction extraction are local to each family runner.
 
 ## Settings
 
@@ -76,7 +73,10 @@ Small smoke run, including the diagnostic interfaces:
 ```bash
 export ATLAS_MODE=smoke N_SIM=3 N_CORES=2
 export ATLAS_RUN_DHARMA=TRUE DHARMA_N_SIM=25 ATLAS_OVERWRITE=TRUE
-Rscript simulation-atlas/02-run-atlas.R
+Rscript simulation-atlas/02a-run-forced-choice.R
+Rscript simulation-atlas/02b-run-within-family.R
+Rscript simulation-atlas/02c-run-sum-scores.R
+Rscript simulation-atlas/02d-run-diagnostics.R
 Rscript simulation-atlas/03-summarize-atlas.R
 ```
 
@@ -95,6 +95,10 @@ Rscript simulation-atlas/02d-run-diagnostics.R
 Rscript simulation-atlas/03-summarize-atlas.R
 quarto render simulation-atlas/Supplement-B-Simulation-atlas.qmd
 ```
+
+To run the grid, all four families, and the summaries in separate R processes
+with the same environment settings, use `sh run-atlas.sh` from the repository
+root. Render Supplement B afterward with the `quarto render` command above.
 
 On SLURM, leave `N_CORES` unset to use `SLURM_CPUS_PER_TASK` and prefix the R
 commands with `srun`. The existing `slurm/05-atlas.slurm` shows this sequence.
@@ -118,9 +122,8 @@ Sum-score diagnostics remain structurally inapplicable.
 
 Full summaries remain `data/atlas-summary.csv/.rds` and
 `data/diagnostic-atlas-summary.csv/.rds`. Supplement B and the Shiny app consume
-these files; neither executes Atlas simulations. Tracked summaries and rendered
-artifacts were not recomputed during the refactor. Their historical B values
-must not be mistaken for the new full-run specification.
+these files; neither executes Atlas simulations. Regenerate tracked summaries
+and rendered artifacts when the scenario grid or simulation code changes.
 
 The main diagnostic script and Atlas retain their existing differences in
 Pregibon calculations and applicability. This refactor does not reconcile or

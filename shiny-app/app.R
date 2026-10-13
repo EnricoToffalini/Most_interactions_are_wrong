@@ -970,7 +970,7 @@ server <- function(input, output, session) {
           tags$strong("Applicable checks not computed in this run: "),
           paste(pending, collapse = "; "), ". ",
           "They are applicable to this family but were deferred; re-run the diagnostic",
-          " pass with RUN_DHARMA = TRUE in simulation-atlas/02-run-atlas.R to fill them",
+          " pass with ATLAS_RUN_DHARMA=TRUE using simulation-atlas/02d-run-diagnostics.R to fill them",
           " in. The checks shown below are unaffected."
         )
       }
