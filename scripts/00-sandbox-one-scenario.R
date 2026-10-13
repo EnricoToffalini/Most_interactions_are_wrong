@@ -1,4 +1,4 @@
-# Single-scenario sandbox for quick tuning (optional, not part of run.R).
+# Single-scenario sandbox for quick tuning (optional, not part of run.sh).
 # Edit the scenario, inspect the implied accuracies, simulate one dataset, and
 # compare interaction estimates under identity, standard logit/probit, and a
 # chance-corrected binomial logit link. Run from the repository root.

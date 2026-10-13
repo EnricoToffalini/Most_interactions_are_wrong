@@ -31,20 +31,20 @@ The paper has three main components.
 Run every command from the repository root. The analysis scripts contain their
 own settings, DGPs, model fits, summaries, and plotting code. Package requirements
 are explicit: `ggplot2`, `readxl` (review), `glmmTMB` (mixed models), and `DHARMa`
-(diagnostics). Provision the package environment separately; `run.R` neither
+(diagnostics). Provision the package environment separately; `run.sh` neither
 installs packages nor restores `renv`.
 
 ```bash
-Rscript run.R
+sh run.sh
 quarto render paper/paper-v2.qmd
 quarto render paper/Supplement-A-Technical-details.qmd
 ```
 
-`run.R` runs the review, two figures, three main simulations, and diagnostics in
+`run.sh` runs the review, two figures, three main simulations, and diagnostics in
 order. The optional `scripts/00-sandbox-one-scenario.R` is run separately.
 
-Existing generated results in `tables/`, `figs/` and `outputs/` are historical and
-have not been recomputed as new 3000-replication results.
+The tracked files in `tables/`, `figs/` and `outputs/` are precomputed results.
+Regenerate them with `run.sh` after changing the analysis code.
 
 ## Interactive simulation atlas
 
@@ -96,7 +96,7 @@ N_SIM=3000 N_CORES=4 Rscript scripts/03c-simulation-sum-scores.R
 N_SIM=3000 N_CORES=4 Rscript scripts/04-diagnostic-worked-example.R
 
 # Very small check; writes to the usual main-output paths
-N_SIM=3 N_CORES=2 DHARMA_N_SIM=25 Rscript run.R
+N_SIM=3 N_CORES=2 DHARMA_N_SIM=25 sh run.sh
 ```
 
 Worker count is read in this order: **`N_CORES`**, then
@@ -119,13 +119,14 @@ export N_SIM=3000
 srun Rscript --vanilla scripts/03b-simulation-within-family-links.R
 ```
 
-On PowerShell, set variables before running the same script names:
+On PowerShell, set variables before running the shell script with Bash
+(for example, Git Bash or WSL):
 
 ```powershell
 $env:N_SIM = "3"
 $env:N_CORES = "2"
 $env:DHARMA_N_SIM = "25"
-Rscript run.R
+bash run.sh
 ```
 
 The [Atlas README](simulation-atlas/README.md) gives the grid, family runner,
