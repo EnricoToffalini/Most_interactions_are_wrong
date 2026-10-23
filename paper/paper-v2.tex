@@ -73,7 +73,6 @@
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \usepackage{longtable,booktabs,array}
-\newcounter{none} % for unnumbered tables
 \usepackage{calc} % for calculating minipage widths
 % Correct order of tables after \paragraph or \subparagraph
 \usepackage{etoolbox}
@@ -437,7 +436,7 @@ Nelder, 1989}; \citeproc{ref-nelderwedderburn1972}{Nelder \& Wedderburn,
 outcome family, which describes the response, and (2) the link function,
 which sets the scale on which effects combine (Box 1).
 
-\begin{tcolorbox}[enhanced jigsaw, arc=.35mm, bottomrule=.15mm, bottomtitle=1mm, breakable, colback=white, colbacktitle=quarto-callout-note-color!10!white, colframe=quarto-callout-note-color-frame, coltitle=black, left=2mm, leftrule=.75mm, opacityback=0, opacitybacktitle=0.6, rightrule=.15mm, title={Box 1: Generalized linear models: outcome family and link function}, titlerule=0mm, toprule=.15mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, titlerule=0mm, coltitle=black, colframe=quarto-callout-note-color-frame, title={Box 1: Generalized linear models: outcome family and link function}, toprule=.15mm, colback=white, opacitybacktitle=0.6, bottomrule=.15mm, bottomtitle=1mm, toptitle=1mm, breakable, arc=.35mm, rightrule=.15mm, leftrule=.75mm, left=2mm, colbacktitle=quarto-callout-note-color!10!white, opacityback=0]
 
 The \emph{outcome family} is the distribution assumed for the response.
 It defines which values the outcome can take and how observations vary
@@ -677,7 +676,6 @@ fixed by design. Coded articles are eligible articles testing at least
 one interaction on an observed outcome.}{\label{tbl-current-practice}}}
 \vspace{-20pt}}
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.7398}}
   >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.0325}}
@@ -720,7 +718,6 @@ Gaussian-identity cases with at least one significant interaction & 124
 Eligible empirical articles not testing interactions & 137 & 345 &
 39.7\% & {[}34.7\%, 45.0\%{]} \\
 \end{longtable}
-}
 
 \end{table}
 
@@ -747,7 +744,6 @@ Categories are non-exclusive, so one article can contribute to more than
 one row.}{\label{tbl-review-outcome-types}}}
 \vspace{-20pt}}
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}lrrr@{}}
 \toprule\noalign{}
 Outcome type & n & Denom. & \% \\
@@ -764,7 +760,6 @@ Neural / physiological measures & 23 & 200 & 11.5\% \\
 Correlations / associations & 8 & 200 & 4.0\% \\
 Difference / distance scores & 17 & 200 & 8.5\% \\
 \end{longtable}
-}
 
 \end{table}
 
@@ -1217,30 +1212,35 @@ predictor, \(\hat{\eta}^2\), as an additional predictor
 this term carries no further information, and a significant coefficient
 indicates curvature that the link leaves unexplained.
 
-Residual diagnostics locate each observed value within the distribution
-the model predicts for it. That position lies between 0 and 1 and is
-uniform under an adequate model whatever the family, so misfit appears
-as departure from uniformity, as over- or underdispersion, or as
-structure over fitted values and predictors. Dunn and Smyth transform
-the position to the normal scale (\citeproc{ref-dunnsmyth1996}{P. K.
-Dunn \& Smyth, 1996}), whereas DHARMa obtains it by simulating from the
-fitted model and keeps it on the 0-to-1 scale
-(\citeproc{ref-hartig2024}{Hartig, 2024}). We use the DHARMa
-implementation in R.
+Residual diagnostics screen for misfit of any kind. We used the
+simulated quantile residuals of DHARMa
+(\citeproc{ref-hartig2024}{Hartig, 2024}; see also
+\citeproc{ref-dunnsmyth1996}{P. K. Dunn \& Smyth, 1996}), which are
+uniform between 0 and 1 under an adequate model, whatever the family.
+Misfit appears as non-uniformity, over- or underdispersion, or structure
+over fitted values and predictors.
 
 AIC compares the models it is given. Our candidate models share the
 response, the family, and the structural formula and differ only in the
 link, so they have the same number of parameters and AIC ranks them by
 log-likelihood alone.
 
-The three checks share two limits. A significant Pregibon term or a
-departure from uniformity can arise from a wrong family, an omitted
-nonlinearity, or a missing interaction as well as from a wrong link, and
-AIC can only rank the links that were fitted. In addition, every fitted
-model already contains the product term, which can absorb part of the
-curvature that a wrong link produces, so a misspecified model can fit
-almost as well as the correct one while placing additivity on a
-different scale.
+None of these checks is specific to the link. A Pregibon term or a
+residual pattern can also arise from a wrong family, an omitted
+nonlinearity, or a missing interaction. Moreover, the product term
+absorbs part of the curvature that a wrong link produces. With a
+continuous predictor, some curvature remains within groups and can in
+principle be detected. In a saturated \(2 \times 2\) design nothing
+remains, because any link reproduces the cell means exactly.
+
+The monotonic linear model of J. C. Dunn and Anderson
+(\citeproc{ref-dunnanderson2026}{2026}) tests scale dependence more
+directly, asking whether additivity can be recovered under any monotonic
+transformation. Every pseudo-interaction simulated here is removable in
+this sense. However, the test requires cell-level data from a factorial
+design and has no straightforward extension to mixed models (whereas our
+scenarios mostly include continuous predictors and/or trial-level random
+effects).
 
 \subsection{Diagnostic Simulation}\label{diagnostic-simulation}
 
@@ -1290,7 +1290,6 @@ exactly collinear with the existing fixed
 effects.}{\label{tbl-diagnostic-scenarios}}}
 \vspace{-20pt}}
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1854}}
   >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2119}}
@@ -1331,7 +1330,6 @@ Binary continuous predictor & binomial probit GLMM & binomial logit GLMM
 Gamma mean response time & Gamma log & Gamma inverse & 0.306 {[}0.290,
 0.323{]} & 0.000-0.064 (4) & 0.322 & 0.797 \\
 \end{longtable}
-}
 
 \end{table}
 
@@ -1358,25 +1356,19 @@ from theory, task structure, or measurement.
 
 When link choice can affect the interaction conclusion, we suggest that
 the main robustness check is a sensitivity analysis across plausible
-links. Researchers should therefore compare the same target
-response-scale contrast across alternatives and report whether the
-result is stable or link-conditional. If it changes, that dependence is
-itself part of the result (\citeproc{ref-mccabe2022}{McCabe et al.,
-2022}; \citeproc{ref-mize2019}{Mize, 2019};
+links. The removability test of J. C. Dunn and Anderson
+(\citeproc{ref-dunnanderson2026}{2026}) addresses the same problem
+directly, testing any monotonic transformation of the outcome. Besides
+having no straightforward extension to mixed models, however, it does
+not decide which transformations are admissible, because the family, the
+bounds, the chance level, or even the meaning of an outcome greatly
+restrict the plausible mappings. We suggest that researchers compare the
+same target response-scale contrast across standard alternatives, and
+report whether the result is stable or link-conditional. If it changes,
+that dependence should be disclosed (\citeproc{ref-mccabe2022}{McCabe et
+al., 2022}; \citeproc{ref-mize2019}{Mize, 2019};
 \citeproc{ref-mustillo2018}{Mustillo et al., 2018};
 \citeproc{ref-rohrer2026}{Rohrer \& Arel-Bundock, 2026}).
-
-For factorial designs with cell-level data, the monotonic linear model
-of J. C. Dunn and Anderson (\citeproc{ref-dunnanderson2026}{2026})
-offers a more general test of scale dependence, asking whether
-additivity can be recovered under any monotonic transformation, and
-every pseudo-interaction simulated here is removable in that sense.
-Removability alone does not decide which transformations are
-scientifically admissible, because the family, the bounds, the chance
-level, or the substantive interpretation of an outcome usually restrict
-the plausible mappings. Our question is narrower, namely whether
-interaction conclusions change across the standard link functions that
-remain plausible for a given outcome.
 
 \begin{table}
 
@@ -1384,7 +1376,6 @@ remain plausible for a given outcome.
 across common psychological outcomes.}{\label{tbl-link-aware-workflow}}}
 \vspace{-20pt}}
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.4200}}
@@ -1425,7 +1416,6 @@ Inverse Gaussian, or transformed Gaussian, matched to absolute,
 proportional, reciprocal, or transformed change. & Compare raw-, log-,
 and response-scale summaries; inspect tail fit and predicted values. \\
 \end{longtable}
-}
 
 \end{table}
 
@@ -1534,7 +1524,7 @@ with that preprint.
 
 \section{References}\label{references}
 
-\protect\phantomsection\label{refs}
+\phantomsection\label{refs}
 \begin{CSLReferences}{1}{0}
 \bibitem[\citeproctext]{ref-agresti2002}
 Agresti, A. (2002). \emph{Categorical data analysis} (2nd ed.). John
@@ -1592,8 +1582,8 @@ Methods}, \emph{29}(6), 1164--1179.
 \url{https://doi.org/10.1037/met0000532}
 
 \bibitem[\citeproctext]{ref-dunnanderson2026}
-Dunn, J. C., \& Anderson, L. M. (2026). The monotonic linear model:
-Testing for removable interactions. \emph{Psychological Methods},
+Dunn, J. C., \& Anderson, L. M. (2026). The Monotonic Linear Model:
+Testing for Removable Interactions. \emph{Psychological Methods},
 \emph{31}(4), 585--606. \url{https://doi.org/10.1037/met0000626}
 
 \bibitem[\citeproctext]{ref-dunnsmyth1996}
@@ -1617,8 +1607,8 @@ Hartig, F. (2024). \emph{{DHARMa}: Residual diagnostics for hierarchical
 \url{https://doi.org/10.32614/CRAN.package.DHARMa}
 
 \bibitem[\citeproctext]{ref-knoblauch2012}
-Knoblauch, K., \& Maloney, L. T. (2012). \emph{Modeling psychophysical
-data in r}. Springer. \url{https://doi.org/10.1007/978-1-4614-4475-6}
+Knoblauch, K., \& Maloney, L. T. (2012). \emph{Modeling Psychophysical
+Data in R}. Springer. \url{https://doi.org/10.1007/978-1-4614-4475-6}
 
 \bibitem[\citeproctext]{ref-liddellkruschke2018}
 Liddell, T. M., \& Kruschke, J. K. (2018). Analyzing ordinal data with
@@ -1651,8 +1641,8 @@ McCullagh, P., \& Nelder, J. A. (1989). \emph{Generalized linear models}
 
 \bibitem[\citeproctext]{ref-mcneish2023}
 McNeish, D. (2023). Psychometric properties of sum scores and factor
-scores differ even when their correlation is 0.98: A response to widaman
-and revelle. \emph{Behavior Research Methods}, \emph{55}(8), 4269--4290.
+scores differ even when their correlation is 0.98: A response to Widaman
+and Revelle. \emph{Behavior Research Methods}, \emph{55}(8), 4269--4290.
 \url{https://doi.org/10.3758/s13428-022-02016-x}
 
 \bibitem[\citeproctext]{ref-mcneish2020}
@@ -1667,7 +1657,7 @@ presenting nonlinear interaction effects. \emph{Sociological Science},
 
 \bibitem[\citeproctext]{ref-mustillo2018}
 Mustillo, S. A., Lizardo, O. A., \& McVeigh, R. M. (2018). Editors{'}
-comment: A few guidelines for quantitative submissions. \emph{American
+Comment: A Few Guidelines for Quantitative Submissions. \emph{American
 Sociological Review}, \emph{83}(6), 1281--1283.
 \url{https://doi.org/10.1177/0003122418806282}
 
@@ -1684,27 +1674,27 @@ Statistics}, \emph{29}(1), 15--24. \url{https://doi.org/10.2307/2346405}
 
 \bibitem[\citeproctext]{ref-rimpler2026}
 Rimpler, A., Kiers, H. A. L., \& Ravenzwaaij, D. van. (2026). Anything
-goes: Statistical interactions without substantive theory.
+Goes: Statistical Interactions Without Substantive Theory.
 \emph{Computational Brain \& Behavior}.
 \url{https://doi.org/10.1007/s42113-026-00305-8}
 
 \bibitem[\citeproctext]{ref-rohrer2026}
-Rohrer, J. M., \& Arel-Bundock, V. (2026). Models as prediction
-machines: How to convert confusing coefficients into clear quantities.
+Rohrer, J. M., \& Arel-Bundock, V. (2026). Models as Prediction
+Machines: How to Convert Confusing Coefficients Into Clear Quantities.
 \emph{Advances in Methods and Practices in Psychological Science},
 \emph{9}(2), 25152459261424825.
 \url{https://doi.org/10.1177/25152459261424825}
 
 \bibitem[\citeproctext]{ref-rohrer2021}
-Rohrer, J. M., \& Arslan, R. C. (2021). Precise answers to vague
-questions: Issues with interactions. \emph{Advances in Methods and
+Rohrer, J. M., \& Arslan, R. C. (2021). Precise Answers to Vague
+Questions: Issues With Interactions. \emph{Advances in Methods and
 Practices in Psychological Science}, \emph{4}(2), 25152459211007368.
 \url{https://doi.org/10.1177/25152459211007368}
 
 \bibitem[\citeproctext]{ref-wagenmakers2012}
 Wagenmakers, E.-J., Krypotos, A.-M., Criss, A. H., \& Iverson, G.
 (2012). On the interpretation of removable interactions: A survey of the
-field 33~years after loftus. \emph{Memory \& Cognition}, \emph{40}(2),
+field 33~years after Loftus. \emph{Memory \& Cognition}, \emph{40}(2),
 145--160. \url{https://doi.org/10.3758/s13421-011-0158-0}
 
 \bibitem[\citeproctext]{ref-wichmann2001}
