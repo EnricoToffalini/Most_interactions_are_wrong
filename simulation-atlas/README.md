@@ -98,7 +98,9 @@ quarto render simulation-atlas/Supplement-B-Simulation-atlas.qmd
 
 To run the grid, all four families, and the summaries in separate R processes
 with the same environment settings, use `sh run-atlas.sh` from the repository
-root. Render Supplement B afterward with the `quarto render` command above.
+root. This wrapper defaults to the full SLURM settings (`ATLAS_RUN_DHARMA=TRUE`,
+`ATLAS_OVERWRITE=TRUE`); explicitly set either variable to `FALSE` to override
+it. Render Supplement B afterward with the `quarto render` command above.
 
 On SLURM, leave `N_CORES` unset to use `SLURM_CPUS_PER_TASK` and prefix the R
 commands with `srun`. The existing `slurm/05-atlas.slurm` shows this sequence.
