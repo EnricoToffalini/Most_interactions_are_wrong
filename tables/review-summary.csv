@@ -4,7 +4,7 @@
 "observed_outcome_interactions","Interaction-testing articles with at least one observed-outcome interaction (coded sample)",200,208,96.2,92.6,98
 "latent_only_interactions","Interaction-testing articles with interactions on latent outcomes only",8,208,3.8,2,7.4
 "non_identity_link","Coded articles using at least one non-identity link",58,200,29,23.2,35.6
-"explicit_link","Coded articles with clearly identifiable link function",46,200,23,17.7,29.3
+"explicit_link","Coded articles with explicit link function",46,200,23,17.7,29.3
 "incorrect_identity","Coded articles with Gaussian-identity analyses on constrained observed outcomes",144,200,72,65.4,77.8
 "significant_incorrect_identity","Gaussian-identity cases with at least one significant interaction",124,144,86.1,79.5,90.8
 "eligible_not_testing_interactions","Eligible empirical articles not testing interactions",137,345,39.7,34.7,45

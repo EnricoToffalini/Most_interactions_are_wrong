@@ -81,7 +81,7 @@ review_summary <- data.frame(
                "Interaction-testing articles with at least one observed-outcome interaction (coded sample)",
                "Interaction-testing articles with interactions on latent outcomes only",
                "Coded articles using at least one non-identity link",
-               "Coded articles with clearly identifiable link function",
+               "Coded articles with explicit link function",
                "Coded articles with Gaussian-identity analyses on constrained observed outcomes",
                "Gaussian-identity cases with at least one significant interaction",
                "Eligible empirical articles not testing interactions"),

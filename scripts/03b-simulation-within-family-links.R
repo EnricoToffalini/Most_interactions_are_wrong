@@ -175,24 +175,24 @@ p_scenario <- ggplot(cell_probability_table, aes(x = condition, y = expected_pro
   scale_y_continuous(limits = c(0, 1), labels = function(x) paste0(round(100 * x), "%")) +
   scale_color_manual(values = c("Group 0" = "#0072B2", "Group 1" = "#D55E00"), name = NULL) +
   scale_linetype_manual(values = c("Group 0" = "solid", "Group 1" = "longdash"), name = NULL) +
-  labs(title = "A. Generated cell probabilities", subtitle = "Horizontal lines mark equal steps on each generating-link scale",
-       x = NULL, y = "Expected probability, random intercept = 0") +
-  theme_paper(9) +
+  labs(title = "A. Generated cell probabilities", subtitle = "At random intercept = 0; horizontal lines mark equal steps on each generating-link scale",
+       x = NULL, y = "Expected probability") +
+  theme_paper(11) +
   theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank())
 
 simulation_summary$generating_link_label <- factor(link_labels[match(simulation_summary$generating_link, links)], levels = link_labels)
 simulation_summary$fitted_link_label <- factor(ifelse(simulation_summary$fitted_link == "logit", "Logit", "Probit"))
 p_rejection <- ggplot(simulation_summary, aes(x = fitted_link_label, y = rejection_rate, color = link_match, shape = link_match)) +
   geom_hline(yintercept = alpha, linetype = "dashed") +
-  geom_pointrange(aes(ymin = ci_low, ymax = ci_high), linewidth = 0.45) +
+  geom_pointrange(aes(ymin = ci_low, ymax = ci_high), linewidth = 0.6, size = 0.55) +
   facet_wrap(~ generating_link_label, nrow = 1) +
-  scale_y_continuous(labels = function(x) paste0(round(100 * x), "%")) +
+  scale_y_continuous(labels = function(x) paste0(round(100 * x), "%"), limits = c(0, NA)) +
   scale_color_manual(values = c("Matched link" = "grey30", "Wrong link" = "#D55E00"), name = NULL) +
   scale_shape_manual(values = c("Matched link" = 16, "Wrong link" = 17), name = NULL) +
   labs(title = "B. Product-term rejection rate",
-       subtitle = "Matched links: nominal rejection; wrong links: pseudo-interaction detection. Dashed line: nominal alpha",
+       subtitle = "Dashed line: nominal alpha",
        x = "Fitted link", y = "Rejection rate") +
-  theme_paper(9)
+  theme_paper(11)
 
 for (ext in c("pdf", "png")) {
   if (ext == "pdf") pdf("figs/within-family-links.pdf", width = 7.2, height = 6.5)
@@ -215,7 +215,7 @@ p_pseudo <- ggplot(scenario_contrasts, aes(x = fitted_link_label, y = determinis
   labs(title = "Deterministic pseudo-interaction induced by link crossing",
        subtitle = "Matched-link contrasts are zero by construction; wrong-link contrasts can be nonzero",
        x = "Fitted link", y = "Product contrast on fitted link scale") +
-  theme_paper(9)
+  theme_paper(11)
 ggsave("outputs/inspection/within-family-link-pseudo-interaction.pdf", p_pseudo, width = 7.2, height = 3.8)
 ggsave("outputs/inspection/within-family-link-pseudo-interaction.png", p_pseudo, width = 7.2, height = 3.8, dpi = 300)
 

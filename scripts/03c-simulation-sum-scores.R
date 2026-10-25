@@ -138,7 +138,7 @@ sim_one <- function(b, i) {
   fits <- list(try(lm(sum_score ~ x * group, data = d), silent = TRUE),
                try(glm(score_prop_probit ~ x * group, family = gaussian(link = make.link("probit")), data = d), silent = TRUE),
                try(lm(theta ~ x * group, data = d), silent = TRUE))
-  to_sum_score <- c(1, max_score, 1) # rescale bounded-score predictions to the sum-score metric
+  to_sum_score <- list(identity, function(q) (max_score + 1) * q - 0.5, identity) # invert the continuity-corrected proportion back to the sum-score metric
   nd <- expand.grid(x = c(x_low, x_high), group = factor(c("Group 0", "Group 1")))
   p <- coefs <- did <- rep(NA, 3)
   for (j in 1:3) {
@@ -148,7 +148,7 @@ sim_one <- function(b, i) {
       p[j] <- tab["x:groupGroup 1", 4]
       coefs[j] <- tab["x:groupGroup 1", 1]
     }
-    pred <- predict(fits[[j]], newdata = nd, type = "response") * to_sum_score[j]
+    pred <- to_sum_score[[j]](predict(fits[[j]], newdata = nd, type = "response"))
     did[j] <- (pred[4] - pred[2]) - (pred[3] - pred[1])
   }
   data.frame(scenario = scenarios$scenario[i], model = model_names, replication = b, p_value = p, interaction_coef = coefs,
@@ -221,23 +221,25 @@ pA <- ggplot(plot_grid, aes(x, expected_sum_score, color = group, linetype = gro
   geom_hline(yintercept = c(0, max_score), linetype = "dashed") +
   geom_line(linewidth = 0.95) +
   facet_wrap(~ scenario) +
-  scale_y_continuous(limits = c(-0.5, max_score + 0.5)) +
+  scale_y_continuous(limits = c(-0.5, max_score + 0.5), breaks = seq(0, max_score, by = 9)) +
   scale_color_manual(values = c("Group 0" = "#0072B2", "Group 1" = "#D55E00"), name = NULL) +
   scale_linetype_manual(values = c("Group 0" = "solid", "Group 1" = "longdash"), name = NULL) +
   labs(title = "A. Implied sum-score curves", subtitle = "Horizontal lines mark equal steps on the latent scale",
        x = "Continuous predictor x", y = "Expected sum score") +
-  theme_paper(10) +
+  theme_paper(11) +
   theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank())
 
 pB <- ggplot(simulation_summary, aes(x = model, y = rejection_rate)) +
   geom_hline(yintercept = alpha, linetype = "dashed") +
-  geom_pointrange(aes(ymin = ci_low, ymax = ci_high)) +
+  geom_pointrange(aes(ymin = ci_low, ymax = ci_high), linewidth = 0.6, size = 0.55) +
   coord_flip() +
   facet_wrap(~ scenario) +
+  scale_y_continuous(labels = function(x) paste0(round(100 * x), "%"), breaks = seq(0, 0.75, by = 0.25), limits = c(0, 0.8)) +
   labs(title = "B. Product-term rejection rate",
-       subtitle = "Latent generating-scale model: nominal rejection; observed-score models: pseudo-interaction detection. Dashed line: nominal alpha",
+       subtitle = "Dashed line: nominal alpha",
        x = NULL, y = "Replications rejecting the x-by-group product term") +
-  theme_paper(9)
+  theme_paper(11) +
+  theme(panel.spacing = unit(2, "lines"))
 
 for (ext in c("pdf", "png")) {
   if (ext == "pdf") pdf("figs/sum-score-simulation.pdf", width = 7.2, height = 7.2)

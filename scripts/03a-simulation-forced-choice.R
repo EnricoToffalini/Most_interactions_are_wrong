@@ -256,36 +256,36 @@ pA <- ggplot(plot_grid, aes(age, expected_accuracy, linetype = group, color = gr
   geom_hline(yintercept = chance + (1 - chance) * plogis(-5:5), color = "grey82", linewidth = 0.35) +
   geom_hline(yintercept = chance, linetype = "dashed", color = "grey35") +
   geom_line(linewidth = 0.95) +
-  annotate("text", x = age_range[2] - 0.05, y = chance + 0.025, label = sprintf("chance floor = %.2f", chance),
-           hjust = 1, size = 3, color = "grey25") +
+  annotate("text", x = age_range[2] - 0.05, y = chance - 0.025, label = paste("chance floor =", sub("^0", "", sprintf("%.2f", chance))),
+           hjust = 1, size = 3.3, color = "grey25") +
   facet_wrap(~ scenario) +
   coord_cartesian(ylim = c(chance - 0.05, 1)) +
   scale_y_continuous(labels = function(x) paste0(round(100 * x), "%"), breaks = seq(chance, 1, by = 0.10)) +
   scale_color_manual(values = c("Group 0" = "#0072B2", "Group 1" = "#D55E00"), name = NULL) +
   scale_linetype_manual(values = c("Group 0" = "solid", "Group 1" = "longdash"), name = NULL) +
   labs(title = "A. Scenario curves generated above a chance floor",
-       subtitle = "Curves are conditional at random intercept = 0; horizontal lines mark equal link-scale steps",
+       subtitle = "At random intercept = 0; horizontal lines mark equal link-scale steps",
        x = "Age", y = "Expected accuracy") +
-  theme_paper(10) +
+  theme_paper(11) +
   theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank())
 
 pB <- ggplot(simulation_summary, aes(x = model, y = rejection_rate_ok, shape = model)) +
   geom_hline(yintercept = alpha, linetype = "dashed", color = "grey35") +
-  geom_pointrange(aes(ymin = ci_low_ok, ymax = ci_high_ok), linewidth = 0.45) +
+  geom_pointrange(aes(ymin = ci_low_ok, ymax = ci_high_ok), linewidth = 0.6, size = 0.55) +
   coord_flip() +
   facet_wrap(~ scenario) +
-  scale_y_continuous(labels = function(x) paste0(round(100 * x), "%"), breaks = seq(0, 1, by = 0.25), limits = c(0, 1)) +
+  scale_y_continuous(labels = function(x) paste0(round(100 * x), "%"), breaks = seq(0, 0.2, by = 0.1), limits = c(0, 0.25)) +
   scale_shape_manual(values = model_shapes) +
   labs(title = "B. Product-term rejection rate",
-       subtitle = "Primary rates use fits passing minimal lme4 checks; dashed line: nominal alpha",
+       subtitle = "Fits passing minimal lme4 checks; dashed line: nominal alpha",
        x = NULL, y = "Replications rejecting the age-by-group product term") +
-  theme_paper(9) +
+  theme_paper(11) +
   theme(legend.position = "none")
 
 # panel A on top of panel B, each taking half of the page
 for (ext in c("pdf", "png")) {
-  if (ext == "pdf") pdf("figs/forced-choice-simulation.pdf", width = 7.2, height = 5.9)
-  if (ext == "png") png("figs/forced-choice-simulation.png", width = 7.2, height = 5.9, units = "in", res = 300)
+  if (ext == "pdf") pdf("figs/forced-choice-simulation.pdf", width = 7.2, height = 6.6)
+  if (ext == "png") png("figs/forced-choice-simulation.png", width = 7.2, height = 6.6, units = "in", res = 300)
   grid::grid.newpage()
   print(pA, vp = grid::viewport(y = 0.75, height = 0.5))
   print(pB, vp = grid::viewport(y = 0.25, height = 0.5))

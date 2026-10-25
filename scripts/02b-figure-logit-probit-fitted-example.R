@@ -39,12 +39,12 @@ diff_limit <- max(max(abs(newd$difference)) * 1.10, 0.010)
 # Figure
 ####################################################
 
-theme_paper <- theme_minimal(base_size = 10) +
-  theme(plot.title = element_text(face = "bold", size = 11, hjust = 0, margin = margin(b = 4)),
-        axis.title = element_text(size = 10),
-        axis.text = element_text(size = 9, color = "grey20"),
+theme_paper <- theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold", size = 13, hjust = 0, margin = margin(b = 4)),
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 11, color = "grey20"),
         legend.position = "bottom",
-        legend.text = element_text(size = 9),
+        legend.text = element_text(size = 11),
         legend.key.width = unit(1.25, "lines"),
         panel.grid.minor = element_blank(),
         panel.grid.major = element_line(linewidth = 0.25, color = "grey88"))

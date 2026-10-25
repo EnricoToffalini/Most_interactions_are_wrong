@@ -1,5 +1,6 @@
 ---
-title: "Supplement A - Technical Details for The Link Function Problem in Psychological Interaction Testing"
+title: "Supplement A: Technical Details for The Link Function Problem in Psychological Interaction Testing"
+shorttitle: "Supplement A: Link Functions and Interactions"
 author:
   - name: Margherita Calderan
     orcid: 0009-0005-5668-5162
@@ -59,10 +60,11 @@ format:
     geometry:
       - landscape
       - margin=1in
-    fig-pos: "H"
+    fig-pos: "htbp"
     tbl-pos: "H"
     header-includes:
       - \usepackage{float}
+      - \usepackage{needspace}
     include-in-header:
       text: |
         % Table typography: wrapped lines inside a cell are set slightly tighter
@@ -72,10 +74,10 @@ format:
         \usepackage{array}
         \AtBeginEnvironment{longtable}{%
           \linespread{0.95}\selectfont
-          \setlength{\extrarowheight}{6pt}}
+          \setlength{\extrarowheight}{3pt}}
         \AtBeginEnvironment{tabular}{%
           \linespread{0.95}\selectfont
-          \setlength{\extrarowheight}{6pt}}
+          \setlength{\extrarowheight}{3pt}}
     toc: true
     number-sections: false
   html:
@@ -127,8 +129,11 @@ zap0 <- function(x, tol = 1e-8) {
   x
 }
 
+# Typographic minus sign for negative numbers in tables
+fmt_minus <- function(x) sub("^-", "−", x)
+
 fmt_num <- function(x, digits = 3) {
-  ifelse(is.na(x), "--", formatC(zap0(as.numeric(x)), format = "f", digits = digits))
+  ifelse(is.na(x), "--", fmt_minus(formatC(zap0(as.numeric(x)), format = "f", digits = digits)))
 }
 
 fmt_percent <- function(x, digits = 1) {
@@ -136,7 +141,7 @@ fmt_percent <- function(x, digits = 1) {
 }
 
 fmt_rate <- function(x, digits = 1) {
-  ifelse(is.na(x), "--", paste0(formatC(100 * as.numeric(x), format = "f", digits = digits), "%"))
+  ifelse(is.na(x), "--", paste0(fmt_minus(formatC(100 * as.numeric(x), format = "f", digits = digits)), "%"))
 }
 
 fmt_rate_ci <- function(rate, low, high, digits = 1) {
@@ -166,12 +171,30 @@ short_item <- function(x) {
   out
 }
 
+# Right-align columns whose entries are numbers, rates, or intervals
+numeric_align <- function(d) {
+  is_num <- vapply(d, function(v) {
+    v <- trimws(as.character(v))
+    v <- v[!v %in% c("--", "N.A.", "")]
+    length(v) > 0 && all(grepl("^[\\-\u2212]?[0-9.,/% ()=n\\[\\]\u2212]+$", v, perl = TRUE))
+  }, logical(1))
+  ifelse(is_num, "r", "l")
+}
+
+# Print a table, keeping short tables on one page in the PDF
+print_kable <- function(d, digits = 3) {
+  if (knitr::is_latex_output() && nrow(d) <= 20) {
+    cat("\\needspace{", min(nrow(d) * 0.7 + 4, 15), "\\baselineskip}\n\n", sep = "")
+  }
+  print(knitr::kable(d, digits = digits, align = numeric_align(d)))
+  cat("\n\n")
+}
+
 print_table_if_exists <- function(note_if_missing, ..., transform = identity, digits = 3) {
   d <- read_csv_if_exists(...)
   if (is.null(d)) return(missing_note(note_if_missing))
   d <- transform(d)
-  print(knitr::kable(d, digits = digits))
-  cat("\n\n")
+  print_kable(d, digits = digits)
   invisible(d)
 }
 
@@ -250,7 +273,7 @@ print_table_if_exists(
       stop("Screening-flow table is missing required columns: ", paste(missing, collapse = ", "), call. = FALSE)
     }
     out <- data.frame(
-      Step = d$step,
+      Step = paste0(toupper(substr(d$step, 1, 1)), substring(d$step, 2)),
       N = d$n,
       check.names = FALSE
     )
@@ -264,6 +287,10 @@ Each of the 200 coded articles was independently coded by two researchers. Discr
 <!-- The coded variable names use underscores in the coding sheet and in the R
      code. Underscores are unbreakable in the PDF table, so the names are
      displayed here with spaces instead, for rendering purposes only. -->
+
+```{=latex}
+\needspace{12\baselineskip}
+```
 
 | Variable | Definition (preregistered) | Type |
 |---|-------------|---|
@@ -281,7 +308,7 @@ Beyond these definitions, the coders applied a small set of operational rules fo
 | Variable | Coded "Yes" when | Decisions that most affect the count |
 |---|------------|------------|
 | Non-identity link used | at least one tested interaction is fitted with a model implying a non-identity link, that is, any GLM or GLMM beyond the Gaussian-identity default (ANOVA, ordinary regression, linear mixed model). | A model named "logistic", "probit", "Poisson", "negative binomial", "ordinal"/"cumulative", or "Gamma" regression implies a non-identity link. |
-| Explicit link function | the link is identifiable from the report, either stated in words or named through a link-specific model. | "Logistic regression" (logit), "probit regression" (probit), and "Poisson" or "log-linear" (log) count as explicit. Naming only a family, a "generalized linear model", or a "GLMM" does not. |
+| Explicit link function | the link is stated in the report, either in words or by naming a link-specific model. | "Logistic regression" (logit), "probit regression" (probit), and "Poisson" or "log-linear" (log) count as explicit. Naming only a family, a "generalized linear model", or a "GLMM" does not. |
 | Gaussian-identity analysis on a constrained outcome | an interaction is tested with an identity-link model (ANOVA, ordinary regression, linear mixed model, or a test on cell means) applied to an outcome with formal constraints: bounded, discrete, positive-only, or with a known chance level. | Flagged only when the constraint is clear from the report. Not flagged when the analysis is explicitly justified as an observed-score estimand, or when the outcome is plausibly continuous and far from any bound. |
 | Significant interaction | at least one interaction already flagged as a Gaussian-identity analysis on a constrained outcome is reported as statistically significant, or is interpreted analogously (for example, a credible interval excluding zero) in a Bayesian analysis. | Restricted to interactions already flagged in the row above. |
 | Response-variable types | — | Non-exclusive: one article can contribute several types (sum score, accuracy or proportion, error count, response time, ordinal/Likert, neural or physiological, difference score, correlation). |
@@ -295,7 +322,7 @@ Two notes clarify the interpretation of the coding variables. First, *Incorrect 
 The last coding variable is described in greater detail in @tbl-response-variable-definitions, which summarizes the response variable labels used during coding and their relation to the broader categories reported in the main paper. Classification was based primarily on the process that generated the response rather than on the terminology used by the article authors. When this process could not be determined reliably from the report, the authors' terminology was retained.
 
 | Broad category in the main paper | Principal detailed labels | Operational definition and coding decisions |
-|---|---|---|
+|-----|------|--------------|
 | Binary / accuracy / proportions | Binary; proportion | *Binary* indicated a finite number of discrete binary events, such as correct and incorrect responses over a predetermined number of trials. This label was retained when binary responses were summed or averaged. *Proportion* was reserved for responses treated as varying continuously between 0 and 1 and not determined by a fixed number of discrete binary events. Accuracy calculated over a predetermined number of trials was therefore coded as binary rather than as a continuous proportion. |
 | Sum scores / composites | Sum score; log transformed sum score; normalized sum score | A *sum score* was a sum or average of multiple ordinal or slider responses. Aggregates of dichotomous responses were instead coded as binary. Log transformed and normalized totals were identified separately during detailed coding but were included in the same broad category for reporting. |
 | Ordinal / Likert / ratings | Ordinal; slider | *Ordinal* indicated a single ordered response with no more than 10 response levels. A single ordered response with more than 10 available levels was coded as a *slider*. When multiple ordinal or slider responses were summed or averaged, the resulting outcome was coded as a sum score. |
@@ -332,6 +359,7 @@ print_table_if_exists(
 
 ```{r}
 #| label: tbl-by-journal
+#| tbl-colwidths: [18, 9, 13, 11, 8, 12, 10, 19]
 #| tbl-cap: "By-journal review descriptives."
 #| disable-apaquarto-processing: true
 #| results: asis
@@ -369,7 +397,7 @@ so that performance saturates below $1$ when occasional lapses are plausible [@w
 
 # S4. Data-generating processes and estimation details
 
-This section gives the formal generative models and the estimation internals for the simulations. The main paper describes the purpose and interpretation of each simulation; here we state the equations, the fixed parameter values, and the fitting procedures needed to reproduce the reported behaviour. Unless noted otherwise, each scenario used a significance level of $\alpha = .05$, and each simulation set a fixed random seed.
+This section gives the formal generative models and the estimation internals for the simulations. The main paper describes the purpose and interpretation of each simulation; here we state the equations, the fixed parameter values, and the fitting procedures needed to reproduce the reported behavior. Unless noted otherwise, each scenario used a significance level of $\alpha = .05$, and each simulation set a fixed random seed.
 
 ## Generative parameters of the illustrative figures
 
@@ -381,7 +409,7 @@ $$
 \log \mu_i = 2.60 - 0.55\,(\text{age}_i - 6) + 0.65\,\text{group}_i,
 $$
 
-with no age-by-group product term on the log scale. The figure plots a Poisson-log model fitted to one such sample, on the count scale and on the log scale. The count scenario of the diagnostic simulation (D1) adapts this coefficient pattern rather than reproducing it exactly: it keeps the same generating structure but uses a smaller sample ($N = 180$), a slightly lower intercept ($2.20$), and a smaller group effect ($0.45$); its full specification is given below under *Diagnostic simulation: data-generating processes*.
+with no age-by-group product term on the log scale. The figure plots, for one such sample, a Gaussian identity model with an age-by-group product term on the count scale, and a Poisson-log model without it on the log and count scales. The count scenario of the diagnostic simulation (D1) adapts this coefficient pattern rather than reproducing it exactly: it keeps the same generating structure but uses a smaller sample ($N = 180$), a slightly lower intercept ($2.20$), and a smaller group effect ($0.45$); its full specification is given below under *Diagnostic simulation: data-generating processes*.
 
 The motivating $2 \times 2$ figure is fully deterministic: it evaluates four cell probabilities, without sampling. They are generated additively on the chance-corrected logit scale with $c = .50$,
 
@@ -394,7 +422,7 @@ again with no condition-by-group product term. The resulting cell probabilities 
 
 ```{r}
 #| label: tbl-motivating-example-cells
-#| tbl-cap: "Cell probabilities of the motivating 2 x 2 figure. These four values are identical in all three panels of that figure."
+#| tbl-cap: "Cell probabilities of the motivating 2 × 2 figure. These four values are identical in all three panels of that figure."
 #| disable-apaquarto-processing: true
 #| results: asis
 
@@ -402,7 +430,7 @@ print_table_if_exists(
   note_if_missing = "Motivating-example cell table not available in this build.",
   "tables", "motivating-example-cells.csv",
   transform = function(d) data.frame(
-    Group = d$group,
+    Group = sub("^Group ", "", d$group),
     Condition = d$condition,
     `Linear predictor` = fmt_num(d$linear_predictor, 2),
     `Expected probability` = fmt_num(d$expected_probability, 3),
@@ -452,7 +480,8 @@ A fit is flagged when it errors, has a non-empty `fit@optinfo$conv$lme4$messages
 
 ```{r}
 #| label: tbl-rejection-forced-choice
-#| tbl-cap: "Product-term rejection rates by forced-choice performance scenario and fitted mixed model. Primary rates use fits passing the minimal fit-quality checks. Apparent rates among flagged fits are shown separately. CI = Wilson 95%."
+#| tbl-colwidths: [8, 22, 7, 10, 16, 7, 10, 16]
+#| tbl-cap: "Product-term rejection rates by forced-choice performance scenario and fitted mixed model. Each model was fitted to 3,000 datasets per scenario. Primary rates use fits passing the minimal fit-quality checks; for the matched chance-corrected model this is a nominal rejection rate, for the other models a pseudo-interaction detection rate. Apparent rates among flagged fits are shown separately and are not valid inferential error rates. Rejections are given as rejections/finite p-values. CI = Wilson 95%."
 #| disable-apaquarto-processing: true
 #| results: asis
 
@@ -460,19 +489,18 @@ print_table_if_exists(
   note_if_missing = "Forced-choice simulation summary not available in this build.",
   "tables", "simulation-summary-forced-choice.csv",
   transform = function(d) data.frame(
-    Scenario = d$scenario,
+    Scenario = sub(" performance$", "", d$scenario),
     Model = d$model,
-    `Rate type` = d$rate_type,
-    `Fits attempted` = d$n_total,
-    `Fits passing checks` = d$n_fit_ok,
-    `Flagged fits` = d$n_fit_problem,
-    `Fit-problem rate` = fmt_num(d$fit_problem_rate, 3),
-    `Primary finite p (n)` = d$n_p_finite_ok,
-    `Primary rejections (n)` = d$n_rejections_ok,
+    `Passing fits` = d$n_fit_ok,
+    `Primary rejections` = paste0(d$n_rejections_ok, "/", d$n_p_finite_ok),
     `Primary rate [95% CI]` = fmt_rate_ci(d$rejection_rate_ok, d$ci_low_ok, d$ci_high_ok),
-    `Flagged finite p (n)` = d$n_p_finite_problem,
-    `Apparent flagged rejections (n)` = d$n_rejections_problem,
-    `Apparent flagged rate [95% CI]` = fmt_rate_ci(
+    `Flagged fits` = d$n_fit_problem,
+    `Apparent rejections` = ifelse(
+      d$n_p_finite_problem > 0,
+      paste0(d$n_rejections_problem, "/", d$n_p_finite_problem),
+      "--"
+    ),
+    `Apparent rate [95% CI]` = fmt_rate_ci(
       d$rejection_rate_problem, d$ci_low_problem, d$ci_high_problem
     ),
     check.names = FALSE
@@ -501,7 +529,7 @@ The chance-corrected GLMM was flagged in `r fc_flag_cc` of replications across s
 
 ## Simulation 2: within-family link choice
 
-Repeated binary trials are generated in a two-group, two-condition design with $n = 700$ participants, $k = 15$ trials per participant-condition cell, and a subject random intercept. The reference fixed effects on the probit scale are intercept $1.50$, group $-1.00$, condition $-1.00$, and product term $0$. When the generating link is logit, all fixed effects are multiplied by $1.65$, so that the logit and probit data-generating processes imply similar cell probabilities while preserving a zero product term on the generating link scale. The random-intercept standard deviation is set from a latent-scale ICC of $.30$, using the latent residual variance of the generating link ($\pi^2/3$ for logit, $1$ for probit).
+Repeated binary trials are generated in a two-group, two-condition design with $N = 700$ participants, $k = 15$ trials per participant-condition cell, and a subject random intercept. The reference fixed effects on the probit scale are intercept $1.50$, group $-1.00$, condition $-1.00$, and product term $0$. When the generating link is logit, all fixed effects are multiplied by $1.65$, so that the logit and probit data-generating processes imply similar cell probabilities while preserving a zero product term on the generating link scale. The random-intercept standard deviation is set from a latent-scale ICC of $.30$, using the latent residual variance of the generating link ($\pi^2/3$ for logit, $1$ for probit).
 
 Generating and fitted links are fully crossed (logit and probit in both roles), giving two matched-link and two wrong-link cells. All models are random-intercept GLMMs fitted with `glmmTMB`, using the same `group * condition` fixed-effect formula. The separate fitted-curve illustration uses a grouped-binomial dataset with 1,000 observational units and 60 trials per unit, with one `cbind(correct, incorrect)` response per unit; it is shown in Section S5, @fig-logit-probit-fitted.
 
@@ -515,13 +543,12 @@ print_table_if_exists(
   note_if_missing = "Within-family simulation summary not available in this build.",
   "tables", "simulation-summary-within-family-links.csv",
   transform = function(d) data.frame(
-    Generating = d$generating_link,
-    Fitted = d$fitted_link,
+    `Generating link` = tools::toTitleCase(d$generating_link),
+    `Fitted link` = tools::toTitleCase(d$fitted_link),
     Status = d$link_match,
-    `Rate type` = d$rate_type,
     `Rejections (n)` = d$n_rejections,
     `Rejection rate [95% CI]` = fmt_rate_ci(d$rejection_rate, d$ci_low, d$ci_high),
-    `Median beta` = fmt_num(d$median_interaction_coef, 3),
+    `Median β` = fmt_num(d$median_interaction_coef, 3),
     `Median SE` = fmt_num(d$median_interaction_se, 3),
     check.names = FALSE
   )
@@ -537,13 +564,13 @@ $$
 \qquad \varepsilon_i \sim N(0, 1),
 $$
 
-so the x-by-group product term is exactly zero on the latent generating scale. The latent trait is mapped to $J = 9$ ordinal items, each scored $0$ to $3$, through a graded logistic threshold model: item $j$ has three ordered thresholds, and the probability of reaching category $k$ or higher is $\mathrm{logistic}(\theta_i - \tau_{jk})$. Thresholds are deterministic, with base values $(-1, 0, 1)$, evenly spaced item offsets from $-0.45$ to $0.45$ across the nine items, and a scenario-level shift: middle of scale (shift $0.00$), near floor (shift $+1.60$, harder items compress scores toward the lower bound), and near ceiling (shift $-1.60$). The observed outcome is the item total, bounded between $0$ and $27$, discrete, and differentially compressed across the score range.
+so the x-by-group product term is exactly zero on the latent generating scale. The latent trait is mapped to $J = 9$ ordinal items, each scored $0$ to $3$, through a graded logistic threshold model: item $j$ has three ordered thresholds, and the probability of reaching category $k$ or higher is $\mathrm{logistic}(\theta_i - \tau_{jk})$. Thresholds are deterministic, with base values $(-1, 0, 1)$, evenly spaced item offsets from $-0.45$ to $0.45$ across the nine items, and a scenario-level shift: lower range (shift $+1.60$, harder items compress scores toward the lower bound), middle range (shift $0.00$), and upper range (shift $-1.60$). The observed outcome is the item total, bounded between $0$ and $27$, discrete, and differentially compressed across the score range.
 
 Three analyses are fitted with the same `x * group` formula, to separate the relevant scales: (1) an observed sum-score identity model, `lm()` on the manifest total; (2) a Gaussian-probit bounded-score model, a Gaussian GLM with a probit link fitted to the continuity-corrected score proportion $(\text{sum} + 0.5) / (\text{max} + 1)$, included as a sensitivity model on the manifest total rather than a measurement model; and (3) a latent-scale benchmark, `lm()` on the true $\theta$, available only because $\theta$ is known in the simulation.
 
 ```{r}
 #| label: tbl-rejection-sum-score
-#| tbl-cap: "Product-term rejection rates by sum-score scenario and analysis scale. The latent generating-scale benchmark shows nominal rejection; observed-score models show pseudo-interaction detection. The latent benchmark is available only because theta is known. CI = Wilson 95%. All scenarios used 3,000 replications."
+#| tbl-cap: "Product-term rejection rates by sum-score scenario and analysis scale. The latent generating-scale benchmark shows nominal rejection; observed-score models show pseudo-interaction detection. The latent benchmark is available only because θ is known. CI = Wilson 95%. All scenarios used 3,000 replications."
 #| disable-apaquarto-processing: true
 #| results: asis
 
@@ -568,7 +595,6 @@ print_table_if_exists(
     data.frame(
       Scenario = d$scenario,
       Model = d$model,
-      `Rate type` = d$rate_type,
       `Rejections (n)` = d$n_rejections,
       `Rejection rate [95% CI]` = fmt_rate_ci(d$rejection_rate, d$ci_low, d$ci_high),
       check.names = FALSE
@@ -617,6 +643,7 @@ so the baseline mean is $400$ ms at $x = 0$ in the reference group.
 
 ```{r}
 #| label: tbl-diagnostic-scenario-values
+#| tbl-colwidths: [22, 10, 11, 7, 12, 24, 14]
 #| tbl-cap: "Expected values implied by the five diagnostic data-generating processes, at low, middle, and high values of the focal predictor. Values for the two binary scenarios are conditional on a subject random intercept of zero. Units differ by scenario and are given in the outcome column."
 #| disable-apaquarto-processing: true
 #| results: asis
@@ -648,7 +675,7 @@ print_table_if_exists(
       Scenario = d$scenario,
       Predictor = d$predictor_name,
       `Predictor value` = fmt_num(d$predictor_value, 1),
-      Group = d$group,
+      Group = sub("^Group ", "", d$group),
       `Linear predictor` = fmt_num(d$linear_predictor, 2),
       Outcome = labels,
       `Expected outcome` = fmt_num(d$expected_value, 3),
@@ -692,7 +719,7 @@ print_table_if_exists(
     data.frame(
       Scenario = d$scenario,
       Age = fmt_num(d$age, 0),
-      Group = d$group,
+      Group = sub("^Group ", "", d$group),
       `Linear predictor` = fmt_num(d$linear_predictor, 2),
       `Expected accuracy` = fmt_num(d$expected_accuracy, 3),
       `Correct out of 20` = fmt_num(d$expected_correct_out_of_k_trials, 2),
@@ -704,6 +731,7 @@ print_table_if_exists(
 
 ```{r}
 #| label: tbl-contrasts-forced-choice
+#| tbl-colwidths: [14, 44, 12, 18, 12]
 #| tbl-cap: "Contrasts derived from the forced-choice scenarios. Probability points and correct-response units are on the observed accuracy scale; the link-scale column is on the generating chance-corrected logit scale."
 #| disable-apaquarto-processing: true
 #| results: asis
@@ -717,7 +745,7 @@ print_table_if_exists(
       Scenario = d$scenario,
       Contrast = d$contrast,
       `Probability points` = fmt_num(d$value_probability_points, 3),
-      `Difference in correct responses (out of 20)` = fmt_num(d$value_correct_out_of_k_trials, 2),
+      `Correct responses (out of 20)` = fmt_num(d$value_correct_out_of_k_trials, 2),
       `Link scale` = fmt_num(d$link_scale_value, 3),
       check.names = FALSE
     )
@@ -727,7 +755,7 @@ print_table_if_exists(
 
 ## Deterministic link-scale decomposition, Simulation 2
 
-The nominal rejection and pseudo-interaction detection rates for Simulation 2 are reported in Section S4. @tbl-within-family-deterministic instead reports the deterministic quantities behind them: for each generating-by-fitted link combination, the product-term contrast induced by evaluating the generating cell probabilities on the fitted link scale, and the corresponding response-scale difference-in-differences. Under a matched link the induced product term is zero by construction; under a wrong link it is a fixed nonzero value. The wrong-link rejection rate reflects power to detect that fitted-scale product term.
+The nominal rejection and pseudo-interaction detection rates for Simulation 2 are reported in Section S4. @tbl-within-family-deterministic instead reports the deterministic quantities behind them: for each generating-by-fitted link combination, the product-term contrast induced by evaluating the generating cell probabilities on the fitted link scale, and the corresponding response-scale difference-in-differences. Under a matched link the induced product term is zero by construction; under a wrong link it is a fixed nonzero value. These values hold at random intercept 0; the median GLMM estimates in @tbl-rejection-within-family are smaller, because changing the link also changes how the random intercept enters the model, but they have the same sign.
 
 ```{r}
 #| label: tbl-within-family-deterministic
@@ -740,8 +768,8 @@ print_table_if_exists(
   "tables", "simulation-summary-within-family-links.csv",
   transform = function(d) {
     data.frame(
-      `Generating link` = d$generating_link,
-      `Fitted link` = d$fitted_link,
+      `Generating link` = tools::toTitleCase(d$generating_link),
+      `Fitted link` = tools::toTitleCase(d$fitted_link),
       `Link status` = d$link_match,
       `Induced product term (fitted-link scale)` = fmt_num(d$deterministic_product_on_fitted_link_scale, 3),
       `Response-scale diff-in-diff` = fmt_num(d$deterministic_response_scale_difference_in_differences, 3),
@@ -769,7 +797,7 @@ print_table_if_exists(
     data.frame(
       Scenario = d$scenario,
       x = fmt_num(d$x, 0),
-      Group = d$group,
+      Group = sub("^Group ", "", d$group),
       `Latent mean` = fmt_num(d$latent_mean, 2),
       `Expected sum score` = fmt_num(d$expected_sum_score, 2),
       `Percent of max` = fmt_rate(d$expected_percent_of_max),
@@ -781,6 +809,7 @@ print_table_if_exists(
 
 ```{r}
 #| label: tbl-contrasts-sum-scores
+#| tbl-colwidths: [12, 44, 16, 16, 12]
 #| tbl-cap: "Contrasts derived from the sum-score scenarios. Sum-score units and percent of maximum are on the observed total; the latent-scale column is on the generating scale."
 #| disable-apaquarto-processing: true
 #| results: asis
@@ -830,7 +859,7 @@ print_table_if_exists(
   note_if_missing = "Logit-probit model results not available in this build.",
   "tables", "model-results-logit-probit-fitted-example.csv",
   transform = function(d) data.frame(
-    Model = d$model,
+    Model = tools::toTitleCase(d$model),
     Intercept = fmt_num(d$intercept, 3),
     Slope = fmt_num(d$slope, 3),
     AIC = fmt_num(d$AIC, 1),
@@ -845,7 +874,7 @@ The main paper reports the DHARMa detection rate as a min-to-max range across ch
 
 ```{r}
 #| label: tbl-diagnostic-breakdown
-#| tbl-cap: "Diagnostic detection rates and AIC strength across five scenarios. D1 count errors (Poisson log to identity); D2 chance-floor accuracy (chance-corrected to standard logit); D3 binary 2x2 GLMM (probit to logit); D4 binary continuous-predictor GLMM (probit to logit); D5 Gamma mean response time (log to inverse)."
+#| tbl-cap: "Diagnostic detection rates and AIC strength across five scenarios. D1 count errors (Poisson log to identity); D2 chance-floor accuracy (chance-corrected to standard logit); D3 binary 2 × 2 GLMM (probit to logit); D4 binary continuous-predictor GLMM (probit to logit); D5 Gamma mean response time (log to inverse)."
 #| disable-apaquarto-processing: true
 #| results: asis
 
@@ -1002,27 +1031,25 @@ if (is.null(diag_long) || is.null(diag_rep)) {
         function(q) rate_cell(scenario_name, q),
         character(1)
       ),
-      paste0(fmt_num(sm$median_delta_aic, 1), " (n = ", sm$n_aic, ")"),
+      if (sm$n_aic == 3000) fmt_num(sm$median_delta_aic, 1) else
+        paste0(fmt_num(sm$median_delta_aic, 1), " (n = ", sm$n_aic, ")"),
       count_rate(sm$n_aic_within_two, sm$n_aic)
     )
   }
 
-  print(knitr::kable(
-    out
-  ))
-  cat("\n\n")
+  print_kable(out)
 }
 ```
 
-Publication runs request 3,000 replications, and each table reports its usable denominator. “Missed” means that none of the applicable prespecified DHARMa checks had $p < .05$; pseudo-interactions for which all five DHARMa p-values were missing are excluded from this conditional denominator. $\Delta\mathrm{AIC} = \mathrm{AIC}(\text{wrong link}) - \mathrm{AIC}(\text{target link})$, so positive values favor the target link and negative values favor the wrong link. The sample size shown with the median and the denominator for $|\Delta\mathrm{AIC}| < 2$ are the finite AIC comparisons. N.A. indicates that the Pregibon-style added term is not identifiable in the saturated $2 \times 2$ interaction model.
+Each scenario used 3,000 replications, and each table reports its usable denominator. “Missed” means that none of the applicable prespecified DHARMa checks had $p < .05$; pseudo-interactions for which all five DHARMa p-values were missing are excluded from this conditional denominator. $\Delta\mathrm{AIC} = \mathrm{AIC}(\text{wrong link}) - \mathrm{AIC}(\text{target link})$, so positive values favor the target link and negative values favor the wrong link. The sample size shown with the median and the denominator for $|\Delta\mathrm{AIC}| < 2$ are the finite AIC comparisons. N.A. indicates that the Pregibon-style added term is not identifiable in the saturated $2 \times 2$ interaction model.
 
 ## Distribution of the AIC difference
 
-The proportion of replications in which AIC favours the target link is not informative on its own, because winning by less than one AIC unit and winning by fifty describe different situations. @tbl-diagnostic-aic-distribution therefore gives the distribution of $\Delta\mathrm{AIC}$ rather than only its median. The D2 values require regeneration after the chance-floor scenario was converted to the subject-random-intercept design.
+The proportion of replications in which AIC favors the target link is not informative on its own, because winning by less than one AIC unit and winning by fifty describe different situations. @tbl-diagnostic-aic-distribution therefore gives the distribution of $\Delta\mathrm{AIC}$ rather than only its median.
 
 ```{r}
 #| label: tbl-diagnostic-aic-distribution
-#| tbl-cap: "Distribution of the AIC difference across replications, by diagnostic scenario. Delta AIC = AIC(wrong link) - AIC(target link), so positive values favor the target link. n = replications with both AIC values available."
+#| tbl-cap: "Distribution of the AIC difference across replications, by diagnostic scenario. ΔAIC = AIC(wrong link) − AIC(target link), so positive values favor the target link. n = replications with both AIC values available."
 #| disable-apaquarto-processing: true
 #| results: asis
 
@@ -1155,8 +1182,7 @@ if (is.null(diag_calibration)) {
     paired$diagnostic == "Pregibon-style added-term link check"
   out[pregibon_not_applicable, c("Correct-link flagging", "Wrong-link flagging")] <- "N.A."
 
-  print(knitr::kable(out))
-  cat("\n\n")
+  print_kable(out)
 }
 ```
 
@@ -1171,16 +1197,16 @@ if (is.null(diag_calibration)) {
 #| results: asis
 
 include_graphic_if_exists(
-  "outputs", "inspection", "within-family-link-pseudo-interaction.png",
+  "outputs", "inspection", "within-family-link-pseudo-interaction.pdf",
   note_if_missing = "Inspection figure not available in this build."
 )
 ```
 
 # S6. Data, code, and computational environment
 
-All analyses were conducted in R, and the manuscript and this supplement were written in Quarto. Each simulation sets a fixed random seed, and the number of Monte Carlo replications and the significance level are recorded together with the saved results. Exact package versions are pinned with `renv`, which is the source of truth for the computational environment; the key modelling dependencies are `glmmTMB` for the mixed-model simulations and `DHARMa` for the diagnostic checks. The complete data, analysis code, preregistration materials, and generated outputs are archived in the public repository associated with the article, so that every table and figure can be regenerated from the raw inputs.
+All analyses were conducted in R, and the manuscript and this supplement were written in Quarto. Each simulation sets a fixed random seed, and the number of Monte Carlo replications and the significance level are recorded together with the saved results. Exact package versions are pinned with `renv`, which is the source of truth for the computational environment; the key modeling dependencies are `glmmTMB` and `lme4` for the mixed-model simulations and `DHARMa` for the diagnostic checks. The complete data, analysis code, preregistration materials, and generated outputs are archived in the public repository associated with the article, so that every table and figure can be regenerated from the raw inputs.
 
-The manuscript simulations use a small number of transparent scenarios. A broader precomputed sensitivity atlas generated in `simulation-atlas/` varies key parameters around those anchors, and the Shiny app explores its compact summaries without running simulations interactively. Replication-level atlas results are intended for the public repository or OSF archive and are not required to render this supplement.
+The manuscript simulations use a small number of transparent scenarios. A broader precomputed sensitivity atlas (Supplement B) varies key parameters around those anchors, and the Shiny app explores its compact summaries without running simulations interactively. Replication-level atlas results are intended for the public repository or OSF archive and are not required to render this supplement.
 
 # References
 
