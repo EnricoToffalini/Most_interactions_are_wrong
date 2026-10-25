@@ -376,7 +376,7 @@ audit of individual papers.]{.card__desc}
 
 [Repository & scripts](https://github.com/EnricoToffalini/Most_interactions_are_wrong){.card__title target="_blank" rel="noopener"}
 
-[All simulation and analysis scripts in `scripts/`, reproducible via `run.R`
+[All simulation and analysis scripts in `scripts/`, reproducible via `run.sh`
 with an `renv` lockfile.]{.card__desc}
 :::
 

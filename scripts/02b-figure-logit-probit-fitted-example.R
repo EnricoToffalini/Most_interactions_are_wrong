@@ -1,304 +1,75 @@
-# scripts/02b-figure-logit-probit-fitted-example.R
-# Fitted logit vs probit curves on one simulated binomial dataset.
-#
-# Purpose:
-#   Show that logit and probit fits can look almost interchangeable while still
-#   implying a structured pointwise discrepancy in fitted probabilities.
-#
-# Output:
-#   figs/logit-probit-fitted-example.pdf
-#   figs/logit-probit-fitted-example.png
-#   tables/model-results-logit-probit-fitted-example.csv
-#   outputs/logit-probit-fitted-example.rds
+# Fitted logit vs probit curves on one simulated binomial dataset: the two fits
+# look almost interchangeable but imply a structured pointwise discrepancy in
+# fitted probabilities. Run from the repository root.
 
 rm(list = ls())
+library(ggplot2)
+library(patchwork)
+for (path in c("tables", "figs", "outputs")) dir.create(path, showWarnings = FALSE)
+set.seed(20260601)
 
-# ---------------------------------------------------------------------
-# 0. Project setup
-# ---------------------------------------------------------------------
+N <- 1000
+k_trials <- 60
+x_range <- c(-2.5, 2.5)
+beta_intercept <- 0.05
+beta_x <- 1.75
 
-# Run from the repository root. This example draws one dataset.
-figure_width <- 7.2
-figure_height <- 7.0
+# one dataset from a logit DGP
+x <- runif(N, x_range[1], x_range[2])
+p_true <- plogis(beta_intercept + beta_x * x)
+correct <- rbinom(N, size = k_trials, prob = p_true)
+d <- data.frame(x = x, correct = correct, incorrect = k_trials - correct, proportion = correct / k_trials, p_true = p_true)
 
-for (path in c("tables", "figs", "outputs", "outputs/inspection")) {
-  dir.create(path, recursive = TRUE, showWarnings = FALSE)
-}
-cat("\n", "Fitted logit vs probit example", "\n")
-
-# ---------------------------------------------------------------------
-# 1. User-tunable settings
-# ---------------------------------------------------------------------
-
-settings <- list(
-  seed = 20260601,
-
-  # Data-generating scenario.
-  N = 1000,
-  k_trials = 60,
-  x_range = c(-2.5, 2.5),
-  beta_intercept = 0.05,
-  beta_x = 1.75,
-
-  # Prediction grid.
-  prediction_n = 500,
-
-  # Plot tuning.
-  point_alpha = 0.35,
-  point_size = 1.20,
-  line_width = 1.05,
-  discrepancy_width = 0.90,
-  diff_min_limit = 0.010,
-
-  # Output.
-  figure_width = 7.2,
-  figure_height = 5.8,
-  figure_base = "figs/logit-probit-fitted-example",
-  table_path = "tables/model-results-logit-probit-fitted-example.csv",
-  rds_path = "outputs/logit-probit-fitted-example.rds"
-)
-
-set.seed(settings$seed)
-
-# ---------------------------------------------------------------------
-# 2. Simulate one dataset
-# ---------------------------------------------------------------------
-
-x <- stats::runif(settings$N, settings$x_range[1], settings$x_range[2])
-eta <- settings$beta_intercept + settings$beta_x * x
-p_true <- stats::plogis(eta)
-correct <- stats::rbinom(settings$N, size = settings$k_trials, prob = p_true)
-
-d <- data.frame(
-  x = x,
-  correct = correct,
-  incorrect = settings$k_trials - correct,
-  proportion = correct / settings$k_trials,
-  p_true = p_true
-)
-
-# ---------------------------------------------------------------------
-# 3. Fit logit and probit GLMs to the same responses
-# ---------------------------------------------------------------------
-
-fit_logit <- stats::glm(
-  cbind(correct, incorrect) ~ x,
-  family = stats::binomial(link = "logit"),
-  data = d
-)
-
-fit_probit <- stats::glm(
-  cbind(correct, incorrect) ~ x,
-  family = stats::binomial(link = "probit"),
-  data = d
-)
-
-model_results <- data.frame(
-  model = c("logit", "probit"),
-  AIC = c(stats::AIC(fit_logit), stats::AIC(fit_probit)),
-  intercept = c(stats::coef(fit_logit)[1], stats::coef(fit_probit)[1]),
-  slope = c(stats::coef(fit_logit)[2], stats::coef(fit_probit)[2]),
-  stringsAsFactors = FALSE
-)
-
-# ---------------------------------------------------------------------
-# 4. Predictions and pointwise discrepancy
-# ---------------------------------------------------------------------
-
-newd <- data.frame(
-  x = seq(settings$x_range[1], settings$x_range[2], length.out = settings$prediction_n)
-)
-
-newd$logit <- stats::predict(fit_logit, newdata = newd, type = "response")
-newd$probit <- stats::predict(fit_probit, newdata = newd, type = "response")
-newd$difference <- newd$logit - newd$probit
-
-pred_long <- rbind(
-  data.frame(x = newd$x, probability = newd$logit, model = "Fitted logit"),
-  data.frame(x = newd$x, probability = newd$probit, model = "Fitted probit")
-)
-
-diff_limit <- max(abs(newd$difference), na.rm = TRUE) * 1.10
-diff_limit <- max(diff_limit, settings$diff_min_limit)
-
-# ---------------------------------------------------------------------
-# 5. Plot
-# ---------------------------------------------------------------------
-
-pA <- ggplot2::ggplot() +
-  ggplot2::geom_point(
-  data = d,
-  ggplot2::aes(x = x, y = proportion),
-  alpha = settings$point_alpha,
-  size = settings$point_size,
-  shape = 21,
-  stroke = 0.15,
-  fill = "grey55",
-  colour = "grey15"
-) +
-  ggplot2::geom_line(
-  data = pred_long,
-  ggplot2::aes(x = x, y = probability, colour = model),
-  linewidth = settings$line_width
-) +
-  ggplot2::geom_hline(
-  yintercept = 0.5,
-  linetype = "dotted",
-  linewidth = 0.35,
-  colour = "grey55"
-) +
-  ggplot2::scale_colour_manual(
-  values = c(
-    "Fitted logit" = "#E69F00",
-    "Fitted probit" = "#009E73"
-  )
-) +
-  ggplot2::coord_cartesian(
-  xlim = settings$x_range,
-  ylim = c(0, 1),
-  clip = "off"
-) +
-  ggplot2::labs(
-  title = "A. Fitted probability",
-  x = NULL,
-  y = "Observed proportion / fitted probability",
-  colour = NULL
-) +
-  (ggplot2::theme_minimal(base_size = (10), base_family = ("")) +
-    ggplot2::theme(
-    plot.title = ggplot2::element_text(
-      face = "bold",
-      size = (10) + 1,
-      margin = ggplot2::margin(b = 3)
-    ),
-    plot.subtitle = ggplot2::element_text(
-      size = (10) - 1,
-      color = "grey25",
-      margin = ggplot2::margin(b = 6)
-    ),
-    axis.title = ggplot2::element_text(size = (10)),
-    axis.text = ggplot2::element_text(size = (10) - 1, color = "grey20"),
-    strip.text = ggplot2::element_text(face = "bold", size = (10) - 1),
-    legend.position = "bottom",
-    legend.title = ggplot2::element_text(size = (10) - 1),
-    legend.text = ggplot2::element_text(size = (10) - 1),
-    legend.key.width = grid::unit(1.25, "lines"),
-    panel.grid.minor = ggplot2::element_blank(),
-    panel.grid.major = ggplot2::element_line(linewidth = 0.25, color = "grey88"),
-    panel.spacing = grid::unit(0.9, "lines"),
-    plot.margin = ggplot2::margin(6, 8, 6, 8)
-)) +
-  ggplot2::theme(
-  axis.title.x = ggplot2::element_blank(),
-  axis.text.x = ggplot2::element_blank(),
-  axis.ticks.x = ggplot2::element_blank(),
-  legend.position = "bottom",
-  plot.title = ggplot2::element_text(face = "bold", hjust = 0, margin = ggplot2::margin(b = 4)),
-  plot.margin = ggplot2::margin(5.5, 5.5, 0, 5.5)
-)
-
-pB <- ggplot2::ggplot(newd, ggplot2::aes(x = x, y = difference)) +
-  ggplot2::geom_hline(
-  yintercept = 0,
-  linetype = "dotted",
-  linewidth = 0.35,
-  colour = "grey55"
-) +
-  ggplot2::geom_line(
-  linewidth = settings$discrepancy_width,
-  linetype = "longdash",
-  colour = "grey25"
-) +
-  ggplot2::coord_cartesian(
-  xlim = settings$x_range,
-  ylim = c(-diff_limit, diff_limit),
-  clip = "off"
-) +
-  ggplot2::labs(
-  title = "B. Logit minus probit fitted probability",
-  x = "Predictor value",
-  y = "Logit - probit fitted probability"
-) +
-  (ggplot2::theme_minimal(base_size = (10), base_family = ("")) +
-    ggplot2::theme(
-    plot.title = ggplot2::element_text(
-      face = "bold",
-      size = (10) + 1,
-      margin = ggplot2::margin(b = 3)
-    ),
-    plot.subtitle = ggplot2::element_text(
-      size = (10) - 1,
-      color = "grey25",
-      margin = ggplot2::margin(b = 6)
-    ),
-    axis.title = ggplot2::element_text(size = (10)),
-    axis.text = ggplot2::element_text(size = (10) - 1, color = "grey20"),
-    strip.text = ggplot2::element_text(face = "bold", size = (10) - 1),
-    legend.position = "bottom",
-    legend.title = ggplot2::element_text(size = (10) - 1),
-    legend.text = ggplot2::element_text(size = (10) - 1),
-    legend.key.width = grid::unit(1.25, "lines"),
-    panel.grid.minor = ggplot2::element_blank(),
-    panel.grid.major = ggplot2::element_line(linewidth = 0.25, color = "grey88"),
-    panel.spacing = grid::unit(0.9, "lines"),
-    plot.margin = ggplot2::margin(6, 8, 6, 8)
-)) +
-  ggplot2::theme(
-  legend.position = "none",
-  plot.title = ggplot2::element_text(face = "bold", hjust = 0, margin = ggplot2::margin(b = 4)),
-  plot.margin = ggplot2::margin(0, 5.5, 5.5, 5.5)
-)
-
-p <- patchwork::wrap_plots(
-  pA,
-  pB,
-  ncol = 1,
-  heights = c(2.2, 1.0)
-)
-
-# ---------------------------------------------------------------------
-# 6. Save and export
-# ---------------------------------------------------------------------
-
-dir.create(dirname(settings$figure_base), recursive = TRUE, showWarnings = FALSE)
-dir.create(dirname(settings$table_path), recursive = TRUE, showWarnings = FALSE)
-dir.create(dirname(settings$rds_path), recursive = TRUE, showWarnings = FALSE)
-
-ggplot2::ggsave(
-  filename = paste0(settings$figure_base, ".pdf"),
-  plot = p,
-  width = settings$figure_width,
-  height = settings$figure_height,
-  units = "in"
-)
-
-ggplot2::ggsave(
-  filename = paste0(settings$figure_base, ".png"),
-  plot = p,
-  width = settings$figure_width,
-  height = settings$figure_height,
-  units = "in",
-  dpi = 300
-)
-
-utils::write.csv(model_results, settings$table_path, row.names = FALSE)
-
-saveRDS(
-  list(
-    settings = settings,
-    data = d,
-    predictions = newd,
-    model_results = model_results,
-    fit_logit = fit_logit,
-    fit_probit = fit_probit,
-    plot = p
-  ),
-  settings$rds_path
-)
-
-cat("\nSaved figure to:\n")
-cat("- ", paste0(settings$figure_base, ".pdf"), "\n", sep = "")
-cat("- ", paste0(settings$figure_base, ".png"), "\n", sep = "")
-
-cat("\nModel comparison:\n")
+fit_logit <- glm(cbind(correct, incorrect) ~ x, family = binomial(link = "logit"), data = d)
+fit_probit <- glm(cbind(correct, incorrect) ~ x, family = binomial(link = "probit"), data = d)
+model_results <- data.frame(model = c("logit", "probit"), AIC = c(AIC(fit_logit), AIC(fit_probit)),
+                            intercept = c(coef(fit_logit)[1], coef(fit_probit)[1]), slope = c(coef(fit_logit)[2], coef(fit_probit)[2]))
 print(model_results)
+write.csv(model_results, "tables/model-results-logit-probit-fitted-example.csv", row.names = FALSE)
+
+newd <- data.frame(x = seq(x_range[1], x_range[2], length.out = 500))
+newd$logit <- predict(fit_logit, newdata = newd, type = "response")
+newd$probit <- predict(fit_probit, newdata = newd, type = "response")
+newd$difference <- newd$logit - newd$probit
+pred_long <- rbind(data.frame(x = newd$x, probability = newd$logit, model = "Fitted logit"),
+                   data.frame(x = newd$x, probability = newd$probit, model = "Fitted probit"))
+diff_limit <- max(max(abs(newd$difference)) * 1.10, 0.010)
+
+####################################################
+# Figure
+####################################################
+
+theme_paper <- theme_minimal(base_size = 10) +
+  theme(plot.title = element_text(face = "bold", size = 11, hjust = 0, margin = margin(b = 4)),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 9, color = "grey20"),
+        legend.position = "bottom",
+        legend.text = element_text(size = 9),
+        legend.key.width = unit(1.25, "lines"),
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_line(linewidth = 0.25, color = "grey88"))
+
+pA <- ggplot() +
+  geom_point(data = d, aes(x = x, y = proportion), alpha = 0.35, size = 1.2, shape = 21, stroke = 0.15, fill = "grey55", colour = "grey15") +
+  geom_line(data = pred_long, aes(x = x, y = probability, colour = model), linewidth = 1.05) +
+  geom_hline(yintercept = 0.5, linetype = "dotted", linewidth = 0.35, colour = "grey55") +
+  scale_colour_manual(values = c("Fitted logit" = "#E69F00", "Fitted probit" = "#009E73")) +
+  coord_cartesian(xlim = x_range, ylim = c(0, 1), clip = "off") +
+  labs(title = "A. Fitted probability", x = NULL, y = "Observed proportion / fitted probability", colour = NULL) +
+  theme_paper +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), plot.margin = margin(5.5, 5.5, 0, 5.5))
+
+pB <- ggplot(newd, aes(x = x, y = difference)) +
+  geom_hline(yintercept = 0, linetype = "dotted", linewidth = 0.35, colour = "grey55") +
+  geom_line(linewidth = 0.90, linetype = "longdash", colour = "grey25") +
+  coord_cartesian(xlim = x_range, ylim = c(-diff_limit, diff_limit), clip = "off") +
+  labs(title = "B. Logit minus probit fitted probability", x = "Predictor value", y = "Logit - probit fitted probability") +
+  theme_paper +
+  theme(plot.margin = margin(0, 5.5, 5.5, 5.5))
+
+p <- pA / pB + plot_layout(heights = c(2.2, 1.0))
+ggsave("figs/logit-probit-fitted-example.pdf", p, width = 7.2, height = 5.8)
+ggsave("figs/logit-probit-fitted-example.png", p, width = 7.2, height = 5.8, dpi = 300)
+
+saveRDS(list(data = d, predictions = newd, model_results = model_results, fit_logit = fit_logit, fit_probit = fit_probit),
+        "outputs/logit-probit-fitted-example.rds")

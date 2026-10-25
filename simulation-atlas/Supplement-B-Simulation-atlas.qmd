@@ -42,82 +42,33 @@ editor: source
 #| label: setup
 #| include: false
 
-if (!requireNamespace("ggplot2", quietly = TRUE)) {
-  stop("Package 'ggplot2' is required to render the Simulation Atlas.")
-}
-if (!requireNamespace("knitr", quietly = TRUE)) {
-  stop("Package 'knitr' is required to render the Simulation Atlas.")
-}
-
 library(ggplot2)
-
-# Locate simulation-atlas/data whether this file is rendered from the
-# repository root or from simulation-atlas/ itself.
-input_file <- tryCatch(knitr::current_input(), error = function(e) "")
-input_dir <- if (nzchar(input_file)) dirname(normalizePath(input_file, mustWork = FALSE)) else "."
-
-candidate_roots <- unique(c(
-  ".",
-  "simulation-atlas",
-  input_dir,
-  file.path(input_dir, "simulation-atlas")
-))
-
-has_atlas_data <- vapply(
-  candidate_roots,
-  function(root) file.exists(file.path(root, "data", "atlas-summary.csv")),
-  logical(1)
-)
-
-if (!any(has_atlas_data)) {
-  stop(
-    "Could not find simulation-atlas/data/atlas-summary.csv. ",
-    "Render this document from the repository root or place it inside simulation-atlas/."
-  )
-}
-
-atlas_root <- candidate_roots[which(has_atlas_data)[1]]
-
-data_path <- function(name) file.path(atlas_root, "data", name)
+library(here)
 
 core <- utils::read.csv(
-  data_path("atlas-summary.csv"),
+  here("simulation-atlas/data/atlas-summary.csv"),
   stringsAsFactors = FALSE,
   check.names = FALSE
 )
 
 diagnostic <- utils::read.csv(
-  data_path("diagnostic-atlas-summary.csv"),
+  here("simulation-atlas/data/diagnostic-atlas-summary.csv"),
   stringsAsFactors = FALSE,
   check.names = FALSE
 )
 
 grid <- utils::read.csv(
-  data_path("scenario-grid.csv"),
+  here("simulation-atlas/data/scenario-grid.csv"),
   stringsAsFactors = FALSE,
   check.names = FALSE
 )
 
-# Basic integrity checks. The defining condition of the atlas is that the
-# generating interaction equals zero in every scenario.
-stopifnot(
-  nrow(core) > 0,
-  nrow(grid) > 0,
-  all(c(
-    "n_fit_ok", "n_fit_problem", "fit_problem_rate",
-    "rejection_rate_ok", "n_p_finite_problem", "rejection_rate_problem"
-  ) %in% names(core)),
-  all(is.finite(grid$generating_interaction)),
-  all(grid$generating_interaction == 0),
-  !anyDuplicated(grid$scenario_id)
-)
-
-if (!all(core$run_type == "full")) {
-  warning("atlas-summary.csv is not entirely from a full run.")
-}
-
 pct <- function(x, digits = 1) {
-  ifelse(is.finite(x), paste0(formatC(100 * x, format = "f", digits = digits), "%"), "--")
+  ifelse(
+    is.finite(x),
+    paste0(formatC(100 * x, format = "f", digits = digits), "%"),
+    "--"
+  )
 }
 
 num <- function(x, digits = 3) {
@@ -170,21 +121,51 @@ model_order <- list(
 slice_specs <- list(
   forced_choice = data.frame(
     slice = c("sample_size", "scale_location", "trial_count", "chance_level"),
-    label = c("Sample size", "Intercept", "Trials per participant", "Chance level"),
+    label = c(
+      "Sample size",
+      "Intercept",
+      "Trials per participant",
+      "Chance level"
+    ),
     variable = c("N", "beta_intercept", "k_trials", "chance"),
-    xlab = c("N", "Generating intercept", "Trials per participant", "Chance level"),
+    xlab = c(
+      "N",
+      "Generating intercept",
+      "Trials per participant",
+      "Chance level"
+    ),
     stringsAsFactors = FALSE
   ),
   within_family = data.frame(
     slice = c("sample_size", "trial_count", "latent_location", "icc"),
     label = c("Sample size", "Trials per cell", "Intercept", "Latent ICC"),
-    variable = c("n_subjects", "k_trials", "reference_beta_intercept", "target_icc"),
-    xlab = c("Participants", "Trials per participant-condition cell", "Reference intercept", "Latent ICC"),
+    variable = c(
+      "n_subjects",
+      "k_trials",
+      "reference_beta_intercept",
+      "target_icc"
+    ),
+    xlab = c(
+      "Participants",
+      "Trials per participant-condition cell",
+      "Reference intercept",
+      "Latent ICC"
+    ),
     stringsAsFactors = FALSE
   ),
   sum_scores = data.frame(
-    slice = c("sample_size", "scale_location", "item_count", "latent_dispersion"),
-    label = c("Sample size", "Scale location", "Number of items", "Latent dispersion"),
+    slice = c(
+      "sample_size",
+      "scale_location",
+      "item_count",
+      "latent_dispersion"
+    ),
+    label = c(
+      "Sample size",
+      "Scale location",
+      "Number of items",
+      "Latent dispersion"
+    ),
     variable = c("N", "threshold_shift", "J", "theta_sd"),
     xlab = c("N", "Item-threshold shift", "Number of items", "Latent SD"),
     stringsAsFactors = FALSE
@@ -232,7 +213,9 @@ anchor_table <- function(family) {
     `Rate type` = dat$rate_type,
     `Rejection rate` = pct(dat$rejection_rate_ok),
     `95% CI` = ci_text(dat$rejection_ci_low_ok, dat$rejection_ci_high_ok),
-    `Deterministic pseudo-interaction` = num(dat$deterministic_pseudo_interaction),
+    `Deterministic pseudo-interaction` = num(
+      dat$deterministic_pseudo_interaction
+    ),
     check.names = FALSE
   )
   if (family == "forced_choice") {
@@ -240,8 +223,9 @@ anchor_table <- function(family) {
       out,
       `Flagged fits` = dat$n_fit_problem,
       `Fit-problem rate` = pct(dat$fit_problem_rate),
-      `Apparent rejection rate among flagged fits` = pct(dat$rejection_rate_problem),
-      check.names = FALSE
+      `Apparent rejection rate among flagged fits` = pct(
+        dat$rejection_rate_problem
+      )
     )
   }
   rownames(out) <- NULL
@@ -286,7 +270,10 @@ plot_anchor_rates <- function(family) {
 plot_slice_rates <- function(family) {
   dat <- slice_rows(family)
   dat$model_label <- factor(dat$model_label, levels = model_order[[family]])
-  dat$slice_label <- factor(dat$slice_label, levels = slice_specs[[family]]$label)
+  dat$slice_label <- factor(
+    dat$slice_label,
+    levels = slice_specs[[family]]$label
+  )
 
   p <- ggplot(
     dat,
@@ -321,13 +308,18 @@ plot_slice_rates <- function(family) {
   if (family == "within_family") {
     p + facet_grid(generating_link ~ slice_label, scales = "free_x")
   } else {
-    p + facet_wrap(~ slice_label, scales = "free_x", ncol = 2)
+    p + facet_wrap(~slice_label, scales = "free_x", ncol = 2)
   }
 }
 
 slice_range_table <- function(family) {
   dat <- slice_rows(family)
-  key <- interaction(dat$slice_label, dat$generating_link, dat$model_label, drop = TRUE)
+  key <- interaction(
+    dat$slice_label,
+    dat$generating_link,
+    dat$model_label,
+    drop = TRUE
+  )
   split_dat <- split(dat, key)
 
   rows <- lapply(split_dat, function(x) {
@@ -346,7 +338,12 @@ slice_range_table <- function(family) {
   out
 }
 
-coefficient_values_text <- function(family, variable, generating_link = NULL, digits = 3) {
+coefficient_values_text <- function(
+  family,
+  variable,
+  generating_link = NULL,
+  digits = 3
+) {
   dat <- surface_rows(family)
   if (!is.null(generating_link)) {
     dat <- dat[dat$generating_link == generating_link, , drop = FALSE]
@@ -361,36 +358,72 @@ main_effect_coefficient_table <- function() {
       `Manuscript case` = "Simulation 1: Forced-choice accuracy",
       `Generating link/scale` = "Chance-corrected logit",
       `First main effect` = "Age coefficient",
-      `Coefficient values` = coefficient_values_text("forced_choice", "beta_age", digits = 2),
+      `Coefficient values` = coefficient_values_text(
+        "forced_choice",
+        "beta_age",
+        digits = 2
+      ),
       `Second main effect` = "Group coefficient",
-      `Coefficient values 2` = coefficient_values_text("forced_choice", "beta_group", digits = 2),
+      `Coefficient values 2` = coefficient_values_text(
+        "forced_choice",
+        "beta_group",
+        digits = 2
+      ),
       check.names = FALSE
     ),
     data.frame(
       `Manuscript case` = "Simulation 2: Logit vs probit",
       `Generating link/scale` = "Logit",
       `First main effect` = "Group coefficient",
-      `Coefficient values` = coefficient_values_text("within_family", "beta_group", "logit", digits = 3),
+      `Coefficient values` = coefficient_values_text(
+        "within_family",
+        "beta_group",
+        "logit",
+        digits = 3
+      ),
       `Second main effect` = "Condition coefficient",
-      `Coefficient values 2` = coefficient_values_text("within_family", "beta_condition", "logit", digits = 3),
+      `Coefficient values 2` = coefficient_values_text(
+        "within_family",
+        "beta_condition",
+        "logit",
+        digits = 3
+      ),
       check.names = FALSE
     ),
     data.frame(
       `Manuscript case` = "Simulation 2: Logit vs probit",
       `Generating link/scale` = "Probit",
       `First main effect` = "Group coefficient",
-      `Coefficient values` = coefficient_values_text("within_family", "beta_group", "probit", digits = 2),
+      `Coefficient values` = coefficient_values_text(
+        "within_family",
+        "beta_group",
+        "probit",
+        digits = 2
+      ),
       `Second main effect` = "Condition coefficient",
-      `Coefficient values 2` = coefficient_values_text("within_family", "beta_condition", "probit", digits = 2),
+      `Coefficient values 2` = coefficient_values_text(
+        "within_family",
+        "beta_condition",
+        "probit",
+        digits = 2
+      ),
       check.names = FALSE
     ),
     data.frame(
       `Manuscript case` = "Simulation 3: Sum scores",
       `Generating link/scale` = "Latent generating scale",
       `First main effect` = "Predictor coefficient",
-      `Coefficient values` = coefficient_values_text("sum_scores", "beta_x", digits = 3),
+      `Coefficient values` = coefficient_values_text(
+        "sum_scores",
+        "beta_x",
+        digits = 3
+      ),
       `Second main effect` = "Group coefficient",
-      `Coefficient values 2` = coefficient_values_text("sum_scores", "beta_group", digits = 2),
+      `Coefficient values 2` = coefficient_values_text(
+        "sum_scores",
+        "beta_group",
+        digits = 2
+      ),
       check.names = FALSE
     )
   )
@@ -407,17 +440,29 @@ plot_surface <- function(family) {
 
   if (family == "forced_choice") {
     dat$surface_x <- factor(dat$beta_age, levels = sort(unique(dat$beta_age)))
-    dat$surface_y <- factor(dat$beta_group, levels = sort(unique(dat$beta_group)))
+    dat$surface_y <- factor(
+      dat$beta_group,
+      levels = sort(unique(dat$beta_group))
+    )
     xlab <- "Age coefficient on generating scale"
     ylab <- "Group coefficient on generating scale"
   } else if (family == "within_family") {
-    dat$surface_x <- factor(dat$beta_group, levels = sort(unique(dat$beta_group)))
-    dat$surface_y <- factor(dat$beta_condition, levels = sort(unique(dat$beta_condition)))
+    dat$surface_x <- factor(
+      dat$beta_group,
+      levels = sort(unique(dat$beta_group))
+    )
+    dat$surface_y <- factor(
+      dat$beta_condition,
+      levels = sort(unique(dat$beta_condition))
+    )
     xlab <- "Group coefficient on generating link scale"
     ylab <- "Condition coefficient on generating link scale"
   } else {
     dat$surface_x <- factor(dat$beta_x, levels = sort(unique(dat$beta_x)))
-    dat$surface_y <- factor(dat$beta_group, levels = sort(unique(dat$beta_group)))
+    dat$surface_y <- factor(
+      dat$beta_group,
+      levels = sort(unique(dat$beta_group))
+    )
     xlab <- "Predictor coefficient on latent generating scale"
     ylab <- "Group coefficient on latent generating scale"
   }
@@ -431,7 +476,11 @@ plot_surface <- function(family) {
     )
   ) +
     geom_tile() +
-    geom_text(aes(label = paste0(round(100 * rejection_rate_ok), "%")), size = 3, colour = "white") +
+    geom_text(
+      aes(label = paste0(round(100 * rejection_rate_ok), "%")),
+      size = 3,
+      colour = "white"
+    ) +
     scale_fill_gradient(
       limits = c(0, 1),
       breaks = seq(0, 1, by = 0.25),
@@ -446,16 +495,21 @@ plot_surface <- function(family) {
     theme(panel.grid = element_blank(), legend.position = "right")
 
   if (family == "within_family") {
-    p + facet_wrap(vars(generating_link, model_label), ncol = 2, scales = "free")
+    p +
+      facet_wrap(vars(generating_link, model_label), ncol = 2, scales = "free")
   } else {
-    p + facet_wrap(~ model_label)
+    p + facet_wrap(~model_label)
   }
 }
 
 rate_range <- function(family, model = NULL, rate_type = NULL) {
   dat <- family_rows(family)
-  if (!is.null(model)) dat <- dat[as.character(dat$model_label) == model, , drop = FALSE]
-  if (!is.null(rate_type)) dat <- dat[dat$rate_type == rate_type, , drop = FALSE]
+  if (!is.null(model)) {
+    dat <- dat[as.character(dat$model_label) == model, , drop = FALSE]
+  }
+  if (!is.null(rate_type)) {
+    dat <- dat[dat$rate_type == rate_type, , drop = FALSE]
+  }
   range(dat$rejection_rate_ok, na.rm = TRUE)
 }
 
@@ -475,15 +529,18 @@ compact_core_table <- function(family) {
     `Generating link/scale` = dat$generating_link,
     `Fitted model/scale` = as.character(dat$model_label),
     `Rejection rate` = pct(dat$rejection_rate_ok),
-    `Deterministic pseudo-interaction` = num(dat$deterministic_pseudo_interaction),
+    `Deterministic pseudo-interaction` = num(
+      dat$deterministic_pseudo_interaction
+    ),
     check.names = FALSE
   )
   if (family == "forced_choice") {
     out <- cbind(
       out,
       `Fit-problem rate` = pct(dat$fit_problem_rate),
-      `Apparent rejection rate among flagged fits` = pct(dat$rejection_rate_problem),
-      check.names = FALSE
+      `Apparent rejection rate among flagged fits` = pct(
+        dat$rejection_rate_problem
+      )
     )
   }
   rownames(out) <- NULL
@@ -512,18 +569,32 @@ diagnostic_expand_slices <- function(dat) {
   for (slice in c("sample_size", "severity")) {
     keep <- has_slice(dat$diagnostic_slice_membership, slice)
     out <- dat[keep, , drop = FALSE]
-    if (!nrow(out)) next
+    if (!nrow(out)) {
+      next
+    }
 
     out$slice_view <- slice
-    out$slice_label <- if (slice == "sample_size") "Sample size" else "Intercept"
+    out$slice_label <- if (slice == "sample_size") {
+      "Sample size"
+    } else {
+      "Intercept"
+    }
     out$x_value <- NA_real_
 
     if (slice == "sample_size") {
-      out$x_value[out$family == "forced_choice"] <- out$N[out$family == "forced_choice"]
-      out$x_value[out$family == "within_family"] <- out$n_subjects[out$family == "within_family"]
+      out$x_value[out$family == "forced_choice"] <- out$N[
+        out$family == "forced_choice"
+      ]
+      out$x_value[out$family == "within_family"] <- out$n_subjects[
+        out$family == "within_family"
+      ]
     } else {
-      out$x_value[out$family == "forced_choice"] <- out$beta_intercept[out$family == "forced_choice"]
-      out$x_value[out$family == "within_family"] <- out$reference_beta_intercept[out$family == "within_family"]
+      out$x_value[out$family == "forced_choice"] <- out$beta_intercept[
+        out$family == "forced_choice"
+      ]
+      out$x_value[
+        out$family == "within_family"
+      ] <- out$reference_beta_intercept[out$family == "within_family"]
     }
 
     pieces[[counter]] <- out
@@ -534,35 +605,68 @@ diagnostic_expand_slices <- function(dat) {
 }
 
 make_diagnostic_plot_data <- function() {
-  base <- diagnostic[diagnostic$family %in% c("forced_choice", "within_family"), , drop = FALSE]
+  base <- diagnostic[
+    diagnostic$family %in% c("forced_choice", "within_family"),
+    ,
+    drop = FALSE
+  ]
   dat <- diagnostic_expand_slices(base)
   dat$family_label <- unname(diagnostic_family_title[dat$family])
 
   # One pseudo-interaction row per scenario within each slice. The manuscript
   # anchor belongs to both sensitivity slices and is therefore shown in both.
   pseudo_key <- interaction(dat$scenario_id, dat$slice_view, drop = TRUE)
-  pseudo <- dat[!duplicated(pseudo_key), c(
-    "scenario_id", "family", "family_label", "slice_label", "x_value",
-    "pseudo_interaction_detection_rate", "pseudo_interaction_ci_low",
-    "pseudo_interaction_ci_high"
-  )]
+  pseudo <- dat[
+    !duplicated(pseudo_key),
+    c(
+      "scenario_id",
+      "family",
+      "family_label",
+      "slice_label",
+      "x_value",
+      "pseudo_interaction_detection_rate",
+      "pseudo_interaction_ci_low",
+      "pseudo_interaction_ci_high"
+    )
+  ]
   names(pseudo)[names(pseudo) == "pseudo_interaction_detection_rate"] <- "rate"
   names(pseudo)[names(pseudo) == "pseudo_interaction_ci_low"] <- "low"
   names(pseudo)[names(pseudo) == "pseudo_interaction_ci_high"] <- "high"
   pseudo$quantity <- "Pseudo-interaction detection"
 
   # Retain diagnostics that were used for the relevant scenario.
-  checks <- dat[dat$applicable %in% TRUE & dat$computed %in% TRUE, , drop = FALSE]
+  checks <- dat[
+    dat$applicable %in% TRUE & dat$computed %in% TRUE,
+    ,
+    drop = FALSE
+  ]
   checks <- checks[, c(
-    "scenario_id", "family", "family_label", "slice_label", "x_value",
-    "diagnostic", "detection_rate", "detection_ci_low", "detection_ci_high"
+    "scenario_id",
+    "family",
+    "family_label",
+    "slice_label",
+    "x_value",
+    "diagnostic",
+    "detection_rate",
+    "detection_ci_low",
+    "detection_ci_high"
   )]
   names(checks)[names(checks) == "detection_rate"] <- "rate"
   names(checks)[names(checks) == "detection_ci_low"] <- "low"
   names(checks)[names(checks) == "detection_ci_high"] <- "high"
   names(checks)[names(checks) == "diagnostic"] <- "quantity"
 
-  common <- c("scenario_id", "family", "family_label", "slice_label", "x_value", "quantity", "rate", "low", "high")
+  common <- c(
+    "scenario_id",
+    "family",
+    "family_label",
+    "slice_label",
+    "x_value",
+    "quantity",
+    "rate",
+    "low",
+    "high"
+  )
   rbind(pseudo[, common], checks[, common])
 }
 
@@ -599,50 +703,62 @@ plot_diagnostic_atlas <- function() {
 
 aic_table <- function() {
   base <- diagnostic[
-    diagnostic$family %in% c("forced_choice", "within_family") &
+    diagnostic$family %in%
+      c("forced_choice", "within_family") &
       diagnostic$diagnostic == "AIC favors generating link",
     ,
     drop = FALSE
   ]
   dat <- diagnostic_expand_slices(base)
 
-setting_value <- ifelse(
-  dat$slice_label == "Sample size",
-  formatC(dat$x_value, format = "f", digits = 0),
-  formatC(dat$x_value, format = "f", digits = 2)
-)
+  setting_value <- ifelse(
+    dat$slice_label == "Sample size",
+    formatC(dat$x_value, format = "f", digits = 0),
+    formatC(dat$x_value, format = "f", digits = 2)
+  )
 
-out <- data.frame(
-  Case = unname(diagnostic_family_title[dat$family]),
-  Setting = paste0(dat$slice_label, " = ", setting_value),
-  `Pseudo-interaction detection` = pct(dat$pseudo_interaction_detection_rate),
-  `AIC favors generating link` = pct(dat$detection_rate),
-  `Median delta AIC` = num(dat$aic_delta_median, 2),
-  `Delta AIC IQR` = paste0("[", num(dat$aic_delta_q25, 2), ", ", num(dat$aic_delta_q75, 2), "]"),
-  `Absolute delta AIC < 2` = pct(dat$aic_delta_within_two_rate),
-  check.names = FALSE
-)
-  
+  out <- data.frame(
+    Case = unname(diagnostic_family_title[dat$family]),
+    Setting = paste0(dat$slice_label, " = ", setting_value),
+    `Pseudo-interaction detection` = pct(dat$pseudo_interaction_detection_rate),
+    `AIC favors generating link` = pct(dat$detection_rate),
+    `Median delta AIC` = num(dat$aic_delta_median, 2),
+    `Delta AIC IQR` = paste0(
+      "[",
+      num(dat$aic_delta_q25, 2),
+      ", ",
+      num(dat$aic_delta_q75, 2),
+      "]"
+    ),
+    `Absolute delta AIC < 2` = pct(dat$aic_delta_within_two_rate),
+    check.names = FALSE
+  )
+
   rownames(out) <- NULL
   out
 }
 
 diagnostic_used_table <- function() {
   dat <- diagnostic[
-    diagnostic$family %in% c("forced_choice", "within_family") &
-      diagnostic$applicable %in% TRUE & diagnostic$computed %in% TRUE,
+    diagnostic$family %in%
+      c("forced_choice", "within_family") &
+      diagnostic$applicable %in% TRUE &
+      diagnostic$computed %in% TRUE,
     ,
     drop = FALSE
   ]
   parts <- split(dat, dat$family)
-  out <- do.call(rbind, lapply(parts, function(x) {
-    data.frame(
-      `Diagnostic case` = unname(diagnostic_family_title[x$family[1]]),
-      `Diagnostics used` = paste(unique(x$diagnostic), collapse = "; "),
-      stringsAsFactors = FALSE,
-      check.names = FALSE
-    )
-  }))
+  out <- do.call(
+    rbind,
+    lapply(parts, function(x) {
+      data.frame(
+        `Diagnostic case` = unname(diagnostic_family_title[x$family[1]]),
+        `Diagnostics used` = paste(unique(x$diagnostic), collapse = "; "),
+        stringsAsFactors = FALSE,
+        check.names = FALSE
+      )
+    })
+  )
   rownames(out) <- NULL
   out
 }
@@ -696,7 +812,10 @@ The one-dimensional slices change one named parameter while holding the remainin
 #| label: tbl-atlas-main-effect-coefficients
 #| tbl-cap: "Generating-scale coefficients used in the main-effect surfaces. Coefficients are reported on the scale that generated each scenario."
 
-knitr::kable(main_effect_coefficient_table(), align = c("l", "l", "l", "l", "l", "l"))
+knitr::kable(
+  main_effect_coefficient_table(),
+  align = c("l", "l", "l", "l", "l", "l")
+)
 ```
 
 For Simulation 2, logit and probit coefficients are on different generating-link scales. As in the manuscript simulation, the logit coefficients are scaled by 1.65 relative to the probit reference coefficients so that the two generating scenarios have similar cell probabilities. The figures therefore report the actual coefficient values for each generating link instead of a common relative index.
@@ -721,7 +840,10 @@ plot_anchor_rates("forced_choice")
 #| label: tbl-atlas-fc-anchor
 #| tbl-cap: "Forced-choice reference scenarios. The deterministic pseudo-interaction is evaluated on each fitted scale before sampling."
 
-knitr::kable(anchor_table("forced_choice"), align = c("l", "l", "l", "l", "r", "r", "r", "r", "r", "r"))
+knitr::kable(
+  anchor_table("forced_choice"),
+  align = c("l", "l", "l", "l", "r", "r", "r", "r", "r", "r")
+)
 ```
 
 The forced-choice atlas must be regenerated before numerical ranges are reported for the revised mixed-model design. The saved atlas results from the earlier fixed-effect design are not valid for this specification.
@@ -741,7 +863,10 @@ plot_slice_rates("forced_choice")
 #| label: tbl-atlas-fc-slice-ranges
 #| tbl-cap: "Range of rejection rates across each forced-choice sensitivity slice."
 
-knitr::kable(slice_range_table("forced_choice"), align = c("l", "l", "l", "r", "r"))
+knitr::kable(
+  slice_range_table("forced_choice"),
+  align = c("l", "l", "l", "r", "r")
+)
 ```
 
 The slices separate distinct reasons why a deterministic scale discrepancy may or may not become a statistical interaction. The intercept and the chance level change the curvature relevant to the fitted link. Sample size and number of trials change how precisely that discrepancy is estimated. The figure therefore distinguishes the existence of a pseudo-interaction on the fitted scale from the probability that a product-term test detects it.
@@ -778,7 +903,10 @@ plot_anchor_rates("within_family")
 #| label: tbl-atlas-wf-anchor
 #| tbl-cap: "Within-family reference scenarios for logit and probit generating links."
 
-knitr::kable(anchor_table("within_family"), align = c("l", "l", "l", "l", "r", "r", "r"))
+knitr::kable(
+  anchor_table("within_family"),
+  align = c("l", "l", "l", "l", "r", "r", "r")
+)
 ```
 
 Across the atlas, matched logit/probit fits remain near the nominal rejection rate. The wrong-link rows range from `r pct(min(family_rows("within_family")$rejection_rate_ok[family_rows("within_family")$rate_type == "Pseudo-interaction detection rate"], na.rm = TRUE))` to `r pct(max(family_rows("within_family")$rejection_rate_ok[family_rows("within_family")$rate_type == "Pseudo-interaction detection rate"], na.rm = TRUE))`. The range is wider than the reference scenarios alone suggest because the atlas deliberately varies information and the region of the latent scale. The result remains conditional on these declared slices and should not be read as a general frequency for logit-probit disagreement.
@@ -798,7 +926,10 @@ plot_slice_rates("within_family")
 #| label: tbl-atlas-wf-slice-ranges
 #| tbl-cap: "Range of rejection rates across each within-family sensitivity slice."
 
-knitr::kable(slice_range_table("within_family"), align = c("l", "l", "l", "r", "r"))
+knitr::kable(
+  slice_range_table("within_family"),
+  align = c("l", "l", "l", "r", "r")
+)
 ```
 
 Sample size and trial count mainly change how detectable the small systematic discrepancy between the links becomes. The intercept and the main-effect magnitudes change the discrepancy itself by moving cell probabilities into regions where logit and probit curvature differs more. ICC changes the information structure of the repeated observations while leaving the fixed generating interaction at zero.
@@ -835,7 +966,10 @@ plot_anchor_rates("sum_scores")
 #| label: tbl-atlas-ss-anchor
 #| tbl-cap: "Sum-score reference scenarios. The latent generating scale is available only in simulation."
 
-knitr::kable(anchor_table("sum_scores"), align = c("l", "l", "l", "l", "r", "r", "r"))
+knitr::kable(
+  anchor_table("sum_scores"),
+  align = c("l", "l", "l", "l", "r", "r", "r")
+)
 ```
 
 Across the atlas, the latent generating scale rejects from `r rate_range_text("sum_scores", model = "Latent generating scale")`. The observed sum-score identity model ranges from `r rate_range_text("sum_scores", model = "Observed sum-score identity")`, while the Gaussian-probit bounded-score sensitivity model ranges from `r rate_range_text("sum_scores", model = "Gaussian-probit bounded score")`. The latter remains a model of the manifest total. It does not recover the latent construct and should be read as a sensitivity analysis for the scale on which additivity is imposed.
@@ -855,7 +989,10 @@ plot_slice_rates("sum_scores")
 #| label: tbl-atlas-ss-slice-ranges
 #| tbl-cap: "Range of rejection rates across each sum-score sensitivity slice."
 
-knitr::kable(slice_range_table("sum_scores"), align = c("l", "l", "l", "r", "r"))
+knitr::kable(
+  slice_range_table("sum_scores"),
+  align = c("l", "l", "l", "r", "r")
+)
 ```
 
 The scale-location slice changes how strongly the bounded sum score compresses the latent dimension. Item count and latent dispersion change the mapping between the latent variable and the manifest total. Sample size changes the probability that any resulting fitted-scale interaction is detected. These are distinct components of the sum-score problem and should not be reduced to a generic floor-or-ceiling warning.
@@ -928,7 +1065,11 @@ The tables below provide scenario-level results for the core sensitivity analyse
 #| label: tbl-atlas-fc-full
 #| tbl-cap: "Scenario-level results for the forced-choice atlas."
 
-report_kable(compact_core_table("forced_choice"), align = c("l", "l", "l", "l", "l", "r", "r", "r", "r"), long = TRUE)
+report_kable(
+  compact_core_table("forced_choice"),
+  align = c("l", "l", "l", "l", "l", "r", "r", "r", "r"),
+  long = TRUE
+)
 ```
 
 ## Logit versus probit
@@ -937,7 +1078,11 @@ report_kable(compact_core_table("forced_choice"), align = c("l", "l", "l", "l", 
 #| label: tbl-atlas-wf-full
 #| tbl-cap: "Scenario-level results for the within-family logit-probit atlas."
 
-report_kable(compact_core_table("within_family"), align = c("l", "l", "l", "l", "l", "r", "r"), long = TRUE)
+report_kable(
+  compact_core_table("within_family"),
+  align = c("l", "l", "l", "l", "l", "r", "r"),
+  long = TRUE
+)
 ```
 
 ## Sum scores
@@ -946,5 +1091,9 @@ report_kable(compact_core_table("within_family"), align = c("l", "l", "l", "l", 
 #| label: tbl-atlas-ss-full
 #| tbl-cap: "Scenario-level results for the sum-score atlas."
 
-report_kable(compact_core_table("sum_scores"), align = c("l", "l", "l", "l", "l", "r", "r"), long = TRUE)
+report_kable(
+  compact_core_table("sum_scores"),
+  align = c("l", "l", "l", "l", "l", "r", "r"),
+  long = TRUE
+)
 ```
