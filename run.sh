@@ -4,10 +4,10 @@
 
 set -e
 
-Rscript scripts/01-review-descriptives.R
-Rscript scripts/02a-figure-motivating-example.R
-Rscript scripts/02b-figure-logit-probit-fitted-example.R
-Rscript scripts/03a-simulation-forced-choice.R
-Rscript scripts/03b-simulation-within-family-links.R
-Rscript scripts/03c-simulation-sum-scores.R
-Rscript scripts/04-diagnostic-worked-example.R
+Rscript --vanilla scripts/01-review-descriptives.R
+Rscript --vanilla scripts/02a-figure-motivating-example.R
+Rscript --vanilla scripts/02b-figure-logit-probit-fitted-example.R
+Rscript --vanilla scripts/03a-simulation-forced-choice.R
+Rscript --vanilla scripts/03b-simulation-within-family-links.R
+Rscript --vanilla scripts/03c-simulation-sum-scores.R
+Rscript --vanilla scripts/04-diagnostic-worked-example.R

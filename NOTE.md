@@ -1,4 +1,4 @@
 - in 03b non c'è un estrazione degli errori dei fit (singular, etc.) e di conseuguenza un qualche tipo di diagnostica su questo. Forse serve farlo?
 - in 02a e 02b si simulano e fittano modelli diversi nel senso che alcuni usano la sintassi y ~ altri cbind() non dovrebbe cambiare molto ma comunque sono parametrizzazioni diverse
--  dh["categorical_design"] <- pval(try(kruskal.test(residual ~ design_cell), silent = TRUE)) questo test non è previsto in dharma, perchè è stato fatto?
+- dh["categorical_design"] <- pval(try(kruskal.test(residual ~ design_cell), silent = TRUE)) questo test non è previsto in dharma, perchè è stato fatto?
 - in run-diagnostics.R non facciamo il check di rejection rate quando la link è giusta mentre in scripts/ si. perchè?

@@ -1,0 +1,296 @@
+---
+title: "Un p-value complessivo per i test per livello di DHARMa"
+subtitle: "Come combinare i KS di `testCategorical()` e quale metodo scegliere"
+lang: it
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    embed-resources: true
+    df-print: kable
+execute:
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+#| include: false
+library(DHARMa)
+set.seed(2026)
+```
+
+# Il problema
+
+Con un predittore categoriale, `DHARMa::testCategorical()` esegue un test di
+Kolmogorov–Smirnov di uniformità sui residui scalati **separatamente per ogni
+livello**, corregge i p-value per test multipli e aggiunge un test di Levene
+sull'omogeneità della varianza tra livelli. Il risultato è un p-value per
+livello, mentre spesso serve **un solo p-value complessivo** per rispondere
+alla domanda: "i residui sono uniformi in *tutti* i livelli?".
+
+Formalmente vogliamo testare l'ipotesi nulla globale
+
+$$
+H_0: \; H_{0,1} \cap H_{0,2} \cap \dots \cap H_{0,k},
+$$
+
+dove $H_{0,j}$ dice che i residui del livello $j$ sono $U(0,1)$. Un risultato
+significativo dice che *almeno un* livello devia, non quale né di quanto.
+
+## Perché si possono combinare
+
+I livelli contengono osservazioni disgiunte. Se il modello è corretto, i
+residui scalati di DHARMa sono (approssimativamente) i.i.d. $U(0,1)$, quindi i
+$k$ test KS sono **approssimativamente indipendenti**. È la stessa assunzione
+su cui si basa `testUniformity()` sull'intero campione. Questo permette di
+usare i metodi classici di combinazione, che assumono indipendenza.
+
+::: {.callout-note}
+## Una cosa che hai già
+
+DHARMa riporta i p per livello già corretti per test multipli. Il **minimo dei
+p corretti** è già un test globale valido: con Holm o Bonferroni coincide con
+$\min(1, k \cdot p_{(1)})$, con Benjamini–Hochberg coincide con il test di
+Simes. È però conservativo e guarda essenzialmente solo il livello peggiore.
+:::
+
+::: {.callout-warning}
+## Il test di Levene non va combinato con i KS
+
+Il Levene usa gli stessi residui dei KS, quindi non è indipendente da loro.
+Va tenuto come secondo test, separato, e non inserito in una combinazione alla
+Fisher insieme ai KS.
+:::
+
+# I metodi
+
+Siano $p_1, \dots, p_k$ i p-value dei KS per livello e $p_{(1)}$ il più
+piccolo.
+
+**Fisher.** $X = -2\sum_j \ln p_j \sim \chi^2_{2k}$ sotto $H_0$. È dominato dai
+p piccoli: un solo livello con forte deviazione basta a renderlo significativo.
+
+**Stouffer (pesato).** $Z = \sum_j w_j\, \Phi^{-1}(1-p_j) \big/ \sqrt{\sum_j
+w_j^2} \sim N(0,1)$. Media il segnale su tutti i livelli. Con $w_j =
+\sqrt{n_j}$ tiene conto di livelli di numerosità diversa.
+
+**Tippett / Šidák.** $p = 1 - (1-p_{(1)})^k$. Guarda solo il livello peggiore.
+**Bonferroni** ($k\,p_{(1)}$) è la sua versione conservativa e valida anche
+sotto dipendenza arbitraria.
+
+**Cauchy (ACAT).** $T = \sum_j w_j \tan\!\big[(0.5 - p_j)\pi\big]$ con $\sum_j
+w_j = 1$; il p-value è la coda destra di una Cauchy standard. È valido
+approssimativamente anche sotto dipendenza e si comporta in modo simile a
+Fisher/Tippett quando il segnale è concentrato.
+
+**Harmonic mean p-value.** $\mathring{p} = \sum_j w_j \big/ \sum_j (w_j/p_j)$,
+robusto alla dipendenza. Richiede una calibrazione: usare il pacchetto
+`harmonicmeanp` invece della media armonica grezza.
+
+## Pro e contro
+
+| Metodo | Potente quando | Pro | Contro |
+|---|---|---|---|
+| **Fisher** | La deviazione è forte in uno o pochi livelli | Default classico, semplice, buona potenza in molti scenari | Richiede indipendenza; un solo p estremo domina; non distingue la direzione |
+| **Stouffer (pesato)** | La deviazione è lieve ma presente in tutti i livelli | Pesi naturali ($\sqrt{n_j}$); usa l'informazione di tutti i livelli | Meno potente se il problema è in un solo livello; richiede indipendenza |
+| **Tippett / Šidák** | Un solo livello è problematico | Interpretazione immediata ("il livello peggiore") | Ignora gli altri livelli; richiede indipendenza |
+| **Bonferroni / min dei p corretti** | Un solo livello è problematico | Già disponibile da DHARMa; valido sotto qualunque dipendenza | Conservativo |
+| **Cauchy (ACAT)** | Segnale concentrato; test dipendenti | Robusto alla dipendenza; calcolo banale | Approssimazione meno precisa per p non piccoli |
+| **Harmonic mean p** | Segnale concentrato; test dipendenti | Robusto alla dipendenza; supporta il closed testing | Richiede la calibrazione del pacchetto dedicato |
+| **Test diretti** (KS globale, Kruskal–Wallis, Levene) | Il tipo di deviazione è noto a priori | Un solo test mirato, spesso più potente | Rilevano solo il tipo di deviazione per cui sono costruiti |
+
+: Confronto dei metodi per ottenere un p-value complessivo {#tbl-procontro}
+
+Il metodo va scelto **prima** di guardare i risultati, in base al tipo di
+deviazione che ci si aspetta. Scegliere a posteriori il metodo con il p più
+piccolo invalida il test.
+
+# Esempio in R
+
+## Dati simulati
+
+Un GLM di Poisson con un fattore a 5 livelli. Nel livello `E` i dati sono in
+realtà binomiali negativi (sovradispersi), quindi il modello è misspecificato
+solo lì.
+
+```{r}
+#| label: dati
+n_per <- 150
+gruppo <- factor(rep(LETTERS[1:5], each = n_per))
+x <- rnorm(length(gruppo))
+eff_gruppo <- c(A = 0, B = 0.2, C = -0.2, D = 0.3, E = 0)
+mu <- exp(0.8 + 0.4 * x + eff_gruppo[as.character(gruppo)])
+
+y <- rpois(length(mu), mu)
+in_E <- gruppo == "E"
+y[in_E] <- rnbinom(sum(in_E), mu = mu[in_E], size = 2)
+
+dati <- data.frame(y, x, gruppo)
+fit <- glm(y ~ x + gruppo, family = poisson, data = dati)
+```
+
+## Residui e test per livello
+
+```{r}
+#| label: residui
+res <- simulateResiduals(fit, n = 1000)
+r <- res$scaledResiduals
+```
+
+L'output di `testCategorical()`, con il grafico per livello:
+
+```{r}
+#| label: testcategorical
+tc <- testCategorical(res, catPred = dati$gruppo)
+str(tc, max.level = 2)
+```
+
+Per non dipendere dalla struttura interna dell'oggetto restituito, ricalcoliamo
+i KS per livello direttamente. È lo stesso test che esegue DHARMa.
+
+```{r}
+#| label: ks-per-livello
+ks_per_livello <- function(r, g) {
+  sapply(split(r, g), function(ri) {
+    suppressWarnings(ks.test(ri, "punif")$p.value)
+  })
+}
+
+p_livelli <- ks_per_livello(r, dati$gruppo)
+data.frame(
+  livello = names(p_livelli),
+  n = as.vector(table(dati$gruppo)),
+  p = p_livelli,
+  p_holm = p.adjust(p_livelli, method = "holm"),
+  row.names = NULL
+)
+```
+
+## Combinazione
+
+```{r}
+#| label: combina
+combina_p <- function(p, w = rep(1, length(p))) {
+  # evita log(0) e qnorm(1) = -Inf
+  p <- pmin(pmax(p, .Machine$double.xmin), 1 - 1e-16)
+  k <- length(p)
+  wc <- w / sum(w)
+
+  c(
+    Fisher     = pchisq(-2 * sum(log(p)), df = 2 * k, lower.tail = FALSE),
+    Stouffer   = pnorm(sum(w * qnorm(p, lower.tail = FALSE)) / sqrt(sum(w^2)),
+                       lower.tail = FALSE),
+    Tippett    = -expm1(k * log1p(-min(p))),   # 1 - (1 - p_min)^k, stabile
+    Bonferroni = min(1, k * min(p)),
+    Cauchy     = pcauchy(sum(wc * tan((0.5 - p) * pi)), lower.tail = FALSE)
+  )
+}
+
+pesi <- sqrt(as.vector(table(dati$gruppo)))   # rilevante solo per Stouffer e Cauchy
+
+data.frame(
+  metodo = names(combina_p(p_livelli, pesi)),
+  p_complessivo = signif(combina_p(p_livelli, pesi), 3),
+  row.names = NULL
+)
+```
+
+Se si vuole aggiungere l'harmonic mean p-value calibrato:
+
+```{r}
+#| label: hmp
+#| eval: false
+# install.packages("harmonicmeanp")
+harmonicmeanp::p.hmp(p_livelli, w = pesi / sum(pesi), L = length(p_livelli))
+```
+
+## Test diretti, per confronto
+
+```{r}
+#| label: test-diretti
+dr <- data.frame(r = r, gruppo = dati$gruppo)
+
+c(
+  `KS globale (testUniformity)` = testUniformity(res, plot = FALSE)$p.value,
+  `Kruskal-Wallis (posizione)`  = kruskal.test(r ~ gruppo, data = dr)$p.value,
+  `Levene (dispersione)`        = car::leveneTest(r ~ gruppo, data = dr)[1, "Pr(>F)"]
+)
+```
+
+Il Kruskal–Wallis rileva spostamenti di posizione dei residui tra livelli. Qui
+il fattore è nel modello, quindi le medie per livello sono stimate e il test
+non ha molto da trovare. Il problema simulato (sovradispersione in `E`) è di
+dispersione, ed è il tipo di deviazione a cui sono sensibili Levene e i KS per
+livello.
+
+# Quale metodo, in pratica: una piccola simulazione
+
+Per vedere come cambia la potenza, simuliamo direttamente residui scalati per
+$k = 5$ livelli da 100 osservazioni in tre scenari:
+
+- **H₀**: tutti i livelli uniformi (verifica del livello nominale del 5%).
+- **Concentrato**: un solo livello ha residui a "U" (Beta(0.5, 0.5), tipico
+  della sovradispersione), gli altri sono uniformi.
+- **Diffuso**: tutti i livelli hanno una deviazione lieve (Beta(0.85, 0.85)).
+
+```{r}
+#| label: simulazione
+sim_potenza <- function(gen, B = 2000, k = 5, alpha = 0.05) {
+  ris <- replicate(B, {
+    rr <- lapply(seq_len(k), gen)
+    p <- sapply(rr, function(ri) ks.test(ri, "punif")$p.value)
+    c(combina_p(p), `KS globale` = ks.test(unlist(rr), "punif")$p.value)
+  })
+  rowMeans(ris < alpha)
+}
+
+n_sim <- 100
+scenari <- list(
+  `H0`          = function(j) runif(n_sim),
+  `Concentrato` = function(j) if (j == 1) rbeta(n_sim, 0.5, 0.5) else runif(n_sim),
+  `Diffuso`     = function(j) rbeta(n_sim, 0.85, 0.85)
+)
+
+tab_sim <- t(sapply(scenari, sim_potenza))
+round(tab_sim, 3)
+```
+
+Cosa ci si aspetta di vedere:
+
+- Sotto **H₀** tutti i metodi rifiutano circa nel 5% dei casi: le combinazioni
+  sono valide quando i livelli sono indipendenti.
+- Con segnale **concentrato**, Fisher, Tippett, Bonferroni e Cauchy sono i più
+  potenti. Stouffer e il KS globale perdono potenza perché il segnale di un
+  solo livello viene diluito.
+- Con segnale **diffuso**, Stouffer supera Fisher, e il KS globale sul
+  campione intero (`testUniformity`) è tipicamente il più potente di tutti.
+
+# Raccomandazioni
+
+1. **Default: Fisher sui KS per livello.** Una misspecificazione legata a un
+   fattore riguarda di solito uno o pochi livelli, e Fisher è robusto in quel
+   caso senza ignorare gli altri livelli.
+2. **Se serve la massima semplicità** o si teme dipendenza tra i livelli (ad
+   esempio effetti casuali condivisi tra livelli del fattore): il minimo dei
+   p corretti già fornito da DHARMa (Bonferroni), oppure Cauchy.
+3. **Se ci si aspetta una deviazione lieve e generalizzata**, il test giusto è
+   probabilmente già `testUniformity()` sul campione intero. In alternativa
+   Stouffer pesato.
+4. **Riportare il Levene a parte**: risponde a una domanda diversa
+   (dispersione diversa tra livelli) e non va combinato con i KS.
+5. Come per tutti i test diagnostici di DHARMa, con campioni grandi un p
+   piccolo non implica una deviazione rilevante: guardare sempre anche i
+   grafici e la dimensione della deviazione.
+
+# Riferimenti
+
+- Fisher, R. A. (1932). *Statistical Methods for Research Workers* (4ª ed.).
+- Stouffer, S. A. et al. (1949). *The American Soldier*, Vol. 1.
+- Tippett, L. H. C. (1931). *The Methods of Statistics*.
+- Birnbaum, A. (1954). Combining independent tests of significance. *JASA*, 49, 559–574.
+- Liu, Y., & Xie, J. (2020). Cauchy combination test. *JASA*, 115, 393–402.
+- Wilson, D. J. (2019). The harmonic mean p-value for combining dependent tests. *PNAS*, 116, 1195–1200.
+- Hartig, F. *DHARMa: Residual Diagnostics for Hierarchical Regression Models*. Pacchetto R.
