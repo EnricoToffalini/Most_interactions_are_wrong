@@ -949,6 +949,14 @@ n_rep_diagnostic <- max(table(diagnostic_replications$scenario))
 # Participants in the binary diagnostic scenarios (see scripts/04-diagnostic-worked-example.R).
 dg_N_binary <- 300
 dg_val <- function(case, col, digits = 1) fmt_num(dg_lookup(case, col), digits)
+
+# Correct-link flagging in the chance-floor scenario versus all other scenarios.
+cal <- diagnostic_calibration_correct
+cal_cf <- cal$scenario == "Chance-floor accuracy"
+cal_dharma <- grepl("^DHARMa", cal$diagnostic)
+cal_cf_dharma_max <- round(100 * max(cal$flagging_rate[cal_cf & cal_dharma]))
+cal_cf_pregibon <- round(100 * max(cal$flagging_rate[cal_cf & !cal_dharma]))
+cal_other_max <- fmt_num(100 * max(cal$flagging_rate[!cal_cf]), 1)
 ```
 
 ## Forced-Choice Accuracy and the Non-Zero Chance Floor
@@ -959,7 +967,6 @@ These specifications differ in which of the two ranges they impose. The Gaussian
 $p_i = c + (1 - c)F(\eta_i)$, which for $c = .50$ becomes $p_i = .50 + .50\,F(\eta_i)$. An interaction term in the standard model therefore tests additivity over the full 0-to-1 range, whereas the same term in the chance-corrected model tests additivity on a performance-above-chance scale, so the same four cell probabilities can imply different interactions on the three scales (@fig-motivating-example).
 
 ![A minimal $2 \times 2$ design crosses a condition (x-axis) with a group (color), shown on three scales. The four cell probabilities are identical in every panel; only the scale on which the interaction is evaluated changes. The data were generated with no condition-by-group interaction on the chance-corrected logit scale, which has a $.50$ chance floor, so the interaction coefficient is exactly zero on that scale. The same cells imply a positive interaction on the standard logit scale and a negative interaction on the raw probability scale. Light horizontal lines are equally spaced on each panel's own link scale, so equal steps on that scale map to unequal steps on the probability axis.](../figs/motivating-example.pdf){#fig-motivating-example}
-
 
 The chance-corrected link is most defensible when the chance level is known from the task design, guessing is a plausible lower-bound process, and below-chance performance is not substantively meaningful for the target claim. In the simplest case, the chance level can be fixed by design, for example $c=0.50$ in a two-alternative task. In other cases, analysts may estimate the lower asymptote or report sensitivity analyses over plausible values of $c$. Lapses, response biases, item heterogeneity, changes across trials, or systematic below-chance performance may instead require richer psychometric solutions such as item-response models [e.g., @embretsonReise2000; @wichmann2001; @knoblauch2012]. For example, the 3-parameter logistic Item Response Theory model estimates a guessing parameter for each item, where the chance-corrected link fixes a single chance level for the whole design [@embretsonReise2000]. The chance-corrected link is thus a design-level approximation, and item-level measurement models remain the appropriate tool when the data and the scientific question call for that additional structure.
 
@@ -973,6 +980,28 @@ The chance-corrected link is most defensible when the chance level is known from
 sim_N <- 250
 sim_k <- 20
 n_rep <- max(forced_choice_sim$`Fits attempted`)
+
+# >>> NEW CODE (inline values for Simulation 1 results) >>>
+fc_lookup <- function(scn, mdl, col) {
+  require_single(
+    forced_choice_sim[
+      forced_choice_sim$Scenario == scn & forced_choice_sim$Model == mdl,
+      col, drop = TRUE
+    ],
+    paste0("forced_choice_sim[", scn, " / ", mdl, " / ", col, "]")
+  )
+}
+fc_rate <- function(scn, mdl) round(100 * fc_lookup(scn, mdl, "Primary rejection rate"))
+fc_pct_range <- function(v) sprintf("%d%% to %d%%", round(100 * min(v)), round(100 * max(v)))
+
+# Matched chance-corrected model: nominal rate, fit problems, and the rate an
+# analyst would obtain by pooling acceptable and flagged fits.
+fc_cc <- forced_choice_sim[forced_choice_sim$Model == "Chance-corrected binomial logit", ]
+fc_alt <- forced_choice_sim[forced_choice_sim$Model != "Chance-corrected binomial logit", ]
+fc_cc_pooled <- with(fc_cc,
+  (`Rejections, acceptable fits` + `Apparent rejections, flagged fits`) /
+    (`Finite p-values, acceptable fits` + `Finite p-values, flagged fits`)
+)
 ```
 
 In each of `r n_rep` replications we generated `r sim_k` trial-level Bernoulli responses for each of $N = `r sim_N`$ participants. Age and group were constant across a participant's trials. The data-generating model included a subject random intercept corresponding to a latent-scale ICC of .30. The probability of a correct response followed a chance-corrected logit with a .50 floor, a positive age effect, a group difference, and no age-by-group product term on the conditional chance-corrected-logit scale. Three scenarios differ only in overall performance, set by shifting the fixed intercept. The deterministic curves in Panel A are evaluated at random intercept 0.
@@ -981,7 +1010,11 @@ Each simulated dataset was analyzed with four mixed models sharing the same subj
 
 ![Simulation 1: forced-choice accuracy with a chance floor and a subject random intercept. The product term is zero on the conditional chance-corrected-logit scale. Panel A shows fixed-effect curves at random intercept 0 across three performance levels; the grey region lies below the .50 chance floor. Panel B shows the primary product-term rejection rates among fits passing the minimal fit-quality checks. The dashed line marks alpha = .05.](../figs/forced-choice-simulation.pdf){#fig-forced-choice-simulation fig-pos="H"}
 
-For the matched chance-corrected model, the primary rate is the nominal rejection rate among numerically acceptable fits. For the three alternative links it is the pseudo-interaction detection rate among acceptable fits. Rates among flagged fits are descriptive apparent rejection rates, not valid inferential error rates. Numerical results in this section and Supplement A require regeneration with the revised mixed-model simulation.
+For the matched chance-corrected model, the primary rate is the nominal rejection rate among numerically acceptable fits. For the three alternative links it is the pseudo-interaction detection rate among acceptable fits. Rates among flagged fits are descriptive apparent rejection rates, not valid inferential error rates.
+
+The matched chance-corrected model rejected the product term in `r fc_pct_range(fc_cc$"Primary rejection rate")` of acceptable fits. The alternative links produced pseudo-interactions, most often near the chance floor. In the lower-performance scenario the standard logit detected an interaction in `r fc_rate("Lower performance", "Standard binomial logit")`% of replications, the standard probit in `r fc_rate("Lower performance", "Standard binomial probit")`%, and the Gaussian identity in `r fc_rate("Lower performance", "Gaussian identity")`%. In the higher-performance scenario these rates fell to `r fc_rate("Higher performance", "Standard binomial logit")`%, `r fc_rate("Higher performance", "Standard binomial probit")`%, and `r fc_rate("Higher performance", "Gaussian identity")`%.
+
+The matched model was also the hardest to fit. From `r fc_pct_range(fc_cc$"Fit-problem rate")` of its fits were flagged, against at most `r round(100 * max(fc_alt$"Fit-problem rate"))`% for the alternatives. Flagged fits are not a minor nuisance here, because they rejected the product term in `r fc_pct_range(fc_cc$"Apparent rejection rate, flagged fits")` of cases. An analyst who ignored the warnings would therefore obtain a pseudo-interaction rate of `r fc_pct_range(fc_cc_pooled)` from the model that is correct by construction, higher than under any of the wrong links. The chance-corrected link is the ideal solution in principle, but in a GLMM fitted with default settings in standard software it is often not a usable one.
 
 ## Within-Family Link Choice
 
@@ -1074,25 +1107,21 @@ The latent benchmark remained close to the nominal .05 rejection rate in every s
 
 This pattern mainly depends on where observations fall within the score range. Across the broader scenarios in Supplement B, the position of expected scores within the range affected identity-model rejection much more than sample size, item count, or latent dispersion. Raw-score additivity can approximate latent-scale additivity when scores remain away from the bounds. The bounded-score probit model can therefore serve as a sensitivity analysis. For claims about interactions between latent constructs, an explicit measurement model provides a more direct approach, for example SEM, item-level ordinal models, or IRT-inspired models. These approaches still depend on assumptions about thresholds, links, loadings, and latent-response scales, but they make those assumptions explicit.
 
-# Can Standard Diagnostics Catch a Wrong Link?
+# Can Standard Diagnostics Flag a Wrong Link?
 
-The simulations above assume that the analyst accepts the fitted model. In practice, a researcher who finds an interaction may check the model before reporting it. We examine three checks that follow different strategies. A Pregibon-style link test probes the assumed link, residual diagnostics screen for misfit of any kind, and AIC compares candidate models. 
+The simulations above assume that the analyst accepts the fitted model. In practice, a researcher who finds an interaction may check the model before reporting it. We examined three checks based on different strategies. A Pregibon-style link test probes the assumed link, residual diagnostics screen for misfit of any kind, and AIC compares candidate models.
 
-The Pregibon test refits the model with the squared fitted linear predictor, $\hat{\eta}^2$, as an additional predictor [@pregibon1980]. Under an adequate link this term carries no further information, and a significant coefficient indicates curvature that the link leaves unexplained.
+The Pregibon test refits the model adding the squared fitted linear predictor, $\hat{\eta}^2$, as a predictor [@pregibon1980]. If the link is adequate, this term adds no information. A significant coefficient indicates curvature that the link does not explain. For residual diagnostics, we used the simulated quantile residuals of DHARMa [@hartig2024; see also @dunnsmyth1996]. Under an adequate model they are uniform between 0 and 1, whatever the family. Misfit appears as non-uniformity, over- or underdispersion, or patterns over fitted values and predictors. AIC compares only the models it is given. Our candidate models share the response, the family, and the formula, and differ only in the link. They therefore have the same number of parameters, and AIC ranks them by log-likelihood alone. 
 
-Residual diagnostics screen for misfit of any kind. We used the simulated quantile residuals of DHARMa [@hartig2024; see also @dunnsmyth1996], which are uniform between 0 and 1 under an adequate model, whatever the family. Misfit appears as non-uniformity, over- or underdispersion, or structure over fitted values and predictors.
+None of the above checks is specific to the link. A significant Pregibon term targets the link, but it also flags any omitted nonlinearity or interaction. Moreover, the product term absorbs part of the curvature produced by a wrong link. With a continuous predictor, some curvature remains within groups and can in principle be detected. In a saturated $2 \times 2$ design nothing remains, because any link reproduces the cell means exactly.
 
-AIC compares the models it is given. Our candidate models share the response, the family, and the structural formula and differ only in the link, so they have the same number of parameters and AIC ranks them by log-likelihood alone.
-
-None of these checks is specific to the link. A Pregibon term or a residual pattern can also arise from a wrong family, an omitted nonlinearity, or a missing interaction. Moreover, the product term absorbs part of the curvature that a wrong link produces. With a continuous predictor, some curvature remains within groups and can in principle be detected. In a saturated $2 \times 2$ design nothing remains, because any link reproduces the cell means exactly.
-
-The monotonic linear model of @dunnanderson2026 tests scale dependence more directly, asking whether additivity can be recovered under any monotonic transformation. Every pseudo-interaction simulated here is removable in this sense. However, the test requires cell-level data from a factorial design and has no straightforward extension to mixed models (whereas our scenarios mostly include continuous predictors and/or trial-level random effects).
+The monotonic linear model of @dunnanderson2026 tests scale dependence more directly, asking whether additivity can be recovered under any monotonic transformation. All pseudo-interactions simulated here are removable in this sense. However, the test requires cell-level data from a factorial design and has no straightforward extension to mixed models, whereas most of our scenarios include continuous predictors, trial-level random effects, or both.
 
 ## Diagnostic Simulation
 
-The five scenarios are based on examples introduced earlier in the paper, with sample sizes and coefficients reported in Supplement A. Each keeps the outcome family and the interaction formula fixed and changes only the link, so the fitted model is wrong about the scale on which effects add and about nothing else. *Count errors* follows the Poisson-log example of @fig-simple-count-example and fits it with an identity link. *Chance-floor accuracy* takes the lower-performance scenario of Simulation 1, including its trial-level responses and subject random intercept, and compares standard-logit and chance-corrected-logit GLMMs with the same random-effects structure. *Binary repeated trials* follows the probit-generated, logit-fitted case of Simulation 2 with `r dg_N_binary` participants instead of `r wf_N`. *Binary continuous predictor* repeats that case with a continuous predictor in place of the two-level condition, so that residual structure can be examined along a predictor. *Gamma mean response time* generates response times from a Gamma model with a log link and fits the inverse link.
+The five scenarios are based on examples introduced earlier; sample sizes and coefficients are reported in Supplement A. Each scenario keeps the outcome family and the interaction formula fixed and changes only the link. The fitted model is therefore wrong about the scale on which effects add, and about nothing else. *Count errors* follows the Poisson-log example of @fig-simple-count-example and fits it with an identity link. *Chance-floor accuracy* takes the lower-performance scenario of Simulation 1, with trial-level responses and a subject random intercept, and compares standard-logit and chance-corrected-logit GLMMs with the same random effects. *Binary repeated trials* follows the probit-generated, logit-fitted case of Simulation 2 with `r dg_N_binary` participants instead of `r wf_N`. *Binary continuous predictor* repeats that case with a continuous predictor instead of the two-level condition, so that residual patterns can be examined along a predictor. *Gamma mean response time* generates response times from a Gamma model with a log link and fits the inverse link.
 
-In each replication we applied the checks to the misspecified interaction model, since this is the model an analyst would inspect after obtaining a significant interaction. The residual checks covered uniformity, dispersion, quantile structure over fitted values, and structure over the focal predictor, the last assessed with a quantile check for a continuous predictor and with a comparison across design cells in the $2 \times 2$ case. AIC compared the misspecified model with the target model. The residual checks and the Pregibon test were also applied to the correctly specified model fitted to the same data, to establish how often each flags a model that is right. Rates use replications that returned the quantities required for each diagnostic; the corresponding denominators are reported in Supplement A.
+In each replication we applied the checks to the misspecified interaction model, because this is the model an analyst would inspect after finding a significant interaction. The residual checks covered uniformity, dispersion, quantile patterns over fitted values, and patterns over the focal predictor. The last was assessed with a quantile check for a continuous predictor and with a comparison across design cells in the $2 \times 2$ case. AIC compared the misspecified model with the target model. We also applied the residual checks and the Pregibon test to the correctly specified model fitted to the same data, to see how often each flags a model that is right. Rates are based on the replications that returned the quantities required by each diagnostic; denominators are reported in Supplement A.
 
 ```{r}
 #| label: tbl-diagnostic-scenarios
@@ -1105,13 +1134,15 @@ knitr::kable(
 )
 ```
 
-The diagnostic tables must be regenerated after converting the chance-floor scenario to the revised subject-random-intercept design. Until then, the saved D2 rates from the earlier fixed-effect design are not results for the model described here. The other diagnostic scenarios are unchanged.
+@tbl-diagnostic-scenarios shows how the checks differ in sensitivity. The residual checks flagged the wrong link in up to `r dg_pct("Count errors", "DHARMa max")`% of replications in the count scenario, and in at most `r dg_max_other("DHARMa max")`% in the other four. The Pregibon test flagged it in `r dg_pct("Count errors", "Pregibon check")`% of count replications, `r dg_pct("Gamma mean response time", "Pregibon check")`% of Gamma replications, and `r dg_pct("Chance-floor accuracy", "Pregibon check")`% of chance-floor replications. In the binary scenario with a continuous predictor it flagged `r dg_pct("Binary continuous predictor", "Pregibon check")`%, about its rate under the correct link. It cannot be computed in the saturated $2 \times 2$ design. AIC preferred the target link in `r dg_range("AIC favors target")` of replications.
+
+The count scenario is the only one in which the wrong link distorted the fit enough for every check to flag it. In the other four the residual checks almost never flagged the misspecification, and AIC gave the most consistent signal, but only because the target link was among the candidates. The chance-floor scenario is the most instructive. Pseudo-interactions occurred in `r dg_pct("Chance-floor accuracy", "Pseudo-interaction detection")`% of replications, yet the residual checks flagged the misspecified standard logit in at most `r dg_pct("Chance-floor accuracy", "DHARMa max")`%. Applied to the correct chance-corrected model, they flagged it in up to `r cal_cf_dharma_max`%, and the Pregibon test in `r cal_cf_pregibon`%. The checks thus pointed away from the right model, which mirrors the estimation problems of Simulation 1. In all other scenarios no check flagged more than `r cal_other_max`% of correctly specified models. In the two logit-probit scenarios pseudo-interactions were less frequent, at `r dg_pct("Binary repeated trials", "Pseudo-interaction detection")`% and `r dg_pct("Binary continuous predictor", "Pseudo-interaction detection")`%. Supplement A reports the full results. 
 
 # From Link Choice to Sensitivity Analysis
 
-The practical implication of this framework is that an interaction analysis should make explicit the three choices it rests on, the outcome family, the link that defines additivity, and the metric the claim refers to, and should test whether its conclusion survives plausible alternatives (@tbl-link-aware-workflow). The observed metric may sometimes be the relevant target. For example, a two-point difference on a clinical or educational score may be the quantity that matters in practice, and additivity in raw-score units may then be reasonable. What matters is that this is a substantive choice, made deliberately and reported. When possible, the link should be justified from theory, task structure, or measurement.
+In practice, an interaction analysis should state the three choices it depends on: the outcome family, the link that defines additivity, and the metric the claim refers to. It should also test whether its conclusion holds under plausible alternatives (@tbl-link-aware-workflow). Sometimes the observed metric is the relevant target. For example, a two-point difference on a clinical or educational score may be what matters in practice, and additivity in raw-score units may then be reasonable. The point is that this is a substantive choice, which should be made deliberately and reported. When possible, the link should be justified by theory, task structure, or measurement.
 
-When link choice can affect the interaction conclusion, we suggest that the main robustness check is a sensitivity analysis across plausible links. The removability test of @dunnanderson2026 addresses the same problem directly, testing any monotonic transformation of the outcome. Besides having no straightforward extension to mixed models, however, it does not decide which transformations are admissible, because the family, the bounds, the chance level, or even the meaning of an outcome greatly restrict the plausible mappings. We suggest that researchers compare the same target response-scale contrast across standard alternatives, and report whether the result is stable or link-conditional. If it changes, that dependence should be disclosed [@mccabe2022; @mize2019; @rohrer2026; @mustillo2018].
+When the link can affect the interaction conclusion, we suggest a sensitivity analysis across plausible links as the main robustness check. The removability test of @dunnanderson2026 addresses the same problem directly, testing any monotonic transformation of the outcome. However, besides having no straightforward extension to mixed models, it does not decide which transformations are admissible. The family, the bounds, the chance level, and the meaning of the outcome strongly restrict the plausible mappings. We suggest comparing the same response-scale contrast across standard alternatives and reporting whether the result is stable or depends on the link. If it depends on the link, this should be disclosed [@mccabe2022; @mize2019; @rohrer2026; @mustillo2018].
 
 ```{r}
 #| label: tbl-link-aware-workflow
@@ -1154,11 +1185,11 @@ knitr::kable(workflow, align = c("l", "l", "l"))
 
 The same data can support different interaction conclusions under different plausible specifications, which is the familiar scale dependence of interactions [@cox1984; @dunnanderson2026; @loftus1978; @wagenmakers2012]. In a GLM that dependence is carried by two choices, the outcome family and the link function. Our review found interaction tests to be common in all five journals sampled, the link function usually left implicit, and identity-link analyses applied to many outcomes for which observed-scale additivity is not self-evident.
 
-The simulations then showed what that can cost. With two main effects present, a link that misplaces additivity turned a purely additive generating process into a significant product term even when the outcome family was correct. In forced-choice accuracy the binomial family is correct and the error lies entirely in a canonical link that places the lower asymptote at 0 rather than at the chance level. The logit-probit comparison showed that the problem survives when the response bounds are correct as well, between two links that look alike over most of the range. In the sum-score case the choice extends beyond the link to the outcome itself. A total is a scoring rule applied to item responses, so an interaction estimated on it refers to raw-score points, and adopting a family that respects the bounds and the discreteness of the total still leaves open whether additivity in points stands for additivity in the construct.
+The simulations then showed what that can cost. With two main effects present, a link that misplaces additivity turned a purely additive generating process into a significant product term even when the outcome family was correct. In forced-choice accuracy the binomial family is correct and the error lies entirely in a canonical link that places the lower asymptote at 0 rather than at the chance level. The matched chance-corrected model, however, often failed to fit, and its flagged fits produced more pseudo-interactions than any wrong link, so the ideal model was not always a usable one. The logit-probit comparison showed that the problem survives when the response bounds are correct as well, between two links that look alike over most of the range. In the sum-score case the choice extends beyond the link to the outcome itself. A total is a scoring rule applied to item responses, so an interaction estimated on it refers to raw-score points, and adopting a family that respects the bounds and the discreteness of the total still leaves open whether additivity in points stands for additivity in the construct.
 
 This difficulty is of a different kind from the one documented in work on the precision of interaction estimates [@baranger2023; @castillo2026]. There the obstacle is noise, and more data helps. Here the product term induced by the wrong link is a fixed property of that scale, so a larger sample estimates it more precisely and reports it as significant more often.
 
-The diagnostic simulation asks whether ordinary post-fit checks catch link misspecification. Residual checks, Pregibon-style tests, and AIC answer different questions, and AIC can only rank the links it is given. Fresh diagnostic results are required for the revised chance-floor mixed-model scenario. More generally, these diagnostics answer a question about fit within a supplied candidate set, which is different from whether an interaction claim holds on the scale the researcher means [@dunnsmyth1996; @hartig2024; @pregibon1980].
+The diagnostic simulation asks whether ordinary post-fit checks flag link misspecification. Residual checks, Pregibon-style tests, and AIC answer different questions, and AIC can only rank the links it is given. Outside the count scenario, residual checks and the Pregibon test rarely detected the wrong link. In the chance-floor case they even flagged the correct model more often than the wrong one, so a clean diagnostic report did not mean that the scale was right. More generally, these diagnostics answer a question about fit within a supplied candidate set, which is different from whether an interaction claim holds on the scale the researcher means [@dunnsmyth1996; @hartig2024; @pregibon1980].
 
 Three limitations bound the scope of these conclusions. The review was descriptive and covered five prominent journals across major areas of psychology in a single year, so its estimates describe reporting practice in such outlets and leave the field as a whole unmeasured, and a broader mapping across journals, years, and subfields would be needed to support reporting guidance. The review also coded observable reporting features and did not assess removability in each article. The simulations, finally, are demonstrations of a mechanism. They target a single regime, in which two established main effects push expected values into the region where link curvature is strongest, and they say nothing about how often that regime arises or about the further complications of real data.
 
@@ -1174,10 +1205,10 @@ The authors declare that there were no conflicts of interest with respect to the
 AI tools were used for both code optimization and manuscript editing.
 
 ### Data, Code and Materials
-All data, code, and supplementary files are accessible at <https://zeonod......>.
+All data, code, and supplementary files are accessible at  <https://doi.org/10.5281/zenodo.XXXXXXX>
 
-### Prior Versions
-A version of this manuscript is posted as a preprint on PsyArXiv at <https://.....>. The submitted manuscript shares its full content with that preprint.
+### Preregistration
+The protocol of the literature review is available at <https://osf.io/bdu73/>.
 
 # References
 

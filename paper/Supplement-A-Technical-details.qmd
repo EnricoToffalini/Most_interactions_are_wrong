@@ -480,7 +480,24 @@ print_table_if_exists(
 )
 ```
 
-This table requires fresh output from the revised mixed-model simulation. No values from the earlier fixed-effect simulation should be interpreted as results for this design.
+```{r}
+#| label: forced-choice-flagged-numbers
+#| include: false
+
+# Numbers quoted in the text below, computed from the same summary table
+d_fc <- read_csv_if_exists("tables", "simulation-summary-forced-choice.csv")
+fc_range <- function(x) paste(fmt_rate(min(x), 0), "to", fmt_rate(max(x), 0))
+if (is.null(d_fc)) {
+  fc_flag_cc <- fc_flag_other <- fc_rej_cc <- "--"
+} else {
+  is_cc <- d_fc$model == "Chance-corrected binomial logit"
+  fc_flag_cc <- fc_range(d_fc$fit_problem_rate[is_cc])
+  fc_flag_other <- fmt_rate(max(d_fc$fit_problem_rate[!is_cc]), 0)
+  fc_rej_cc <- fc_range(d_fc$rejection_rate_problem[is_cc])
+}
+```
+
+The chance-corrected GLMM was flagged in `r fc_flag_cc` of replications across scenarios, against at most `r fc_flag_other` for the other models. Its flagged fits rejected the product term in `r fc_rej_cc` of cases, so they must not be pooled with the acceptable fits.
 
 ## Simulation 2: within-family link choice
 
@@ -1038,7 +1055,7 @@ print_table_if_exists(
 
 The same DHARMa and Pregibon-style checks were applied to the corresponding correct-link interaction model in each replication. These baseline flagging rates provide a reference for interpreting detection under the wrong link. They reuse the same simulated datasets and scenarios rather than defining a new simulation.
 
-The correct-link column provides the baseline needed to interpret detection under the wrong link. The four DHARMa checks are well calibrated throughout. For the Pregibon-style check, the random-intercept GLMMs use the population-level rather than subject-specific fitted linear predictor. The $2 \times 2$ version is not applicable because its saturated fixed-effects design already spans the proposed squared term; the continuous-predictor version is estimable, and its wrong-link flagging rate should be read against its correct-link calibration rate.
+The correct-link column provides the baseline needed to interpret detection under the wrong link. The four DHARMa checks are well calibrated in every scenario except D2, where the uniformity and dispersion checks flag the correct chance-corrected GLMM in 38% and 36% of replications, and the Pregibon-style check in 43%. These rates most likely reflect the estimation difficulties of the chance-corrected GLMM described for Simulation 1, under the default Laplace approximation, rather than a property of the link itself. For the Pregibon-style check, the random-intercept GLMMs use the population-level rather than subject-specific fitted linear predictor. The $2 \times 2$ version is not applicable because its saturated fixed-effects design already spans the proposed squared term; the continuous-predictor version is estimable, and its wrong-link flagging rate should be read against its correct-link calibration rate.
 
 ```{r}
 #| label: tbl-diagnostic-calibration
