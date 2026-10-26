@@ -11,14 +11,17 @@ combinations, model labels, and slice memberships are retained.
   writes `data/scenario-grid.csv` and `data/diagnostic-grid.csv`.
 - `02a-run-forced-choice.R`: mirrors `scripts/03a-simulation-forced-choice.R`,
   with trial-level Bernoulli responses, a subject random intercept, four lme4
-  mixed models, and separate summaries for acceptable and flagged fits.
+  mixed models (the chance-corrected one with `nAGQ = 10`), and separate
+  summaries for acceptable and flagged fits.
 - `02b-run-within-family.R`: mirrors `scripts/03b-simulation-within-family-links.R`.
   It retains aggregated binomial draws and the existing GLM at ICC = 0.
 - `02c-run-sum-scores.R`: mirrors `scripts/03c-simulation-sum-scores.R`, including
   ordinal item draws, the continuity correction, and all three fitted models.
-- `02d-run-diagnostics.R`: preserves the targeted AIC, DHARMa and Pregibon
-  calculations. Forced-choice and within-family diagnostic data use individual
-  binary trials and retain their manuscript random-intercept structures.
+- `02d-run-diagnostics.R`: AIC, DHARMa and Pregibon calculations defined as in
+  `scripts/04-diagnostic-worked-example.R` (Pregibon on the population-level
+  linear predictor; not applicable in the saturated 2 x 2 design). Forced-choice
+  and within-family diagnostic data use individual binary trials and retain
+  their manuscript random-intercept structures.
 - `03-summarize-atlas.R`: reads raw results and writes app-facing CSV/RDS
   summaries, including acceptable-fit and flagged-fit rates. It performs no
   model fitting.

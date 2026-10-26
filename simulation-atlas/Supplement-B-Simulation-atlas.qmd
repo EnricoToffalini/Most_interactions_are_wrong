@@ -823,7 +823,7 @@ For Simulation 2, logit and probit coefficients are on different generating-link
 
 # Simulation 1: Forced-choice accuracy and the non-zero chance floor
 
-Forced-choice accuracy is generated as trial-level Bernoulli responses from a chance-corrected binomial logit mixed model with a .50 floor, a subject random intercept, and no age-by-group product term on the conditional chance-corrected-logit scale. The subject random-intercept SD corresponds to latent-scale ICC $.30$ under the usual logistic convention. The fitted models are a matched chance-corrected-logit GLMM using `psyphy::mafc.logit`, standard binomial-logit and binomial-probit GLMMs, and a Gaussian identity LMM. All four use the same `(1 | id)` structure.
+Forced-choice accuracy is generated as trial-level Bernoulli responses from a chance-corrected binomial logit mixed model with a .50 floor, a subject random intercept, and no age-by-group product term on the conditional chance-corrected-logit scale. The subject random-intercept SD corresponds to latent-scale ICC $.30$ under the usual logistic convention. The fitted models are a matched chance-corrected-logit GLMM using `psyphy::mafc.logit` (with `nAGQ = 10`, as in the manuscript), standard binomial-logit and binomial-probit GLMMs, and a Gaussian identity LMM. All four use the same `(1 | id)` structure.
 
 ## Reference scenarios
 

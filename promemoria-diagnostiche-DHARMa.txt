@@ -1,0 +1,207 @@
+PROMEMORIA - Diagnostiche DHARMa nella diagnostic simulation (Table 3)
+Data: 2026-10-26 (aggiornato dopo lo scambio con Filippo, stesso giorno)
+Riferimenti: scripts/04-diagnostic-worked-example.R (dharma_checks, righe ~149-176)
+             tables/diagnostic-calibration.csv
+             tables/diagnostic-scenarios.csv
+             paper/paper-v2.qmd (sezione "Can Standard Diagnostics Flag a Wrong
+               Link?"; Table 3 = tbl-diagnostic-scenarios, riga ~1139;
+               diagnostic_scenario_display_table, riga ~912)
+             paper/Supplement-A-Technical-details.qmd (righe ~690-700,
+               ~1081-1090, tbl-diagnostic-calibration)
+
+======================================================================
+DECISIONE (accordo con Filippo, 2026-10-26)
+======================================================================
+Approccio ESPLICITAMENTE INGENUO alle diagnostiche: "testiamo tutto,
+con tutto a default, come farebbe un analista qualsiasi" e riportiamo
+cosa esce. Non e' una valutazione estensiva di DHARMa.
+
+Motivi:
+- Quale diagnostica sia davvero sensibile alla link (e se lo sia) e'
+  una domanda a se': sarebbe un paper a parte.
+- Anche sapendo quale test e' "giusto", non valutiamo se funziona bene
+  in tutti i modelli, che sarebbe lo spirito di DHARMa.
+- DHARMa resta nel paper come proposta, per farlo conoscere e vederlo
+  applicato, segnalando che ha molti parametri e opzioni che andrebbero
+  valutati in modo estensivo.
+
+Quindi, rispetto alla versione precedente del promemoria:
+- NON si selezionano a priori i check "pertinenti alla link" (solo
+  testQuantiles). Restano tutti e quattro i check di default, compreso
+  il confronto tra celle nel 2x2.
+- NON si ricalibra (niente refit = TRUE, niente soglie empiriche).
+- Si DICHIARA il limite noto: con il default
+  simulateResiduals(refit = FALSE) i p-value sono conservativi (lo dice
+  Hartig stesso nella documentazione di DHARMa: va citato), quindi la
+  potenza e' piu' bassa del dovuto.
+- Per questo i tassi con la link sbagliata vanno letti accanto a quelli
+  con la link corretta, non contro il 5%  ->  vedi Table 3 sotto.
+
+Regola di scrittura: ESSERE MOLTO SINTETICI. Nel paper bastano 2-3
+frasi sull'approccio ingenuo e sul limite di refit = FALSE, con
+citazione. I dettagli tecnici (sotto) servono a noi, non al testo; nel
+Supplement A al massimo un paragrafo breve.
+
+======================================================================
+TABLE 3: PORTARE DENTRO IL CONFRONTO COL MODELLO CORRETTO
+======================================================================
+Problema: oggi i tassi col modello corretto stanno solo nel Supplement A
+(tbl-diagnostic-calibration). Senza di essi i tassi della Table 3 non
+hanno un riferimento sensato (2% contro 2% e' potenza nulla, non "il
+modello va bene"; nel chance-floor il modello corretto viene segnalato
+piu' spesso di quello sbagliato).
+
+Vincolo: deve stare fisicamente nella Table 3 attuale (apaquarto-pdf,
+7 colonne, larghezze [20, 17, 15, 17, 12, 9, 10]).
+
+Proposta (6 colonne invece di 7, nessuna colonna nuova):
+1. Unire "Target model" e "Misspecified model" in una colonna corta
+   "Link (true -> fitted)", es. "log -> identity". La famiglia e' gia'
+   implicita nel nome del Case; i nomi completi restano nel Supplement A.
+2. Nelle colonne DHARMa e Pregibon mettere la coppia
+   "sbagliata / corretta" nella stessa cella.
+3. Pseudo-interaction: solo la stima, senza CI (CI nel Supplement A).
+4. Due decimali invece di tre: con 3000 repliche bastano.
+
+Mock-up (numeri dai CSV attuali; DHARMa = range sui 4 check):
+
+  Case          Link           Pseudo-  DHARMa             Pregibon   AIC
+                (true->fitted) inter.   wrong / correct    w / c      target
+  Count errors  log->identity  .97      .01-.91 / .00-.05  .99 / .05  .99
+  Chance floor  cc-logit->logit .20     .00-.04 / .09-.38  .12 / .43  .97
+  Binary 2x2    probit->logit  .10      .00-.03 / .00-.04  n.a.       .96
+  Binary cont.  probit->logit  .07      .00-.03 / .00-.04  .05 / .05  .96
+  Gamma RT      log->inverse   .31      .00-.06 / .00-.02  .32 / .04  .80
+
+Larghezze indicative: [20, 16, 11, 25, 15, 13].
+Alternativa se il PDF lo regge meglio: intestazione su due livelli
+("DHARMa" sopra "Wrong" | "Correct"), ma richiede kableExtra e 8
+colonne strette; la soluzione "a / b" nella cella e' piu' sicura.
+Didascalia: una frase, "Each diagnostic cell gives the flagging rate
+under the misspecified link / under the correct link fitted to the
+same data."
+
+Implementazione: solo in paper-v2.qmd. Il paper legge gia'
+diagnostic-calibration.csv (diagnostic_calibration_raw); basta
+calcolare min-max per scenario sui check DHARMa con
+model_specification == "Correct link" e unirlo in
+diagnostic_scenario_display_table. Nessuna simulazione da rilanciare.
+Se invece la sintesi si sposta in 04, replicarla in
+simulation-atlas/03-summarize-atlas.R (AGENTS.md).
+
+Collegato: "AIC favors target" e' una scelta con soglia 0 tra modelli
+con lo stesso numero di parametri; il riferimento e' 50%, non 5%. Basta
+mezza frase in didascalia.
+
+======================================================================
+DA VERIFICARE PRIMA DI SCRIVERE: chance-floor col modello corretto
+======================================================================
+Resta l'unico rischio vero, anche con l'approccio ingenuo, perche' il
+numero finisce ora in Table 3.
+Il Supplement A (riga ~1085) attribuisce il ~37% di rifiuti col modello
+corretto (mafc.logit) a problemi di stima. Ma anche solo coi fit
+puliti (target_fit_converged == TRUE, cioe' senza warning di
+convergenza e non singolari: 1734 su 3000) i tassi restano alti:
+    uniformita' 35.5%, dispersione 31.1%, Pregibon 33.6%,
+    quantili sui fitted 8.2%, sul predittore 8.1%
+(fit problematici: 40.4%, 42.1%, 56.2%, 9.9%, 9.6%).
+Non sono pochi fit anomali: e' l'intera distribuzione dei p a essere
+spostata (dispersione, fit puliti: mediana p = .07, 90-esimo
+percentile = .16). Anche il Pregibon, che NON usa DHARMa, rifiuta il
+33.6%: la causa comune sta piu' probabilmente nel fit glmer +
+mafc.logit (Laplace, test di Wald) che nella simulazione DHARMa.
+Con la link sbagliata (logit standard) gli stessi test non scattano
+(dispersione 0%, uniformita' 3.9%).
+Controllo mirato in R (qualche centinaio di repliche, solo il modello
+corretto): glmer nAGQ = 1 contro nAGQ = 10. Se scende verso il 5% e'
+la bias di Laplace e la frase del Supplement A regge; altrimenti
+controllare mafc.logit + simulazione DHARMa per merMod (media delle
+risposte simulate contro proporzioni osservate e fittate).
+
+ESITO (2026-10-26, controllo in sandbox, 220 repliche, stessi seed di 04):
+- nAGQ = 1: fit puliti 56%, sd_u mediana 1.04 (vera 1.19); DHARMa sul
+  modello corretto: uniformita' 8.6%, dispersione 0%, quantili 6.8/7.7%.
+- nAGQ = 10: fit puliti 90%, sd_u 1.15; DHARMa 0%, 0%, 2.3%, 2.7%.
+- I 37.5% / 35.8% della repo NON si riproducono in locale nemmeno con
+  nAGQ = 1 (stessi dati: stato dei fit identico 44/44). Sospetto: versioni
+  dei pacchetti nell'ambiente conda r460 del cluster. Da verificare.
+DECISIONE: in tutti i fit mafc.logit (03a, 04, atlas 02a e 02d) si usa
+nAGQ = 10, con nota nel paper e nel Supplement A. FATTO negli script.
+
+======================================================================
+NOTE TECNICHE (per noi; nel testo solo il minimo)
+======================================================================
+Perche' i tassi sono spesso sotto il 5%: i p di DHARMa sono validi ma
+non esatti.
+- Effetto plug-in (refit = FALSE): il riferimento U(0,1) tratta il
+  modello come noto, ma e' stimato sugli stessi dati; i residui
+  risultano troppo uniformi (come il test di Lilliefors). Peggiora con
+  parametri flessibili (shape del Gamma: uniformita' allo 0%).
+- testQuantiles: correzione per tre quantili correlati.
+- Statistica quasi fissata: dispersione su dati 0/1 (0% ovunque nei
+  binari, link giusta o sbagliata); confronto tra celle nel 2x2 saturo
+  (qualunque link riproduce le 4 medie di cella).
+refit = TRUE risolverebbe il plug-in ma moltiplica i tempi di centinaia
+di volte con i GLMM: fuori portata, e comunque contrario all'approccio
+"a default".
+
+Cosa vede ciascun check (utile per una frase di commento, non per
+selezionare):
+- uniformita': soprattutto la famiglia;
+- dispersione: la relazione varianza-media (segnale indiretto solo nel
+  Poisson identity, 22%);
+- quantili sui fitted e sul predittore: la struttura della media, cioe'
+  l'errore tipico di una link sbagliata (91% nel count);
+- celle del 2x2: nulla per costruzione (modello saturo), come il
+  Pregibon.
+Il paper dice gia' "None of the above checks is specific to the link":
+resta coerente.
+
+2x2: testCategorical AL POSTO del Kruskal-Wallis (deciso 2026-10-26).
+Nel 2x2 saturo entrambi sono poco informativi per costruzione, nella
+stessa misura; a parita' si preferisce il default di DHARMa, coerente
+con l'approccio ingenuo. Regola: segnalato se e' significativo uno dei
+test che DHARMa stesso riporta (KS per cella, gia' corretti da DHARMa,
+oppure Levene) = minimo dei p. Nessuna aggregazione per soggetto
+(sarebbe fuori dall'approccio ingenuo).
+ATTENZIONE: in DHARMa 0.4.7 testCategorical(plot = FALSE) va in errore
+(chiama mtext() anche senza plot); gli script aprono un device nullo
+(pdf(NULL); plot.new()) dentro pval_categorical().
+
+======================================================================
+TESTO PROPOSTO (breve)
+======================================================================
+Paper, sezione Diagnostic Simulation (circa riga 1136), da aggiungere
+dopo l'elenco dei check:
+
+  We applied these checks as a typical analyst would, with DHARMa
+  defaults. Under these defaults the tests are known to be
+  conservative, because simulated residuals do not account for
+  parameter estimation [@hartig2024]; detection rates under the wrong
+  link are therefore shown next to the rates under the correct link.
+  A systematic evaluation of residual diagnostics for link
+  misspecification is beyond our scope.
+
+Supplement A (accanto a tbl-diagnostic-calibration): al massimo una
+frase sul plug-in e un rinvio alla Table 3. Correggere la frase sul
+chance-floor (riga ~1085) secondo l'esito del controllo sopra.
+
+======================================================================
+FILE DA TOCCARE E COSA RILANCIARE (vedi AGENTS.md)
+======================================================================
+- paper/paper-v2.qmd: FATTA la Table 3 (display function a 6 colonne,
+  tbl-colwidths, didascalia con defaults e riferimento .50 per l'AIC).
+  Restano da scrivere a mano: 2-3 frasi nel testo (bozza sopra) e il
+  commento sotto la tabella sul chance-floor.
+- paper/Supplement-A-Technical-details.qmd: frase sul plug-in, frase
+  sul chance-floor.
+- Script e atlas: FATTO il passaggio a testCategorical nel 2x2 in
+  scripts/04-diagnostic-worked-example.R e
+  simulation-atlas/02d-run-diagnostics.R (nomi delle colonne invariati,
+  dharma_*_categorical_design_p), e la frase nel Supplement A (~692).
+  Supplement B e README dell'atlas non citavano il KW.
+- Rilanciare: lo scenario "Binary repeated trials" (2x2) in 04 e in
+  02d; poi rigenerare tables/diagnostic-*.csv e i dati dell'atlas. Gli
+  altri scenari non cambiano, ma 04 li rigira tutti salvo modifiche.
+  Inoltre lo scenario chance-floor se il controllo sopra porta a
+  cambiare il fit.

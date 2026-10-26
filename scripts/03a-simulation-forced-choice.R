@@ -177,7 +177,8 @@ sim_one <- function(b, i) {
     fit_check(lmer(correct ~ age_c * group + (1 | id), data = d), nd),
     fit_check(glmer(correct ~ age_c * group + (1 | id), family = binomial("logit"), data = d), nd),
     fit_check(glmer(correct ~ age_c * group + (1 | id), family = binomial("probit"), data = d), nd),
-    fit_check(glmer(correct ~ age_c * group + (1 | id), family = binomial(mafc.logit(round(1 / chance))), data = d), nd)
+    # nAGQ = 10: with the default Laplace approximation many chance-corrected fits are flagged
+    fit_check(glmer(correct ~ age_c * group + (1 | id), family = binomial(mafc.logit(round(1 / chance))), data = d, nAGQ = 10), nd)
   )
   res <- cbind(scenario = scenarios$scenario[i], replication = b, model = model_names, res)
   res$change_in_group_difference_outcome_units <- res$change_in_group_difference_response_scale * k_trials

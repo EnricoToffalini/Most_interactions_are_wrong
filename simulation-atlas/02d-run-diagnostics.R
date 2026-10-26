@@ -1,8 +1,6 @@
 # Atlas, diagnostics: AIC, DHARMa and Pregibon-style checks on the wrong-link model,
 # over the rows of the diagnostic grid (forced choice and within family; sum-score
-# diagnostics are not defined). Note: these definitions differ slightly from
-# scripts/04-diagnostic-worked-example.R (e.g. Pregibon for the binary GLMM uses
-# eta_hat including random effects); they are kept as they are.
+# diagnostics are not defined). Definitions follow scripts/04-diagnostic-worked-example.R.
 # Run from the repository root after 01-build-scenario-grid.R.
 # Environment variables: ATLAS_MODE (full/smoke), N_SIM, N_CORES, ATLAS_OVERWRITE,
 # ATLAS_RUN_DHARMA (TRUE/FALSE), DHARMA_N_SIM.
@@ -23,6 +21,15 @@ scenarios <- grid[grid$family != "sum_scores", ]
 if (mode == "smoke") scenarios <- scenarios[scenarios$diagnostic_paper_anchor, ]
 
 pval <- function(test) if (inherits(test, "try-error") || length(test$p.value) != 1) NA else test$p.value
+# DHARMa testCategorical with defaults; flagged if any within-cell uniformity test
+# (adjusted by DHARMa) or the Levene test is significant. testCategorical calls
+# mtext() even with plot = FALSE (DHARMa 0.4.7), so it needs an open plot.
+pval_categorical <- function(sim, cell) {
+  pdf(NULL); on.exit(dev.off())
+  plot.new()
+  test <- try(testCategorical(sim, catPred = cell, plot = FALSE), silent = TRUE)
+  if (inherits(test, "try-error")) NA else min(test$uniformity$p.value.cor, test$homogeneity$`Pr(>F)`[1])
+}
 
 sim_one <- function(replication, scenario, dharma_n_sim) {
   fc <- scenario$family == "forced_choice"
@@ -45,7 +52,7 @@ sim_one <- function(replication, scenario, dharma_n_sim) {
       group = factor(rep(group_num, each = k), levels = c(0, 1), labels = c("Group 0", "Group 1")))
     d$correct <- rbinom(nrow(d), 1, scenario$chance + (1 - scenario$chance) * plogis(rep(eta, each = k)))
     wrong_fit <- try(glmer(correct ~ age_c * group + (1 | id), data = d, family = binomial("logit")), silent = TRUE)
-    correct_fit <- try(glmer(correct ~ age_c * group + (1 | id), data = d, family = binomial(mafc.logit(2))), silent = TRUE)
+    correct_fit <- try(glmer(correct ~ age_c * group + (1 | id), data = d, family = binomial(mafc.logit(2)), nAGQ = 10), silent = TRUE)
     if (!inherits(correct_fit, "try-error")) {
       aic_correct <- AIC(correct_fit)
       correct_problem <- length(correct_fit@optinfo$conv$lme4$messages) > 0 || isSingular(correct_fit, tol = 1e-4)
@@ -99,29 +106,35 @@ sim_one <- function(replication, scenario, dharma_n_sim) {
       if (!inherits(sim, "try-error")) {
         dh["uniformity"] <- pval(try(testUniformity(sim, plot = FALSE), silent = TRUE))
         dh["dispersion"] <- pval(try(testDispersion(sim, plot = FALSE), silent = TRUE))
+        fitted <- as.numeric(predict(wrong_fit, type = "response"))
+        if (length(unique(round(fitted[is.finite(fitted)], 10))) >= 8) dh["quantile_fitted"] <- pval(try(testQuantiles(sim, plot = FALSE), silent = TRUE))
         if (fc) {
-          fitted <- as.numeric(predict(wrong_fit, type = "response", re.form = NA))
-          if (length(unique(round(fitted[is.finite(fitted)], 10))) >= 8) dh["quantile_fitted"] <- pval(try(testQuantiles(sim, plot = FALSE), silent = TRUE))
           if (length(unique(round(d$age_c, 10))) >= 8) dh["quantile_predictor"] <- pval(try(testQuantiles(sim, predictor = d$age_c, plot = FALSE), silent = TRUE))
         } else {
-          # scaled residuals across the four design cells
+          # testCategorical across the four design cells, as in the manuscript
           design_cell <- interaction(d$group, d$condition, drop = TRUE)
-          residual <- sim$scaledResiduals
-          dh["categorical_design"] <- pval(try(kruskal.test(residual ~ design_cell), silent = TRUE))
+          dh["categorical_design"] <- pval_categorical(sim, design_cell)
         }
       }
     }
 
-    # Pregibon-style check: add the squared linear predictor to the original formula
-    d$eta_hat_sq <- as.numeric(if (fc) predict(wrong_fit, type = "link", re.form = NA) else predict(wrong_fit, type = "link"))^2
-    if (fc) {
-      added_fit <- try(glmer(correct ~ age_c * group + eta_hat_sq + (1 | id), data = d, family = binomial("logit")), silent = TRUE)
-      if (!inherits(added_fit, "try-error")) tab <- summary(added_fit)$coefficients
-    } else {
-      added_fit <- try(glmmTMB(y ~ group * condition + (1 | id) + eta_hat_sq, data = d, family = binomial("logit")), silent = TRUE)
-      if (!inherits(added_fit, "try-error")) tab <- summary(added_fit)$coefficients$cond
+    # Pregibon-style check: add the squared linear predictor to the original formula.
+    # eta_hat uses fixed effects only (squared empirical Bayes random effects as a
+    # covariate are badly anti-conservative under the correct link). Not applicable
+    # (NA) when eta_hat^2 does not increase the rank of the fixed-effects design, as
+    # in the saturated 2 x 2 interaction model.
+    d$eta_hat_sq <- as.numeric(predict(wrong_fit, type = "link", re.form = NA))^2
+    fixed <- if (fc) correct ~ age_c * group else y ~ group * condition
+    if (qr(model.matrix(update(fixed, . ~ . + eta_hat_sq), data = d))$rank > qr(model.matrix(fixed, data = d))$rank) {
+      if (fc) {
+        added_fit <- try(glmer(correct ~ age_c * group + eta_hat_sq + (1 | id), data = d, family = binomial("logit")), silent = TRUE)
+        if (!inherits(added_fit, "try-error")) tab <- summary(added_fit)$coefficients
+      } else {
+        added_fit <- try(glmmTMB(y ~ group * condition + (1 | id) + eta_hat_sq, data = d, family = binomial("logit")), silent = TRUE)
+        if (!inherits(added_fit, "try-error")) tab <- summary(added_fit)$coefficients$cond
+      }
+      if (!inherits(added_fit, "try-error") && "eta_hat_sq" %in% rownames(tab)) pregibon_p <- tab["eta_hat_sq", 4]
     }
-    if (!inherits(added_fit, "try-error") && "eta_hat_sq" %in% rownames(tab)) pregibon_p <- tab["eta_hat_sq", 4]
   }
 
   data.frame(scenario_id = scenario$scenario_id, family = scenario$family, replication = replication, replication_seed = replication_seed,
@@ -137,7 +150,7 @@ sim_one <- function(replication, scenario, dharma_n_sim) {
 cl <- makeCluster(n_cores)
 invisible(clusterEvalQ(cl, {library(glmmTMB); library(lme4); library(psyphy)}))
 if (run_dharma) invisible(clusterEvalQ(cl, library(DHARMa)))
-clusterExport(cl, "pval")
+clusterExport(cl, c("pval", "pval_categorical"))
 for (i in 1:nrow(scenarios)) {
   scenario <- scenarios[i, ]
   output_file <- sprintf("simulation-atlas/raw/%s-%s-%s-B%d.rds", kind, scenario$scenario_id, mode, B)

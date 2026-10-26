@@ -144,8 +144,18 @@ print(scenario_table[, c("scenario", "predictor_name", "predictor_value", "group
 try_fit <- function(expr) tryCatch(expr, error = function(e) NULL)
 pval <- function(test) if (inherits(test, "try-error") || length(test$p.value) != 1) NA else unname(test$p.value)
 
+# DHARMa testCategorical with defaults; flagged if any within-cell uniformity test
+# (adjusted by DHARMa) or the Levene test is significant. testCategorical calls
+# mtext() even with plot = FALSE (DHARMa 0.4.7), so it needs an open plot.
+pval_categorical <- function(sim, cell) {
+  pdf(NULL); on.exit(dev.off())
+  plot.new()
+  test <- try(testCategorical(sim, catPred = cell, plot = FALSE), silent = TRUE)
+  if (inherits(test, "try-error")) NA else min(test$uniformity$p.value.cor, test$homogeneity$`Pr(>F)`[1])
+}
+
 # Scenario-aware DHARMa checks on one fitted model: quantile tests for continuous
-# predictors, Kruskal-Wallis of scaled residuals across cells for the 2 x 2 design
+# predictors, testCategorical across cells for the 2 x 2 design
 dharma_checks <- function(fit, d, focal) {
   p <- c(uniformity = NA, dispersion = NA, quantile_fitted = NA, quantile_predictor = NA, categorical_design = NA)
   sim <- if (is.null(fit)) NULL else try_fit(simulateResiduals(fittedModel = fit, n = dharma_n_sim, plot = FALSE, seed = NULL))
@@ -163,9 +173,8 @@ dharma_checks <- function(fit, d, focal) {
       }
     } else {
       design_cell <- interaction(d$group, d$condition, drop = TRUE)
-      res <- sim$scaledResiduals
-      if (nlevels(design_cell) >= 2 && length(res) == length(design_cell)) {
-        p["categorical_design"] <- pval(try(kruskal.test(res ~ design_cell), silent = TRUE))
+      if (nlevels(design_cell) >= 2 && length(sim$scaledResiduals) == length(design_cell)) {
+        p["categorical_design"] <- pval_categorical(sim, design_cell)
       }
     }
   }
@@ -194,7 +203,7 @@ pregibon_p <- function(fit, d) {
   if (inherits(fit, "glmmTMB")) {
     fit2 <- try_fit(glmmTMB(form, data = d, family = family(fit)))
   } else if (inherits(fit, "merMod")) {
-    fit2 <- try_fit(glmer(form, data = d, family = family(fit)))
+    fit2 <- try_fit(glmer(form, data = d, family = family(fit), nAGQ = fit@devcomp$dims[["nAGQ"]]))
   } else {
     # glm() reads start by position and model.matrix() puts eta_hat_sq before the
     # interaction, so align the current estimates by name (0 for eta_hat_sq)
@@ -242,7 +251,8 @@ sim_one <- function(b, k) {
       group = factor(rep(group_num, each = scn$k_trials), levels = c(0, 1), labels = c("Group 0", "Group 1")))
     d$correct <- rbinom(nrow(d), 1, scn$chance + (1 - scn$chance) * plogis(rep(eta, each = scn$k_trials)))
     fit_wrong <- try_fit(glmer(correct ~ age_c * group + (1 | id), data = d, family = binomial("logit")))
-    fit_correct <- try_fit(glmer(correct ~ age_c * group + (1 | id), data = d, family = binomial(mafc.logit(2))))
+    # nAGQ = 10 for the chance-corrected model, as in Simulation 1 (03a)
+    fit_correct <- try_fit(glmer(correct ~ age_c * group + (1 | id), data = d, family = binomial(mafc.logit(2)), nAGQ = 10))
     term <- "age_c:groupGroup 1"
   }
   if (name == "probit_dgp_logit_fit") {
@@ -338,7 +348,7 @@ sim_one <- function(b, k) {
 cat("\nRunning B =", B, "replications per scenario on", n_cores, "cores\n")
 cl <- makeCluster(n_cores)
 invisible(clusterEvalQ(cl, {library(glmmTMB); library(lme4); library(psyphy); library(DHARMa)}))
-clusterExport(cl, c("try_fit", "pval", "dharma_checks", "pregibon_p", "seed", "diag_scenarios", "dharma_n_sim", "min_unique_for_quantile"))
+clusterExport(cl, c("try_fit", "pval", "pval_categorical", "dharma_checks", "pregibon_p", "seed", "diag_scenarios", "dharma_n_sim", "min_unique_for_quantile"))
 results <- list()
 for (k in 1:length(diag_scenarios)) {
   cat("Scenario:", diag_scenarios[[k]]$scenario, "\n")

@@ -869,6 +869,8 @@ diagnostic_scenarios <- select_required_columns(
     "scenario",
     "paper_anchor",
     "outcome_family",
+    "true_link_function",
+    "fitted_link_function",
     "true_model_label",
     "fitted_model_label",
     "n_replications",
@@ -891,6 +893,8 @@ diagnostic_scenarios <- rename_columns(
     scenario = "Case",
     paper_anchor = "Paper anchor",
     outcome_family = "Outcome family",
+    true_link_function = "Target link",
+    fitted_link_function = "Fitted link",
     true_model_label = "Target model",
     fitted_model_label = "Misspecified model",
     n_replications = "Replications",
@@ -910,24 +914,26 @@ diagnostic_scenarios <- rename_columns(
 cap_first <- function(x) paste0(toupper(substr(x, 1, 1)), substring(x, 2))
 
 diagnostic_scenario_display_table <- function(dat) {
+  # same checks on the correctly specified model fitted to the same data
+  cal <- diagnostic_calibration_correct
+  dh <- grepl("^DHARMa", cal$diagnostic)
+  dh_min <- tapply(cal$flagging_rate[dh], cal$scenario[dh], min)[dat$Case]
+  dh_max <- tapply(cal$flagging_rate[dh], cal$scenario[dh], max)[dat$Case]
+  pg <- tapply(cal$flagging_rate[!dh], cal$scenario[!dh], max)[dat$Case]
   data.frame(
     Case = dat$Case,
-    `Target model` = cap_first(dat$`Target model`),
-    `Misspecified model` = cap_first(dat$`Misspecified model`),
-    `Pseudo-interaction rate` = paste0(
-      fmt_num(dat$`Pseudo-interaction detection`, 3), " ",
-      fmt_ci_cols(dat$`Pseudo-interaction CI low`, dat$`Pseudo-interaction CI high`, 3)
+    `Link (target $\\rightarrow$ fitted)` = paste(dat$`Target link`, "$\\rightarrow$", dat$`Fitted link`),
+    `Pseudo-interaction` = fmt_num(dat$`Pseudo-interaction detection`, 2),
+    `DHARMa (wrong / correct)` = paste0(
+      fmt_num(dat$`DHARMa min`, 2), "–", fmt_num(dat$`DHARMa max`, 2), " / ",
+      fmt_num(dh_min, 2), "–", fmt_num(dh_max, 2)
     ),
-    DHARMa = paste0(
-      fmt_num(dat$`DHARMa min`, 3), "–",
-      fmt_num(dat$`DHARMa max`, 3)
-    ),
-    Pregibon = ifelse(
+    `Pregibon (wrong / correct)` = ifelse(
       dat$Case == pregibon_na_scenario,
       "N.A.",
-      fmt_num(dat$`Pregibon check`, 3)
+      paste0(fmt_num(dat$`Pregibon check`, 2), " / ", fmt_num(pg, 2))
     ),
-    `AIC favors target` = fmt_num(dat$`AIC favors target`, 3),
+    `AIC favors target` = fmt_num(dat$`AIC favors target`, 2),
     check.names = FALSE
   )
 }
@@ -1018,7 +1024,7 @@ fc_cc_pooled <- with(fc_cc,
 
 In each of `r n_rep` replications we generated `r sim_k` trial-level Bernoulli responses for each of $N = `r sim_N`$ participants. Age and group were constant across a participant's trials. The data-generating model included a subject random intercept corresponding to a latent-scale ICC of .30. The probability of a correct response followed a chance-corrected logit with a .50 floor, a positive age effect, a group difference, and no age-by-group product term on the conditional chance-corrected-logit scale. Three scenarios differ only in overall performance, set by shifting the fixed intercept. The deterministic curves in Panel A are evaluated at random intercept 0.
 
-Each simulated dataset was analyzed with four mixed models sharing the same subject random intercept: a Gaussian identity LMM applied to the binary trial outcome, standard binomial-logit and binomial-probit GLMMs, and the matched chance-corrected binomial-logit GLMM. The matched model was fitted with `lme4::glmer` and `psyphy::mafc.logit(2)`. Each model received one fit attempt. We report rejection rates separately for fits passing basic convergence checks and for fits flagged by numerical problems, because the latter can yield unreliable Wald tests. Exact criteria are given in Supplement A.
+Each simulated dataset was analyzed with four mixed models sharing the same subject random intercept: a Gaussian identity LMM applied to the binary trial outcome, standard binomial-logit and binomial-probit GLMMs, and the matched chance-corrected binomial-logit GLMM. The matched model was fitted with `lme4::glmer` and `psyphy::mafc.logit(2)`, using adaptive Gauss-Hermite quadrature with 10 points instead of the default Laplace approximation, under which a disproportionate share of these fits was flagged (Supplement A). Each model received one fit attempt. We report rejection rates separately for fits passing basic convergence checks and for fits flagged by numerical problems, because the latter can yield unreliable Wald tests. Exact criteria are given in Supplement A.
 
 ![Simulation 1: forced-choice accuracy with a chance floor and a subject random intercept. The product term is zero on the conditional chance-corrected-logit scale. Panel A shows fixed-effect curves at random intercept 0 across three performance levels; the grey region lies below the .50 chance floor. Panel B shows the primary product-term rejection rates among fits passing the minimal fit-quality checks. The dashed line marks $\alpha = .05$.](../figs/forced-choice-simulation.pdf){#fig-forced-choice-simulation fig-pos="htbp"}
 
@@ -1137,13 +1143,13 @@ In each replication we applied the checks to the misspecified interaction model,
 
 ```{r}
 #| label: tbl-diagnostic-scenarios
-#| tbl-colwidths: [20, 17, 15, 17, 12, 9, 10]
-#| tbl-cap: "Diagnostic simulation across five link-misspecification scenarios. Pseudo-interaction reports how often the misspecified model detected an interaction that was absent on the generating link scale. DHARMa gives the range across the four prespecified residual checks. Pregibon reports the added-term link check. AIC favors target reports the proportion of replications in which the lower AIC favored the target interaction model over the misspecified interaction model. CI = Wilson 95% confidence interval. The Pregibon check is not identifiable in the saturated $2 \\times 2$ design, where the squared linear predictor is exactly collinear with the existing fixed effects."
+#| tbl-colwidths: [20, 21, 11, 21, 15, 12]
+#| tbl-cap: "Diagnostic simulation across five link-misspecification scenarios. Pseudo-interaction reports how often the misspecified model detected an interaction that was absent on the generating link scale. DHARMa (range across the four residual checks, run with package defaults) and Pregibon (added-term link check) report flagging rates for the misspecified model / for the correctly specified model fitted to the same data. AIC favors target reports the proportion of replications in which the lower AIC favored the target interaction model over the misspecified interaction model; the two models have the same number of parameters, so indistinguishable links would give about .50. The Pregibon check is not identifiable in the saturated $2 \\times 2$ design, where the squared linear predictor is exactly collinear with the existing fixed effects. Denominators and confidence intervals of the diagnostic rates are reported in Supplement A."
 #| echo: false
 
 knitr::kable(
   diagnostic_scenario_display_table(diagnostic_scenarios),
-  align = c("l", "l", "l", "r", "r", "r", "r")
+  align = c("l", "l", "r", "r", "r", "r")
 )
 ```
 

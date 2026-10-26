@@ -43,7 +43,7 @@ sim_one <- function(replication, scenario, deterministic) {
   fits <- list(try(lm(sum_score ~ x * group, data = d), silent = TRUE),
                try(glm(score_prop_probit ~ x * group, family = gaussian(link = make.link("probit")), data = d), silent = TRUE),
                try(lm(theta ~ x * group, data = d), silent = TRUE))
-  to_sum_score <- c(1, max_score, 1) # rescale bounded-score predictions to the sum-score metric
+  to_sum_score <- list(identity, function(q) (max_score + 1) * q - 0.5, identity) # invert the continuity-corrected proportion back to the sum-score metric
   nd <- expand.grid(x = c(scenario$x_min, scenario$x_max), group = factor(c("Group 0", "Group 1")))
   p_values <- coefs <- ses <- did <- rep(NA_real_, 3)
   problems <- rep(TRUE, 3)
@@ -60,7 +60,7 @@ sim_one <- function(replication, scenario, deterministic) {
       coefs[j] <- tab["x:groupGroup 1", 1]
       ses[j] <- tab["x:groupGroup 1", 2]
     }
-    pred <- predict(fits[[j]], newdata = nd, type = "response") * to_sum_score[j]
+    pred <- to_sum_score[[j]](predict(fits[[j]], newdata = nd, type = "response"))
     did[j] <- (pred[4] - pred[2]) - (pred[3] - pred[1])
   }
   data.frame(scenario_id = scenario$scenario_id, family = "sum_scores", replication = replication, replication_seed = replication_seed,

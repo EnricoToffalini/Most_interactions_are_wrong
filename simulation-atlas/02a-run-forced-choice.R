@@ -73,7 +73,8 @@ sim_one <- function(replication, scenario, deterministic) {
     fit_check(lmer(correct ~ age_c * group + (1 | id), data = d), nd),
     fit_check(glmer(correct ~ age_c * group + (1 | id), family = binomial("logit"), data = d), nd),
     fit_check(glmer(correct ~ age_c * group + (1 | id), family = binomial("probit"), data = d), nd),
-    fit_check(glmer(correct ~ age_c * group + (1 | id), family = binomial(mafc.logit(as.integer(round(1 / chance)))), data = d), nd)
+    # nAGQ = 10 for the chance-corrected model, as in the manuscript
+    fit_check(glmer(correct ~ age_c * group + (1 | id), family = binomial(mafc.logit(as.integer(round(1 / chance)))), data = d, nAGQ = 10), nd)
   )
   data.frame(scenario_id = scenario$scenario_id, family = "forced_choice", replication = replication,
     replication_seed = replication_seed,
