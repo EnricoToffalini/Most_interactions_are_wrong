@@ -1,0 +1,255 @@
+mem-bind=LOC - slurm1, task  0  0 [43719]: mask 0xff set
+Loading required package: Matrix
+This is DHARMa 0.5.0. For overview type '?DHARMa'. For recent changes, type news(package = 'DHARMa') 
+
+Note that the default setting in simulateResiduals was changed to conditional simulations since version 0.5.0. This is likely to change residual calculations for all hierarchical (in particular random effect) models. If you want to switch back to the old package version defaults, please use the argument simulateREs = "user-specified" in simulateResiduals(). For more details, see ?simulateREsiduals.
+
+Attaching package: ‘DHARMa’
+
+The following object is masked from ‘package:lme4’:
+
+    getData
+
+
+Diagnostic simulation
+B = 3000 | DHARMa simulations = 250 | alpha = 0.05 
+                      scenario predictor_name predictor_value   group
+1                 Count errors            age             6.0 Group 0
+2                 Count errors            age             8.0 Group 0
+3                 Count errors            age            10.0 Group 0
+4                 Count errors            age             6.0 Group 1
+5                 Count errors            age             8.0 Group 1
+6                 Count errors            age            10.0 Group 1
+7        Chance-floor accuracy            age             6.0 Group 0
+8        Chance-floor accuracy            age             8.0 Group 0
+9        Chance-floor accuracy            age            10.0 Group 0
+10       Chance-floor accuracy            age             6.0 Group 1
+11       Chance-floor accuracy            age             8.0 Group 1
+12       Chance-floor accuracy            age            10.0 Group 1
+13      Binary repeated trials      condition             0.0 Group 0
+14      Binary repeated trials      condition             1.0 Group 0
+15      Binary repeated trials      condition             0.0 Group 1
+16      Binary repeated trials      condition             1.0 Group 1
+17 Binary continuous predictor              x             0.0 Group 0
+18 Binary continuous predictor              x             0.5 Group 0
+19 Binary continuous predictor              x             1.0 Group 0
+20 Binary continuous predictor              x             0.0 Group 1
+21 Binary continuous predictor              x             0.5 Group 1
+22 Binary continuous predictor              x             1.0 Group 1
+23    Gamma mean response time              x            -2.0 Group 0
+24    Gamma mean response time              x             0.0 Group 0
+25    Gamma mean response time              x             2.0 Group 0
+26    Gamma mean response time              x            -2.0 Group 1
+27    Gamma mean response time              x             0.0 Group 1
+28    Gamma mean response time              x             2.0 Group 1
+   expected_value
+1       9.0250135
+2       3.0041660
+3       1.0000000
+4      14.1540386
+5       4.7114702
+6       1.5683122
+7       0.5596015
+8       0.6550128
+9       0.7993438
+10      0.5260768
+11      0.5772326
+12      0.6887703
+13      0.9331928
+14      0.6914625
+15      0.6914625
+16      0.3085375
+17      0.9331928
+18      0.8413447
+19      0.6914625
+20      0.6914625
+21      0.5000000
+22      0.3085375
+23    242.6122639
+24    400.0000000
+25    659.4885083
+26    311.5203132
+27    513.6101667
+28    846.8000066
+
+Running B = 3000 replications per scenario on 90 cores
+Scenario: Count errors 
+Scenario: Chance-floor accuracy 
+Scenario: Binary repeated trials 
+Scenario: Binary continuous predictor 
+Scenario: Gamma mean response time 
+                     scenario pseudo_interaction_detection_rate
+1                Count errors                         0.9652330
+2       Chance-floor accuracy                         0.1960000
+3      Binary repeated trials                         0.1006667
+4 Binary continuous predictor                         0.0670000
+5    Gamma mean response time                         0.3060000
+  dharma_detection_rate_min dharma_detection_rate_max pregibon_detection_rate
+1              0.0086021505                0.90896057              0.99283154
+2              0.0000000000                0.03633333              0.11900000
+3              0.0000000000                0.07433333                      NA
+4              0.0000000000                0.03400000              0.05433333
+5              0.0003333333                0.06433333              0.32233333
+  aic_favors_true_link
+1            0.9931900
+2            0.9846667
+3            0.9553333
+4            0.9553333
+5            0.7966667
+                      scenario                                       diagnostic
+1                 Count errors                                DHARMa uniformity
+2                 Count errors                                DHARMa dispersion
+3                 Count errors     DHARMa residual quantiles over fitted values
+4                 Count errors   DHARMa residual quantiles over focal predictor
+5                 Count errors             Pregibon-style added-term link check
+6                 Count errors                                DHARMa uniformity
+7                 Count errors                                DHARMa dispersion
+8                 Count errors     DHARMa residual quantiles over fitted values
+9                 Count errors   DHARMa residual quantiles over focal predictor
+10                Count errors             Pregibon-style added-term link check
+11       Chance-floor accuracy                                DHARMa uniformity
+12       Chance-floor accuracy                                DHARMa dispersion
+13       Chance-floor accuracy     DHARMa residual quantiles over fitted values
+14       Chance-floor accuracy   DHARMa residual quantiles over focal predictor
+15       Chance-floor accuracy             Pregibon-style added-term link check
+16       Chance-floor accuracy                                DHARMa uniformity
+17       Chance-floor accuracy                                DHARMa dispersion
+18       Chance-floor accuracy     DHARMa residual quantiles over fitted values
+19       Chance-floor accuracy   DHARMa residual quantiles over focal predictor
+20       Chance-floor accuracy             Pregibon-style added-term link check
+21      Binary repeated trials                                DHARMa uniformity
+22      Binary repeated trials                                DHARMa dispersion
+23      Binary repeated trials     DHARMa residual quantiles over fitted values
+24      Binary repeated trials DHARMa residual distribution across design cells
+25      Binary repeated trials             Pregibon-style added-term link check
+26      Binary repeated trials                                DHARMa uniformity
+27      Binary repeated trials                                DHARMa dispersion
+28      Binary repeated trials     DHARMa residual quantiles over fitted values
+29      Binary repeated trials DHARMa residual distribution across design cells
+30      Binary repeated trials             Pregibon-style added-term link check
+31 Binary continuous predictor                                DHARMa uniformity
+32 Binary continuous predictor                                DHARMa dispersion
+33 Binary continuous predictor     DHARMa residual quantiles over fitted values
+34 Binary continuous predictor   DHARMa residual quantiles over focal predictor
+35 Binary continuous predictor             Pregibon-style added-term link check
+36 Binary continuous predictor                                DHARMa uniformity
+37 Binary continuous predictor                                DHARMa dispersion
+38 Binary continuous predictor     DHARMa residual quantiles over fitted values
+39 Binary continuous predictor   DHARMa residual quantiles over focal predictor
+40 Binary continuous predictor             Pregibon-style added-term link check
+41    Gamma mean response time                                DHARMa uniformity
+42    Gamma mean response time                                DHARMa dispersion
+43    Gamma mean response time     DHARMa residual quantiles over fitted values
+44    Gamma mean response time   DHARMa residual quantiles over focal predictor
+45    Gamma mean response time             Pregibon-style added-term link check
+46    Gamma mean response time                                DHARMa uniformity
+47    Gamma mean response time                                DHARMa dispersion
+48    Gamma mean response time     DHARMa residual quantiles over fitted values
+49    Gamma mean response time   DHARMa residual quantiles over focal predictor
+50    Gamma mean response time             Pregibon-style added-term link check
+   model_specification n_attempted n_successful flagging_rate       ci_low
+1         Correct link        3000         3000  0.0006666667 1.828431e-04
+2         Correct link        3000         3000  0.0526666667 4.523045e-02
+3         Correct link        3000         3000  0.0340000000 2.808767e-02
+4         Correct link        3000         3000  0.0393333333 3.294607e-02
+5         Correct link        3000         3000  0.0470000000 3.998876e-02
+6           Wrong link        3000         2790  0.0086021505 5.787465e-03
+7           Wrong link        3000         2790  0.2168458781 2.019494e-01
+8           Wrong link        3000         2790  0.6369175627 6.188967e-01
+9           Wrong link        3000         2790  0.9089605735 8.977166e-01
+10          Wrong link        3000         2790  0.9928315412 9.889531e-01
+11        Correct link        3000         3000  0.0753333333 6.642246e-02
+12        Correct link        3000         3000  0.0010000000 3.401472e-04
+13        Correct link        3000         3000  0.0276666667 2.237432e-02
+14        Correct link        3000         3000  0.0246666667 1.969455e-02
+15        Correct link        3000         3000  0.1430000000 1.309293e-01
+16          Wrong link        3000         3000  0.0363333333 3.020854e-02
+17          Wrong link        3000         3000  0.0000000000 0.000000e+00
+18          Wrong link        3000         3000  0.0163333333 1.237702e-02
+19          Wrong link        3000         3000  0.0146666667 1.094377e-02
+20          Wrong link        3000         3000  0.1190000000 1.078980e-01
+21        Correct link        3000         3000  0.0380000000 3.172798e-02
+22        Correct link        3000         3000  0.0000000000 0.000000e+00
+23        Correct link        3000         3000  0.0310000000 2.537282e-02
+24        Correct link        3000         3000  0.0843333333 7.491318e-02
+25        Correct link        3000            0            NA           NA
+26          Wrong link        3000         3000  0.0310000000 2.537282e-02
+27          Wrong link        3000         3000  0.0000000000 0.000000e+00
+28          Wrong link        3000         3000  0.0320000000 2.627617e-02
+29          Wrong link        3000         3000  0.0743333333 6.548136e-02
+30          Wrong link        3000            0            NA           NA
+31        Correct link        3000         3000  0.0390000000 3.264135e-02
+32        Correct link        3000         3000  0.0000000000 0.000000e+00
+33        Correct link        3000         3000  0.0303333333 2.477151e-02
+34        Correct link        3000         3000  0.0253333333 2.028835e-02
+35        Correct link        3000         3000  0.0526666667 4.523045e-02
+36          Wrong link        3000         3000  0.0340000000 2.808767e-02
+37          Wrong link        3000         3000  0.0000000000 0.000000e+00
+38          Wrong link        3000         3000  0.0200000000 1.556982e-02
+39          Wrong link        3000         3000  0.0230000000 1.821472e-02
+40          Wrong link        3000         3000  0.0543333333 4.677716e-02
+41        Correct link        3000         3000  0.0000000000 0.000000e+00
+42        Correct link        3000         3000  0.0036666667 2.048669e-03
+43        Correct link        3000         3000  0.0150000000 1.122938e-02
+44        Correct link        3000         3000  0.0226666667 1.791960e-02
+45        Correct link        3000         3000  0.0403333333 3.386105e-02
+46          Wrong link        3000         3000  0.0003333333 5.884394e-05
+47          Wrong link        3000         3000  0.0013333333 5.186256e-04
+48          Wrong link        3000         3000  0.0273333333 2.207562e-02
+49          Wrong link        3000         3000  0.0643333333 5.609900e-02
+50          Wrong link        3000         3000  0.3223333333 3.058454e-01
+       ci_high
+1  0.002427634
+2  0.061247029
+3  0.041104219
+4  0.046898840
+5  0.055169873
+6  0.012768154
+7  0.232520978
+8  0.654561945
+9  0.919079883
+10 0.995354687
+11 0.085330373
+12 0.002936144
+13 0.034167103
+14 0.030854541
+15 0.155983824
+16 0.043644047
+17 0.001278849
+18 0.021526723
+19 0.019630902
+20 0.131076487
+21 0.045453675
+22 0.001278849
+23 0.037826743
+24 0.094816633
+25          NA
+26 0.037826743
+27 0.001278849
+28 0.038920828
+29 0.084274037
+30          NA
+31 0.046537753
+32 0.001278849
+33 0.037096418
+34 0.031592373
+35 0.061247029
+36 0.041104219
+37 0.001278849
+38 0.025657878
+39 0.029005298
+40 0.063029382
+41 0.001278849
+42 0.006554135
+43 0.020011106
+44 0.028634606
+45 0.047981304
+46 0.001885819
+47 0.003423479
+48 0.033799981
+49 0.073681967
+50 0.339275696
+null device 
+          1 
+
+Done.

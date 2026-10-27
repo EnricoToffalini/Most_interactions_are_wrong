@@ -1,0 +1,176 @@
+mem-bind=LOC - slurm1, task  0  0 [36168]: mask 0xff set
+Loading required package: Matrix
+
+Simulation 1: forced-choice accuracy with chance floor
+            scenario beta_intercept
+1  Lower performance           -0.8
+2 Middle performance            0.0
+3 Higher performance            0.8
+             scenario age   group expected_accuracy
+1   Lower performance   6 Group 0         0.5596015
+2   Lower performance   8 Group 0         0.6550128
+3   Lower performance  10 Group 0         0.7993438
+4   Lower performance   6 Group 1         0.5260768
+5   Lower performance   8 Group 1         0.5772326
+6   Lower performance  10 Group 1         0.6887703
+7  Middle performance   6 Group 0         0.6157376
+8  Middle performance   8 Group 0         0.7500000
+9  Middle performance  10 Group 0         0.8842624
+10 Middle performance   6 Group 1         0.5545484
+11 Middle performance   8 Group 1         0.6445252
+12 Middle performance  10 Group 1         0.7872213
+13 Higher performance   6 Group 0         0.7006562
+14 Higher performance   8 Group 0         0.8449872
+15 Higher performance  10 Group 0         0.9403985
+16 Higher performance   6 Group 1         0.6070825
+17 Higher performance   8 Group 1         0.7375104
+18 Higher performance  10 Group 1         0.8751301
+19  Lower performance  NA    <NA>                NA
+20  Lower performance  NA    <NA>                NA
+21  Lower performance  NA    <NA>                NA
+22  Lower performance  NA    <NA>                NA
+23  Lower performance  NA    <NA>                NA
+24  Lower performance  NA    <NA>                NA
+25 Middle performance  NA    <NA>                NA
+26 Middle performance  NA    <NA>                NA
+27 Middle performance  NA    <NA>                NA
+28 Middle performance  NA    <NA>                NA
+29 Middle performance  NA    <NA>                NA
+30 Middle performance  NA    <NA>                NA
+31 Higher performance  NA    <NA>                NA
+32 Higher performance  NA    <NA>                NA
+33 Higher performance  NA    <NA>                NA
+34 Higher performance  NA    <NA>                NA
+35 Higher performance  NA    <NA>                NA
+36 Higher performance  NA    <NA>                NA
+                                                  contrast
+1                                                     <NA>
+2                                                     <NA>
+3                                                     <NA>
+4                                                     <NA>
+5                                                     <NA>
+6                                                     <NA>
+7                                                     <NA>
+8                                                     <NA>
+9                                                     <NA>
+10                                                    <NA>
+11                                                    <NA>
+12                                                    <NA>
+13                                                    <NA>
+14                                                    <NA>
+15                                                    <NA>
+16                                                    <NA>
+17                                                    <NA>
+18                                                    <NA>
+19 Group difference at youngest age: Group 1 minus Group 0
+20   Group difference at oldest age: Group 1 minus Group 0
+21    Age-related change in Group 0: oldest minus youngest
+22    Age-related change in Group 1: oldest minus youngest
+23  Change in group difference from youngest to oldest age
+24         Generating link-scale age-by-group product term
+25 Group difference at youngest age: Group 1 minus Group 0
+26   Group difference at oldest age: Group 1 minus Group 0
+27    Age-related change in Group 0: oldest minus youngest
+28    Age-related change in Group 1: oldest minus youngest
+29  Change in group difference from youngest to oldest age
+30         Generating link-scale age-by-group product term
+31 Group difference at youngest age: Group 1 minus Group 0
+32   Group difference at oldest age: Group 1 minus Group 0
+33    Age-related change in Group 0: oldest minus youngest
+34    Age-related change in Group 1: oldest minus youngest
+35  Change in group difference from youngest to oldest age
+36         Generating link-scale age-by-group product term
+   value_probability_points
+1                        NA
+2                        NA
+3                        NA
+4                        NA
+5                        NA
+6                        NA
+7                        NA
+8                        NA
+9                        NA
+10                       NA
+11                       NA
+12                       NA
+13                       NA
+14                       NA
+15                       NA
+16                       NA
+17                       NA
+18                       NA
+19              -0.03352468
+20              -0.11057350
+21               0.23974237
+22               0.16269355
+23              -0.07704882
+24                       NA
+25              -0.06118920
+26              -0.09704113
+27               0.26852478
+28               0.23267285
+29              -0.03585194
+30                       NA
+31              -0.09357366
+32              -0.06526849
+33               0.23974237
+34               0.26804754
+35               0.02830518
+36                       NA
+
+Observed mean accuracy in one example dataset per scenario:
+            scenario   group   correct
+1  Lower performance Group 0 0.6539063
+2 Middle performance Group 0 0.7479839
+3 Higher performance Group 0 0.8280992
+4  Lower performance Group 1 0.6102459
+5 Middle performance Group 1 0.6376984
+6 Higher performance Group 1 0.7337209
+
+Running B = 3000 replications per scenario on 90 cores
+Scenario: Lower performance 
+Scenario: Middle performance 
+Scenario: Higher performance 
+             scenario                           model n_p_finite_ok
+1   Lower performance               Gaussian identity          3000
+2   Lower performance         Standard binomial logit          3000
+3   Lower performance        Standard binomial probit          3000
+4   Lower performance Chance-corrected binomial logit          2652
+5  Middle performance               Gaussian identity          3000
+6  Middle performance         Standard binomial logit          3000
+7  Middle performance        Standard binomial probit          2902
+8  Middle performance Chance-corrected binomial logit          2703
+9  Higher performance               Gaussian identity          3000
+10 Higher performance         Standard binomial logit          2999
+11 Higher performance        Standard binomial probit          2892
+12 Higher performance Chance-corrected binomial logit          2783
+   rejection_rate_ok fit_problem_rate
+1         0.12400000     0.0000000000
+2         0.20166667     0.0000000000
+3         0.19000000     0.0000000000
+4         0.05731523     0.1160000000
+5         0.05433333     0.0000000000
+6         0.15533333     0.0000000000
+7         0.13197795     0.0326666667
+8         0.04698483     0.0990000000
+9         0.05200000     0.0000000000
+10        0.10670223     0.0003333333
+11        0.08471646     0.0360000000
+12        0.05210205     0.0723333333
+   median_change_in_group_difference_outcome_units
+1                                       -0.9560397
+2                                       -0.9772028
+3                                       -1.0099629
+4                                       -1.4751748
+5                                       -0.4380526
+6                                       -0.3434437
+7                                       -0.3790597
+8                                       -0.6942934
+9                                        0.3299919
+10                                       0.5804164
+11                                       0.5368518
+12                                       0.5533420
+median_change_in_group_difference_outcome_units is the model-implied change in the group gap from age 6 to 10 in correct responses out of 20 trials (a contrast, not a count)
+Fontconfig warning: using without calling FcInit()
+
+Done.
