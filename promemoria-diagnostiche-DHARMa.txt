@@ -128,6 +128,21 @@ ESITO (2026-10-26, controllo in sandbox, 220 repliche, stessi seed di 04):
 DECISIONE: in tutti i fit mafc.logit (03a, 04, atlas 02a e 02d) si usa
 nAGQ = 10, con nota nel paper e nel Supplement A. FATTO negli script.
 
+AGGIORNAMENTO 2026-10-27 (rerun di 03a e 04 sul cluster, commit c03d2a0):
+- Il cluster usa DHARMa 0.5.0, il locale 0.4.7. Dalla 0.5.0 il default
+  di simulateResiduals simula CONDIZIONANDO sugli effetti casuali. Le
+  note sotto sulla simulazione "non condizionata" valgono solo per 0.4.x.
+  La discrepanza del 37% era dovuta a Laplace + simulazione condizionale
+  (0.5.0); in locale (0.4.7) non si riproduceva.
+- Risultati: fit segnalati del chance-corrected in Sim. 1 7-12% (prima
+  42-47%); chance-floor, modello corretto: uniformita' 7.5%, dispersione
+  0.1%, quantili 2.8/2.5%, Pregibon 14.3% (ancora alto); 2x2
+  testCategorical 8.4% (corretto) / 7.4% (sbagliato).
+- Testo aggiornato in paper e Supplement A, segnato in rosso con
+  \revstart ... \revend (macro in include-in-header). Togliere i marcatori
+  prima della versione finale.
+- Atlas non ancora rilanciato (02a, 02c, 02d, 03).
+
 ======================================================================
 NOTE TECNICHE (per noi; nel testo solo il minimo)
 ======================================================================

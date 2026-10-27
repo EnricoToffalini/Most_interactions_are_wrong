@@ -31,7 +31,7 @@ counts in `02b`, which gives an equivalent likelihood.
 
 Being asked to modify scripts does **not** mean being asked to run them. The
 simulations take a long time, and the authors run them themselves (locally or
-via `slurm/`, `run.sh`, `run-atlas.sh`). Do not run the simulation scripts,
+via the `*.slurm` files in the repository root, `run.sh`, `run-atlas.sh`). Do not run the simulation scripts,
 smoke runs included, and do not render the Quarto documents unless explicitly
 asked. Check changes by reading the code. When you finish, say which scripts and
 scenarios need to be rerun, and which outputs (`tables/`,

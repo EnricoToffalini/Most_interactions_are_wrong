@@ -146,7 +146,7 @@ pval <- function(test) if (inherits(test, "try-error") || length(test$p.value) !
 
 # DHARMa testCategorical with defaults; flagged if any within-cell uniformity test
 # (adjusted by DHARMa) or the Levene test is significant. testCategorical calls
-# mtext() even with plot = FALSE (DHARMa 0.4.7), so it needs an open plot.
+# mtext() even with plot = FALSE (at least in DHARMa 0.4.7), so it needs an open plot.
 pval_categorical <- function(sim, cell) {
   pdf(NULL); on.exit(dev.off())
   plot.new()
