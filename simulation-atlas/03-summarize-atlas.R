@@ -33,8 +33,10 @@ for (i in 1:nrow(grid)) {
   raw <- readRDS(sprintf("simulation-atlas/raw/core-%s-%s-B%d.rds", grid$scenario_id[i], mode, B))
   for (m in sort(unique(raw$model_label))) {
     dat <- raw[raw$model_label == m, ]
-    # "ok" = finite p-value from a fit without problems (primary); "problem" = finite p-value from a flagged fit
-    problem <- dat$convergence_problem %in% TRUE
+    # "ok" = finite p-value from a fit without problems (primary); "problem" = finite p-value from a flagged fit.
+    # As in the manuscript, fit-quality flags define the primary rate only for forced
+    # choice (03a); within family (03b) and sum scores (03c) use every finite p-value.
+    problem <- if (grid$family[i] == "forced_choice") dat$convergence_problem %in% TRUE else rep(FALSE, nrow(dat))
     ok <- !problem & is.finite(dat$interaction_p)
     flagged <- problem & is.finite(dat$interaction_p)
     n_ok <- sum(ok)
@@ -68,7 +70,8 @@ for (i in 1:nrow(grid)) {
       median_outcome_scale_did = finite_median(dat$outcome_scale_did),
       deterministic_pseudo_interaction = finite_median(dat$deterministic_pseudo_interaction),
       deterministic_response_scale_did = finite_median(dat$deterministic_response_scale_did),
-      n_convergence_problems = sum(problem), convergence_problem_rate = mean(problem),
+      # raw convergence flags, recorded for every family even when they do not filter the primary rate
+      n_convergence_problems = sum(dat$convergence_problem %in% TRUE), convergence_problem_rate = mean(dat$convergence_problem %in% TRUE),
       fit_problem_messages = paste(messages, collapse = " | ")))
   }
 }
@@ -101,6 +104,9 @@ diagnostics <- data.frame(
                  "DHARMa residual distribution across design cells", "Pregibon-style added-term link check"),
   column = c("aic_favors_generating", "dharma_uniformity_p", "dharma_dispersion_p", "dharma_quantile_fitted_p",
              "dharma_quantile_predictor_p", "dharma_categorical_design_p", "pregibon_p"),
+  # same check on the correct-link model (calibration, as in tables/diagnostic-calibration.csv)
+  correct_column = c(NA, "dharma_correct_uniformity_p", "dharma_correct_dispersion_p", "dharma_correct_quantile_fitted_p",
+                     "dharma_correct_quantile_predictor_p", "dharma_correct_categorical_design_p", "pregibon_correct_p"),
   forced_choice = c(TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE), # structural applicability by family
   within_family = c(TRUE, TRUE, TRUE, TRUE, FALSE, TRUE, FALSE)) # Pregibon not identifiable in the saturated 2 x 2
 
@@ -128,12 +134,17 @@ for (i in 1:nrow(plan)) {
     applicable <- if (plan$family[i] == "sum_scores") FALSE else diagnostics[[plan$family[i]]][j]
     computed <- applicable && nrow(raw) > 0 && (!startsWith(diagnostics$diagnostic[j], "DHARMa") || dharma_computed)
     det <- if (computed) detection(raw[[diagnostics$column[j]]]) else not_computed
+    cal <- if (computed && !is.na(diagnostics$correct_column[j]) && diagnostics$correct_column[j] %in% names(raw)) {
+      detection(raw[[diagnostics$correct_column[j]]])
+    } else not_computed
     diagnostic_summary <- rbind(diagnostic_summary, data.frame(plan[i, ],
       diagnostic = diagnostics$diagnostic[j], applicable = applicable, computed = computed,
       B_requested = if (nrow(raw)) raw$B_requested[1] else 0L,
       dharma_n_sim = if (nrow(raw)) raw$dharma_n_sim[1] else NA_integer_,
       n_attempted = nrow(raw), n_successful = det$n, detection_count = det$count, detection_rate = det$rate,
       detection_mc_se = det$mc_se, detection_ci_low = det$low, detection_ci_high = det$high,
+      correct_link_n_successful = cal$n, correct_link_flag_count = cal$count, correct_link_flag_rate = cal$rate,
+      correct_link_flag_mc_se = cal$mc_se, correct_link_flag_ci_low = cal$low, correct_link_flag_ci_high = cal$high,
       pseudo_interaction_n_successful = pseudo$n, pseudo_interaction_detection_count = pseudo$count,
       pseudo_interaction_detection_rate = pseudo$rate, pseudo_interaction_mc_se = pseudo$mc_se,
       pseudo_interaction_ci_low = pseudo$low, pseudo_interaction_ci_high = pseudo$high,

@@ -763,6 +763,37 @@ diagnostic_used_table <- function() {
   out
 }
 
+calibration_table <- function() {
+  base <- diagnostic[
+    diagnostic$family %in%
+      c("forced_choice", "within_family") &
+      diagnostic$applicable %in% TRUE &
+      diagnostic$computed %in% TRUE &
+      diagnostic$diagnostic != "AIC favors generating link",
+    ,
+    drop = FALSE
+  ]
+  dat <- diagnostic_expand_slices(base)
+
+  setting_value <- ifelse(
+    dat$slice_label == "Sample size",
+    formatC(dat$x_value, format = "f", digits = 0),
+    formatC(dat$x_value, format = "f", digits = 2)
+  )
+
+  out <- data.frame(
+    Case = unname(diagnostic_family_title[dat$family]),
+    Setting = paste0(dat$slice_label, " = ", setting_value),
+    Diagnostic = dat$diagnostic,
+    `Wrong-link flagging` = pct(dat$detection_rate),
+    `Correct-link flagging` = pct(dat$correct_link_flag_rate),
+    check.names = FALSE
+  )
+
+  rownames(out) <- NULL
+  out
+}
+
 scenario_counts <- table(grid$family)
 ```
 
@@ -770,7 +801,7 @@ scenario_counts <- table(grid$family)
 
 Supplement B extends the three manuscript simulations by varying selected parameters while keeping the true interaction equal to zero on the generating scale. It uses one-dimensional sensitivity slices and small main-effect surfaces rather than a full Cartesian design.
 
-Reference scenarios retain the generating settings of the corresponding manuscript simulations. In every scenario, a rejection under the matched generating model estimates the nominal generating-scale rejection rate; under another scale, it is a **pseudo-interaction detection rate**. For forced choice, these primary rates use finite tests from fits passing the minimal lme4 fit-quality checks. Apparent rejection rates among flagged fits are reported separately. Publication runs request 3,000 Monte Carlo replications.
+Reference scenarios retain the generating settings of the corresponding manuscript simulations. In every scenario, a rejection under the matched generating model estimates the nominal generating-scale rejection rate; under another scale, it is a **pseudo-interaction detection rate**. For forced choice, these primary rates use finite tests from fits passing the minimal lme4 fit-quality checks. Apparent rejection rates among flagged fits are reported separately. For the logit-probit and sum-score families, as in the manuscript, the rates use every finite test. Publication runs request 3,000 Monte Carlo replications.
 
 ## How to read the figures
 
@@ -1012,9 +1043,9 @@ The surface shows how the mapping from latent values to a bounded total can turn
 
 # Diagnostic atlas
 
-The diagnostic analyses cover the forced-choice chance-floor case and the probit-generated, logit-fitted repeated-trial case. The forced-choice diagnostic uses the same trial-level random-intercept DGP and paired standard-logit and chance-corrected-logit GLMMs as the revised manuscript scenario. They examine how pseudo-interaction risk and diagnostic detection change with sample size and intercept. The forced-choice diagnostic atlas must be regenerated before its numerical values are interpreted.
+The diagnostic analyses cover the forced-choice chance-floor case and the probit-generated, logit-fitted repeated-trial case. The forced-choice diagnostic uses the same trial-level random-intercept DGP and paired standard-logit and chance-corrected-logit GLMMs as the revised manuscript scenario, with `nAGQ = 10` for the chance-corrected GLMM. They examine how pseudo-interaction risk and diagnostic detection change with sample size and intercept. The checks are those of the manuscript and Supplement A: DHARMa with its default settings, and the Pregibon-style added-term check refitted with the family, link, random intercept, and quadrature setting of the model being diagnosed.
 
-Diagnostics are applied to the **misspecified interaction model**, matching the manuscript's post-estimation question: once the fitted model has produced the product-term finding, does that same model show enough evidence of misspecification to warn the analyst? AIC compares prespecified candidate mean models with the same structural interaction formula. Positive delta AIC, defined as AIC of the misspecified model minus AIC of the generating model, favors the generating link.
+Diagnostics are applied to the **misspecified interaction model**, matching the manuscript's post-estimation question: once the fitted model has produced the product-term finding, does that same model show enough evidence of misspecification to warn the analyst? As in the manuscript, the same DHARMa and Pregibon-style checks are also applied to the generating-link interaction model as a calibration reference (@tbl-atlas-diagnostic-calibration). AIC compares prespecified candidate mean models with the same structural interaction formula. Positive delta AIC, defined as AIC of the misspecified model minus AIC of the generating model, favors the generating link.
 
 ```{r}
 #| label: tbl-atlas-diagnostic-status
@@ -1094,6 +1125,19 @@ report_kable(
 report_kable(
   compact_core_table("sum_scores"),
   align = c("l", "l", "l", "l", "l", "r", "r"),
+  long = TRUE
+)
+```
+
+## Diagnostic calibration
+
+```{r}
+#| label: tbl-atlas-diagnostic-calibration
+#| tbl-cap: "Flagging rates of each applicable DHARMa and Pregibon-style check under the misspecified link and under the generating link, in the same simulated datasets. The generating-link column is the calibration reference."
+
+report_kable(
+  calibration_table(),
+  align = c("l", "l", "l", "r", "r"),
   long = TRUE
 )
 ```

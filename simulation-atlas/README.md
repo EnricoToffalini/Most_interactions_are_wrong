@@ -14,17 +14,26 @@ combinations, model labels, and slice memberships are retained.
   mixed models (the chance-corrected one with `nAGQ = 10`), and separate
   summaries for acceptable and flagged fits.
 - `02b-run-within-family.R`: mirrors `scripts/03b-simulation-within-family-links.R`.
-  It retains aggregated binomial draws and the existing GLM at ICC = 0.
+  It retains aggregated binomial draws (an equivalent likelihood) and the existing
+  GLM at ICC = 0, which has no manuscript counterpart.
 - `02c-run-sum-scores.R`: mirrors `scripts/03c-simulation-sum-scores.R`, including
   ordinal item draws, the continuity correction, and all three fitted models.
 - `02d-run-diagnostics.R`: AIC, DHARMa and Pregibon calculations defined as in
-  `scripts/04-diagnostic-worked-example.R` (Pregibon on the population-level
-  linear predictor; not applicable in the saturated 2 x 2 design). Forced-choice
-  and within-family diagnostic data use individual binary trials and retain
-  their manuscript random-intercept structures.
+  `scripts/04-diagnostic-worked-example.R` (DHARMa defaults, `testCategorical`
+  across the 2 x 2 design cells; Pregibon on the population-level linear
+  predictor, refitted with the family, link and `nAGQ` of the diagnosed model,
+  and not applicable in the saturated 2 x 2 design). As in the manuscript, the
+  DHARMa and Pregibon checks are applied both to the wrong-link model (detection)
+  and to the correct-link model (calibration); the chance-corrected GLMM uses
+  `nAGQ = 10`. Forced-choice and within-family diagnostic data use individual
+  binary trials and retain their manuscript random-intercept structures.
 - `03-summarize-atlas.R`: reads raw results and writes app-facing CSV/RDS
-  summaries, including acceptable-fit and flagged-fit rates. It performs no
-  model fitting.
+  summaries. As in the manuscript, forced-choice primary rates use fits passing
+  the minimal lme4 checks, with flagged fits summarized separately; within-family
+  and sum-score rates use every finite p-value (convergence flags are recorded
+  but do not filter). Diagnostic rows report the wrong-link detection rate and,
+  in the `correct_link_*` columns, the correct-link calibration rate. It performs
+  no model fitting.
 - `raw/`: one ignored RDS file per scenario, run mode, and B.
 - `Supplement-B-Simulation-atlas.qmd`: reads precomputed CSV summaries.
 
@@ -130,9 +139,11 @@ Full summaries remain `data/atlas-summary.csv/.rds` and
 these files; neither executes Atlas simulations. Regenerate tracked summaries
 and rendered artifacts when the scenario grid or simulation code changes.
 
-The main diagnostic script and Atlas retain their existing differences in
-Pregibon calculations and applicability. This refactor does not reconcile or
-reinterpret those methods.
+The diagnostic definitions (checks, applicability, Pregibon refit, correct-link
+calibration) match `scripts/04-diagnostic-worked-example.R`. The Atlas covers
+only the two diagnostic cases it varies (chance floor and 2 x 2 binary repeated
+trials); the manuscript's count, continuous-binary and Gamma diagnostic scenarios
+have no Atlas counterpart.
 
 Keep code, grids, and compact summaries in Git. Raw replications remain ignored
 and can be archived with the existing project archive materials.
