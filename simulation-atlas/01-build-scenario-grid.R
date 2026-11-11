@@ -173,7 +173,7 @@ write.csv(grid, "simulation-atlas/data/scenario-grid.csv", row.names = FALSE, na
 cat("Wrote", nrow(grid), "core scenarios.\n")
 
 ####################################################
-# Diagnostic grid (D-FC, D-SS, D-WF)
+# Diagnostic grid (D-FC, D-SS, D-WF, D-CT, D-BC, D-GA)
 ####################################################
 
 # Rows copy their core anchor (FC-001, SS-002, WF-002), including its labels and
@@ -202,16 +202,78 @@ d_wf$wrong_fitted_link <- "logit"
 d_wf$wrong_model_label <- "Binomial logit GLMM"
 d_wf$diagnostic_note <- "Exact paper diagnostic anchor uses 300 subjects; probit generated, logit fitted."
 
-diagnostic_grid <- rbind(d_fc, d_ss, d_wf)
+# The other manuscript diagnostic scenarios have no core anchor, so their rows are
+# declared here with the values of scripts/04-diagnostic-worked-example.R.
+# Count and Gamma: severity multiplies both main effects, which set the curvature
+# over the observed range (for Gamma the intercept only rescales the means and
+# leaves the inverse-link fit unchanged).
+mult <- c(1, 1, 1, 1, 0.5, 0.75, 1.25, 1.5)
+d_ct <- data.frame(family = "count", scenario_label = c(paste("N =", c(90, 180, 360, 720)), paste("Main effects x", mult_label(mult[5:8]))),
+  N = c(90, 180, 360, 720, 180, 180, 180, 180), age_min = 6, age_max = 10, age_origin = 6,
+  beta_intercept = 2.2, beta_age = -0.55 * mult, beta_group = 0.45 * mult, beta_age_group = 0,
+  beta_main_1_multiplier = mult, beta_main_2_multiplier = mult,
+  varied_parameter = rep(c("N", "main_effect_multiplier"), c(4, 4)), varied_value = c(90, 180, 360, 720, mult[5:8]))
+d_ct$scenario_id <- sprintf("D-CT-%03d", 1:8)
+d_ct$generating_model <- "Poisson count"
+d_ct$generating_link <- "log"
+d_ct$fitted_model <- "Poisson identity;Poisson log"
+d_ct$fitted_link <- "identity;log"
+d_ct$wrong_fitted_link <- "identity"
+d_ct$wrong_model_label <- "Poisson identity"
+d_ct$diagnostic_note <- "Paper diagnostic: Poisson log generated, identity link fitted; severity multiplies the age and group effects."
+
+d_bc <- data.frame(family = "binary_continuous", scenario_label = c(paste("Subjects =", c(200, 300, 700, 1200)),
+    paste("Intercept =", formatC(c(0, 0.75, 2.25), format = "f", digits = 2))),
+  n_subjects = c(200, 300, 700, 1200, 300, 300, 300), trials_per_subject = 30, target_icc = 0.30, x_min = 0, x_max = 1,
+  beta_intercept = c(1.5, 1.5, 1.5, 1.5, 0, 0.75, 2.25), beta_group = -1, beta_x = -1, beta_x_group = 0,
+  varied_parameter = rep(c("n_subjects", "reference_beta_intercept"), c(4, 3)), varied_value = c(200, 300, 700, 1200, 0, 0.75, 2.25))
+d_bc$reference_beta_intercept <- d_bc$beta_intercept
+d_bc$scenario_id <- sprintf("D-BC-%03d", 1:7)
+d_bc$generating_model <- "Random-intercept binomial, continuous predictor"
+d_bc$generating_link <- "probit"
+d_bc$fitted_model <- "Binomial logit;Binomial probit"
+d_bc$fitted_link <- "logit;probit"
+d_bc$wrong_fitted_link <- "logit"
+d_bc$wrong_model_label <- "Binomial logit GLMM"
+d_bc$diagnostic_note <- "Paper diagnostic: continuous counterpart of D-WF, x ~ Uniform(0, 1) and 30 trials per subject; probit generated, logit fitted."
+
+d_ga <- data.frame(family = "gamma", scenario_label = c(paste("N =", c(110, 220, 440, 880)), paste("Main effects x", mult_label(mult[5:8]))),
+  N = c(110, 220, 440, 880, 220, 220, 220, 220), x_min = -2, x_max = 2, gamma_shape = 8,
+  beta_intercept = log(400), beta_x = 0.25 * mult, beta_group = 0.25 * mult, beta_x_group = 0,
+  beta_main_1_multiplier = mult, beta_main_2_multiplier = mult,
+  varied_parameter = rep(c("N", "main_effect_multiplier"), c(4, 4)), varied_value = c(110, 220, 440, 880, mult[5:8]))
+d_ga$scenario_id <- sprintf("D-GA-%03d", 1:8)
+d_ga$generating_model <- "Gamma positive continuous"
+d_ga$generating_link <- "log"
+d_ga$fitted_model <- "Gamma inverse;Gamma log"
+d_ga$fitted_link <- "inverse;log"
+d_ga$wrong_fitted_link <- "inverse"
+d_ga$wrong_model_label <- "Gamma inverse"
+d_ga$diagnostic_note <- "Paper diagnostic: Gamma log generated, inverse link fitted; severity multiplies the x and group effects."
+
+# diagnostic-only parameters get their own columns, NA for the other families
+diag_columns <- c(columns, "age_origin", "trials_per_subject", "gamma_shape", "wrong_fitted_link", "wrong_model_label", "diagnostic_note")
+diag_missing <- function(df) {
+  for (v in setdiff(diag_columns, names(df))) df[[v]] <- NA
+  df[, diag_columns]
+}
+diagnostic_grid <- rbind(diag_missing(d_fc), diag_missing(d_ss), diag_missing(d_wf), diag_missing(d_ct), diag_missing(d_bc), diag_missing(d_ga))
+# shared settings, identical to the core grid
+diagnostic_grid$base_seed <- 20260807
+diagnostic_grid$seed_rule <- grid$seed_rule[1]
+diagnostic_grid$B <- 3000
+diagnostic_grid$alpha <- 0.05
+diagnostic_grid$generating_interaction <- 0
 # the first four rows of each family vary sample size, the others severity; row 2 is the paper anchor
-diagnostic_grid$diagnostic_source_slice <- c(rep(c("sample_size", "severity"), c(4, 4)), "diagnostic_not_defined", rep(c("sample_size", "severity"), c(4, 3)))
-diagnostic_grid$diagnostic_paper_anchor <- diagnostic_grid$scenario_id %in% c("D-FC-002", "D-WF-002")
+diagnostic_grid$diagnostic_source_slice <- c(rep(c("sample_size", "severity"), c(4, 4)), "diagnostic_not_defined", rep(c("sample_size", "severity"), c(4, 3)),
+  rep(c("sample_size", "severity"), c(4, 4)), rep(c("sample_size", "severity"), c(4, 3)), rep(c("sample_size", "severity"), c(4, 4)))
+diagnostic_grid$diagnostic_paper_anchor <- diagnostic_grid$scenario_id %in% c("D-FC-002", "D-WF-002", "D-CT-002", "D-BC-002", "D-GA-002")
 diagnostic_grid$diagnostic_slice_membership <- ifelse(diagnostic_grid$diagnostic_paper_anchor, "diagnostic_anchor;sample_size;severity",
                                                       diagnostic_grid$diagnostic_source_slice)
 diagnostic_grid$paper_anchor <- diagnostic_grid$diagnostic_paper_anchor
 diagnostic_grid$slice <- diagnostic_grid$diagnostic_source_slice
 diagnostic_grid$slice_membership <- diagnostic_grid$diagnostic_slice_membership
 diagnostic_grid <- diagnostic_grid[, c(columns, "diagnostic_source_slice", "diagnostic_paper_anchor", "diagnostic_slice_membership",
-                                       "wrong_fitted_link", "wrong_model_label", "diagnostic_note")]
+                                       "wrong_fitted_link", "wrong_model_label", "diagnostic_note", "age_origin", "trials_per_subject", "gamma_shape")]
 write.csv(diagnostic_grid, "simulation-atlas/data/diagnostic-grid.csv", row.names = FALSE, na = "")
 cat("Wrote", nrow(diagnostic_grid), "diagnostic design rows (sum scores explicitly inapplicable).\n")

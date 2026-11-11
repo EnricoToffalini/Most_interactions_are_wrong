@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.10.18">
+<meta name="generator" content="quarto-1.7.32">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -14,16 +14,10 @@
 
 <title>Supplement B - Simulation Atlas</title>
 <style>
-/* Default styles provided by pandoc.
-** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
-*/
+code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: 1.5em;}
-div.column{flex: auto;}
-@media screen {
-div.columns{gap: min(4vw, 1.5em);}
-div.column{overflow-x: auto;}
-}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
@@ -41,15 +35,17 @@ ul.task-list li input[type="checkbox"] {
 <script src="Supplement-B-Simulation-atlas_files/libs/quarto-html/tippy.umd.min.js"></script>
 <script src="Supplement-B-Simulation-atlas_files/libs/quarto-html/anchor.min.js"></script>
 <link href="Supplement-B-Simulation-atlas_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="Supplement-B-Simulation-atlas_files/libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="Supplement-B-Simulation-atlas_files/libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="Supplement-B-Simulation-atlas_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="Supplement-B-Simulation-atlas_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="Supplement-B-Simulation-atlas_files/libs/bootstrap/bootstrap-26b22c5a63bec5abfa13dc514b3a7ef4.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="Supplement-B-Simulation-atlas_files/libs/bootstrap/bootstrap-bb462d781dde1847d9e3ccf7736099dd.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <link href="Supplement-B-Simulation-atlas_files/libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet">
+
 <script src="Supplement-B-Simulation-atlas_files/libs/pagedtable-1.1/js/pagedtable.js"></script>
 
+
   <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
-  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
 <script type="text/javascript">
 const typesetMath = (el) => {
@@ -62,7 +58,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+      if (mathElements[i].tagName == "SPAN") {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -122,9 +118,10 @@ window.Quarto = {
   <li><a href="#forced-choice-accuracy" id="toc-forced-choice-accuracy" class="nav-link" data-scroll-target="#forced-choice-accuracy"><span class="header-section-number">8.1</span> Forced-choice accuracy</a></li>
   <li><a href="#logit-versus-probit" id="toc-logit-versus-probit" class="nav-link" data-scroll-target="#logit-versus-probit"><span class="header-section-number">8.2</span> Logit versus probit</a></li>
   <li><a href="#sum-scores" id="toc-sum-scores" class="nav-link" data-scroll-target="#sum-scores"><span class="header-section-number">8.3</span> Sum scores</a></li>
+  <li><a href="#diagnostic-calibration" id="toc-diagnostic-calibration" class="nav-link" data-scroll-target="#diagnostic-calibration"><span class="header-section-number">8.4</span> Diagnostic calibration</a></li>
   </ul></li>
   </ul>
-<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="Supplement-B-Simulation-atlas.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="..\Supplement-B-Simulation-atlas.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
 </div>
 <main class="content" id="quarto-document-content">
 
@@ -161,7 +158,7 @@ window.Quarto = {
 <section id="purpose-and-scope" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> Purpose and scope</h1>
 <p>Supplement B extends the three manuscript simulations by varying selected parameters while keeping the true interaction equal to zero on the generating scale. It uses one-dimensional sensitivity slices and small main-effect surfaces rather than a full Cartesian design.</p>
-<p>Reference scenarios retain the generating settings of the corresponding manuscript simulations. In every scenario, a rejection under the matched generating model estimates the nominal generating-scale rejection rate; under another scale, it is a <strong>pseudo-interaction detection rate</strong>. For forced choice, these primary rates use finite tests from fits passing the minimal lme4 fit-quality checks. Apparent rejection rates among flagged fits are reported separately. Publication runs request 3,000 Monte Carlo replications.</p>
+<p>Reference scenarios retain the generating settings of the corresponding manuscript simulations. In every scenario, a rejection under the matched generating model estimates the nominal generating-scale rejection rate; under another scale, it is a <strong>pseudo-interaction detection rate</strong>. For forced choice, these primary rates use finite tests from fits passing the minimal lme4 fit-quality checks. Apparent rejection rates among flagged fits are reported separately. For the logit-probit and sum-score families, as in the manuscript, the rates use every finite test. Publication runs request 3,000 Monte Carlo replications.</p>
 <section id="how-to-read-the-figures" class="level2" data-number="1.1">
 <h2 data-number="1.1" class="anchored" data-anchor-id="how-to-read-the-figures"><span class="header-section-number">1.1</span> How to read the figures</h2>
 <p>All rejection-rate figures use the same interpretation. The horizontal dashed line at .05 marks nominal alpha. Rates close to .05 under the generating scale provide a calibration check. Elevated rates under an alternative fitted scale show how often the scale difference becomes a statistically significant product term at the stated sample size and design. Error bars are shown for the reference scenarios. The sensitivity plots omit error bars to keep the larger set of scenarios readable; Wilson 95% intervals are available in the numerical tables and in <code>data/atlas-summary.csv</code>.</p>
@@ -178,7 +175,7 @@ Table&nbsp;1: Structure of the simulation atlas. Each family contains reference 
 </figcaption>
 <div aria-describedby="tbl-atlas-design-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="cell caption-top table table-sm table-striped small">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 28%">
 <col style="width: 16%">
@@ -223,7 +220,7 @@ Table&nbsp;2: Generating-scale coefficients used in the main-effect surfaces. Co
 </figcaption>
 <div aria-describedby="tbl-atlas-main-effect-coefficients-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="cell caption-top table table-sm table-striped small">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 23%">
 <col style="width: 15%">
@@ -286,7 +283,7 @@ Table&nbsp;2: Generating-scale coefficients used in the main-effect surfaces. Co
 </section>
 <section id="simulation-1-forced-choice-accuracy-and-the-non-zero-chance-floor" class="level1" data-number="3">
 <h1 data-number="3"><span class="header-section-number">3</span> Simulation 1: Forced-choice accuracy and the non-zero chance floor</h1>
-<p>Forced-choice accuracy is generated as trial-level Bernoulli responses from a chance-corrected binomial logit mixed model with a .50 floor, a subject random intercept, and no age-by-group product term on the conditional chance-corrected-logit scale. The subject random-intercept SD corresponds to latent-scale ICC <span class="math inline">\(.30\)</span> under the usual logistic convention. The fitted models are a matched chance-corrected-logit GLMM using <code>psyphy::mafc.logit</code>, standard binomial-logit and binomial-probit GLMMs, and a Gaussian identity LMM. All four use the same <code>(1 | id)</code> structure.</p>
+<p>Forced-choice accuracy is generated as trial-level Bernoulli responses from a chance-corrected binomial logit mixed model with a .50 floor, a subject random intercept, and no age-by-group product term on the conditional chance-corrected-logit scale. The subject random-intercept SD corresponds to latent-scale ICC <span class="math inline">\(.30\)</span> under the usual logistic convention. The fitted models are a matched chance-corrected-logit GLMM using <code>psyphy::mafc.logit</code> (with <code>nAGQ = 10</code>, as in the manuscript), standard binomial-logit and binomial-probit GLMMs, and a Gaussian identity LMM. All four use the same <code>(1 | id)</code> structure.</p>
 <section id="reference-scenarios" class="level2" data-number="3.1">
 <h2 data-number="3.1" class="anchored" data-anchor-id="reference-scenarios"><span class="header-section-number">3.1</span> Reference scenarios</h2>
 <div class="cell">
@@ -311,7 +308,7 @@ Table&nbsp;3: Forced-choice reference scenarios. The deterministic pseudo-intera
 </figcaption>
 <div aria-describedby="tbl-atlas-fc-anchor-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="cell caption-top table table-sm table-striped small">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 7%">
 <col style="width: 9%">
@@ -344,12 +341,12 @@ Table&nbsp;3: Forced-choice reference scenarios. The deterministic pseudo-intera
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
 <td style="text-align: left;">Nominal generating-scale rejection rate</td>
-<td style="text-align: right;">4.6%</td>
-<td style="text-align: right;">[3.7%, 5.6%]</td>
+<td style="text-align: right;">4.7%</td>
+<td style="text-align: right;">[4.0%, 5.6%]</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">1209</td>
-<td style="text-align: right;">40.3%</td>
-<td style="text-align: right;">90.1%</td>
+<td style="text-align: right;">335</td>
+<td style="text-align: right;">11.2%</td>
+<td style="text-align: right;">78.7%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Lower performance</td>
@@ -392,12 +389,12 @@ Table&nbsp;3: Forced-choice reference scenarios. The deterministic pseudo-intera
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
 <td style="text-align: left;">Nominal generating-scale rejection rate</td>
-<td style="text-align: right;">5.8%</td>
-<td style="text-align: right;">[4.8%, 7.0%]</td>
+<td style="text-align: right;">5.5%</td>
+<td style="text-align: right;">[4.7%, 6.4%]</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">1270</td>
-<td style="text-align: right;">42.3%</td>
-<td style="text-align: right;">91.0%</td>
+<td style="text-align: right;">275</td>
+<td style="text-align: right;">9.2%</td>
+<td style="text-align: right;">77.8%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Middle performance</td>
@@ -440,12 +437,12 @@ Table&nbsp;3: Forced-choice reference scenarios. The deterministic pseudo-intera
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
 <td style="text-align: left;">Nominal generating-scale rejection rate</td>
-<td style="text-align: right;">5.9%</td>
-<td style="text-align: right;">[4.8%, 7.1%]</td>
+<td style="text-align: right;">5.4%</td>
+<td style="text-align: right;">[4.6%, 6.3%]</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">1308</td>
-<td style="text-align: right;">43.6%</td>
-<td style="text-align: right;">95.5%</td>
+<td style="text-align: right;">206</td>
+<td style="text-align: right;">6.9%</td>
+<td style="text-align: right;">75.2%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Higher performance</td>
@@ -490,7 +487,7 @@ Table&nbsp;3: Forced-choice reference scenarios. The deterministic pseudo-intera
 </figure>
 </div>
 </div>
-<p>The forced-choice atlas must be regenerated before numerical ranges are reported for the revised mixed-model design. The saved atlas results from the earlier fixed-effect design are not valid for this specification.</p>
+<p>Across the atlas, the matched chance-corrected-logit model rejects from 3.9% to 6.3%. The standard binomial logit ranges from 6.4% to 52.8%, the standard binomial probit from 6.2% to 45.1%, and the Gaussian identity model from 3.9% to 16.3%. These rates use fits passing the minimal fit-quality checks; the share of flagged fits reaches 43.4% in some scenarios, and the appendix tables report it scenario by scenario. For the standard binomial GLMMs, the wrong-scale rates vary most with the size of the main effects and with sample size; the intercept, the number of trials and the chance level change them less within the declared ranges.</p>
 </section>
 <section id="one-dimensional-sensitivity-slices" class="level2" data-number="3.2">
 <h2 data-number="3.2" class="anchored" data-anchor-id="one-dimensional-sensitivity-slices"><span class="header-section-number">3.2</span> One-dimensional sensitivity slices</h2>
@@ -516,7 +513,7 @@ Table&nbsp;4: Range of rejection rates across each forced-choice sensitivity sli
 </figcaption>
 <div aria-describedby="tbl-atlas-fc-slice-ranges-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="cell caption-top table table-sm table-striped small">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 18%">
 <col style="width: 18%">
@@ -538,29 +535,29 @@ Table&nbsp;4: Range of rejection rates across each forced-choice sensitivity sli
 <td style="text-align: left;">Chance level</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">5.6%</td>
-<td style="text-align: right;">5.8%</td>
+<td style="text-align: right;">5.5%</td>
+<td style="text-align: right;">5.9%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Intercept</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">4.6%</td>
-<td style="text-align: right;">6.0%</td>
+<td style="text-align: right;">4.5%</td>
+<td style="text-align: right;">5.5%</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Sample size</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">5.2%</td>
-<td style="text-align: right;">6.0%</td>
+<td style="text-align: right;">4.9%</td>
+<td style="text-align: right;">5.8%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Trials per participant</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">4.9%</td>
-<td style="text-align: right;">6.0%</td>
+<td style="text-align: right;">3.9%</td>
+<td style="text-align: right;">6.3%</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Chance level</td>
@@ -701,7 +698,7 @@ Table&nbsp;5: Within-family reference scenarios for logit and probit generating 
 </figcaption>
 <div aria-describedby="tbl-atlas-wf-anchor-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="cell caption-top table table-sm table-striped small">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 20%">
 <col style="width: 12%">
@@ -792,7 +789,7 @@ Table&nbsp;6: Range of rejection rates across each within-family sensitivity sli
 </figcaption>
 <div aria-describedby="tbl-atlas-wf-slice-ranges-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="cell caption-top table table-sm table-striped small">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 15%">
 <col style="width: 21%">
@@ -977,7 +974,7 @@ Table&nbsp;7: Sum-score reference scenarios. The latent generating scale is avai
 </figcaption>
 <div aria-describedby="tbl-atlas-ss-anchor-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="cell caption-top table table-sm table-striped small">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 7%">
 <col style="width: 16%">
@@ -1113,7 +1110,7 @@ Table&nbsp;8: Range of rejection rates across each sum-score sensitivity slice.
 </figcaption>
 <div aria-describedby="tbl-atlas-ss-slice-ranges-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="cell caption-top table table-sm table-striped small">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 14%">
 <col style="width: 23%">
@@ -1245,8 +1242,8 @@ Figure&nbsp;9: Sum-score main-effect surface. Axes report the predictor and grou
 </section>
 <section id="diagnostic-atlas" class="level1" data-number="6">
 <h1 data-number="6"><span class="header-section-number">6</span> Diagnostic atlas</h1>
-<p>The diagnostic analyses cover the forced-choice chance-floor case and the probit-generated, logit-fitted repeated-trial case. The forced-choice diagnostic uses the same trial-level random-intercept DGP and paired standard-logit and chance-corrected-logit GLMMs as the revised manuscript scenario. They examine how pseudo-interaction risk and diagnostic detection change with sample size and intercept. The forced-choice diagnostic atlas must be regenerated before its numerical values are interpreted.</p>
-<p>Diagnostics are applied to the <strong>misspecified interaction model</strong>, matching the manuscript’s post-estimation question: once the fitted model has produced the product-term finding, does that same model show enough evidence of misspecification to warn the analyst? AIC compares prespecified candidate mean models with the same structural interaction formula. Positive delta AIC, defined as AIC of the misspecified model minus AIC of the generating model, favors the generating link.</p>
+<p>The diagnostic analyses cover the forced-choice chance-floor case and the probit-generated, logit-fitted repeated-trial case. The forced-choice diagnostic uses the same trial-level random-intercept DGP and paired standard-logit and chance-corrected-logit GLMMs as the revised manuscript scenario, with <code>nAGQ = 10</code> for the chance-corrected GLMM. They examine how pseudo-interaction risk and diagnostic detection change with sample size and intercept. The checks are those of the manuscript and Supplement A: DHARMa with its default settings, and the Pregibon-style added-term check refitted with the family, link, random intercept, and quadrature setting of the model being diagnosed.</p>
+<p>Diagnostics are applied to the <strong>misspecified interaction model</strong>, matching the manuscript’s post-estimation question: once the fitted model has produced the product-term finding, does that same model show enough evidence of misspecification to warn the analyst? As in the manuscript, the same DHARMa and Pregibon-style checks are also applied to the generating-link interaction model as a calibration reference (<a href="#tbl-atlas-diagnostic-calibration" class="quarto-xref">Table&nbsp;14</a>). AIC compares prespecified candidate mean models with the same structural interaction formula. Positive delta AIC, defined as AIC of the misspecified model minus AIC of the generating model, favors the generating link.</p>
 <div class="cell">
 <div id="tbl-atlas-diagnostic-status" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
@@ -1255,7 +1252,7 @@ Table&nbsp;9: Diagnostics used for each diagnostic case.
 </figcaption>
 <div aria-describedby="tbl-atlas-diagnostic-status-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="cell caption-top table table-sm table-striped small">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 15%">
 <col style="width: 84%">
@@ -1273,7 +1270,7 @@ Table&nbsp;9: Diagnostics used for each diagnostic case.
 </tr>
 <tr class="even">
 <td style="text-align: left;">Probit-generated, logit-fitted case</td>
-<td style="text-align: left;">AIC favors generating link; DHARMa uniformity; DHARMa dispersion; DHARMa residual distribution across design cells; Pregibon-style added-term link check</td>
+<td style="text-align: left;">AIC favors generating link; DHARMa uniformity; DHARMa dispersion; DHARMa residual quantiles over fitted values; DHARMa residual distribution across design cells</td>
 </tr>
 </tbody>
 </table>
@@ -1311,7 +1308,7 @@ Table&nbsp;10: AIC comparison across the diagnostic atlas. Positive delta AIC fa
 </figcaption>
 <div aria-describedby="tbl-atlas-aic-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="cell caption-top table table-sm table-striped small">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 21%">
 <col style="width: 11%">
@@ -1337,36 +1334,36 @@ Table&nbsp;10: AIC comparison across the diagnostic atlas. Positive delta AIC fa
 <td style="text-align: left;">Forced-choice chance-floor case</td>
 <td style="text-align: left;">Sample size = 100</td>
 <td style="text-align: right;">11.6%</td>
-<td style="text-align: right;">88.7%</td>
-<td style="text-align: right;">5.24</td>
-<td style="text-align: right;">[2.14, 8.62]</td>
-<td style="text-align: right;">18.3%</td>
+<td style="text-align: right;">92.1%</td>
+<td style="text-align: right;">6.41</td>
+<td style="text-align: right;">[3.14, 9.94]</td>
+<td style="text-align: right;">13.7%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Forced-choice chance-floor case</td>
 <td style="text-align: left;">Sample size = 250</td>
 <td style="text-align: right;">20.7%</td>
-<td style="text-align: right;">96.7%</td>
-<td style="text-align: right;">13.17</td>
-<td style="text-align: right;">[8.36, 18.41]</td>
-<td style="text-align: right;">4.0%</td>
+<td style="text-align: right;">98.8%</td>
+<td style="text-align: right;">16.33</td>
+<td style="text-align: right;">[11.15, 21.92]</td>
+<td style="text-align: right;">1.8%</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Forced-choice chance-floor case</td>
 <td style="text-align: left;">Sample size = 500</td>
 <td style="text-align: right;">32.1%</td>
-<td style="text-align: right;">99.5%</td>
-<td style="text-align: right;">27.70</td>
-<td style="text-align: right;">[20.61, 34.85]</td>
-<td style="text-align: right;">0.4%</td>
+<td style="text-align: right;">99.9%</td>
+<td style="text-align: right;">34.21</td>
+<td style="text-align: right;">[26.86, 41.81]</td>
+<td style="text-align: right;">0.1%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Forced-choice chance-floor case</td>
 <td style="text-align: left;">Sample size = 1000</td>
 <td style="text-align: right;">58.6%</td>
 <td style="text-align: right;">100.0%</td>
-<td style="text-align: right;">55.51</td>
-<td style="text-align: right;">[44.85, 65.60]</td>
+<td style="text-align: right;">68.97</td>
+<td style="text-align: right;">[57.95, 79.39]</td>
 <td style="text-align: right;">0.0%</td>
 </tr>
 <tr class="odd">
@@ -1409,46 +1406,46 @@ Table&nbsp;10: AIC comparison across the diagnostic atlas. Positive delta AIC fa
 <td style="text-align: left;">Forced-choice chance-floor case</td>
 <td style="text-align: left;">Intercept = -0.80</td>
 <td style="text-align: right;">20.7%</td>
-<td style="text-align: right;">96.7%</td>
-<td style="text-align: right;">13.17</td>
-<td style="text-align: right;">[8.36, 18.41]</td>
-<td style="text-align: right;">4.0%</td>
+<td style="text-align: right;">98.8%</td>
+<td style="text-align: right;">16.33</td>
+<td style="text-align: right;">[11.15, 21.92]</td>
+<td style="text-align: right;">1.8%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Forced-choice chance-floor case</td>
 <td style="text-align: left;">Intercept = -1.50</td>
 <td style="text-align: right;">20.6%</td>
-<td style="text-align: right;">94.9%</td>
-<td style="text-align: right;">10.42</td>
-<td style="text-align: right;">[5.75, 15.57]</td>
-<td style="text-align: right;">7.2%</td>
+<td style="text-align: right;">97.2%</td>
+<td style="text-align: right;">12.44</td>
+<td style="text-align: right;">[7.72, 17.95]</td>
+<td style="text-align: right;">3.5%</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Forced-choice chance-floor case</td>
 <td style="text-align: left;">Intercept = 0.00</td>
 <td style="text-align: right;">16.2%</td>
-<td style="text-align: right;">97.3%</td>
-<td style="text-align: right;">13.18</td>
-<td style="text-align: right;">[8.77, 18.02]</td>
-<td style="text-align: right;">3.3%</td>
+<td style="text-align: right;">99.0%</td>
+<td style="text-align: right;">17.19</td>
+<td style="text-align: right;">[12.34, 22.45]</td>
+<td style="text-align: right;">1.5%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Forced-choice chance-floor case</td>
 <td style="text-align: left;">Intercept = 0.80</td>
 <td style="text-align: right;">11.4%</td>
-<td style="text-align: right;">94.2%</td>
-<td style="text-align: right;">9.28</td>
-<td style="text-align: right;">[5.46, 13.10]</td>
-<td style="text-align: right;">8.2%</td>
+<td style="text-align: right;">98.1%</td>
+<td style="text-align: right;">13.36</td>
+<td style="text-align: right;">[9.11, 17.72]</td>
+<td style="text-align: right;">3.0%</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Forced-choice chance-floor case</td>
 <td style="text-align: left;">Intercept = 1.50</td>
 <td style="text-align: right;">40.6%</td>
-<td style="text-align: right;">88.4%</td>
-<td style="text-align: right;">5.31</td>
-<td style="text-align: right;">[2.45, 8.16]</td>
-<td style="text-align: right;">16.4%</td>
+<td style="text-align: right;">96.0%</td>
+<td style="text-align: right;">8.70</td>
+<td style="text-align: right;">[5.51, 11.94]</td>
+<td style="text-align: right;">7.2%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Probit-generated, logit-fitted case</td>
@@ -1514,7 +1511,7 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 </figcaption>
 <div aria-describedby="tbl-atlas-fc-full-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="cell caption-top table table-sm table-striped small">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 3%">
 <col style="width: 8%">
@@ -1546,10 +1543,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">Lower performance</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">4.6%</td>
+<td style="text-align: right;">4.7%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">40.3%</td>
-<td style="text-align: right;">90.1%</td>
+<td style="text-align: right;">11.2%</td>
+<td style="text-align: right;">78.7%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-001</td>
@@ -1590,10 +1587,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">Middle performance</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">5.8%</td>
+<td style="text-align: right;">5.5%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">42.3%</td>
-<td style="text-align: right;">91.0%</td>
+<td style="text-align: right;">9.2%</td>
+<td style="text-align: right;">77.8%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-002</td>
@@ -1634,10 +1631,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">Higher performance</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">5.9%</td>
+<td style="text-align: right;">5.4%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">43.6%</td>
-<td style="text-align: right;">95.5%</td>
+<td style="text-align: right;">6.9%</td>
+<td style="text-align: right;">75.2%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-003</td>
@@ -1678,10 +1675,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">Age effect x 0.50; group effect x 0.50</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">6.7%</td>
+<td style="text-align: right;">5.4%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">51.4%</td>
-<td style="text-align: right;">93.3%</td>
+<td style="text-align: right;">8.5%</td>
+<td style="text-align: right;">80.7%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-004</td>
@@ -1722,10 +1719,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">Age effect x 1.00; group effect x 0.50</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">6.6%</td>
+<td style="text-align: right;">5.7%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">43.3%</td>
-<td style="text-align: right;">92.9%</td>
+<td style="text-align: right;">9.5%</td>
+<td style="text-align: right;">79.6%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-005</td>
@@ -1766,10 +1763,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">Age effect x 1.50; group effect x 0.50</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">5.3%</td>
+<td style="text-align: right;">4.9%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">38.5%</td>
-<td style="text-align: right;">92.0%</td>
+<td style="text-align: right;">8.3%</td>
+<td style="text-align: right;">76.3%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-006</td>
@@ -1810,10 +1807,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">Age effect x 0.50; group effect x 1.00</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">5.5%</td>
+<td style="text-align: right;">5.1%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">49.5%</td>
-<td style="text-align: right;">92.9%</td>
+<td style="text-align: right;">11.2%</td>
+<td style="text-align: right;">76.7%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-007</td>
@@ -1854,10 +1851,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">Age effect x 1.50; group effect x 1.00</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">6.4%</td>
+<td style="text-align: right;">5.2%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">36.0%</td>
-<td style="text-align: right;">89.5%</td>
+<td style="text-align: right;">8.0%</td>
+<td style="text-align: right;">75.0%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-008</td>
@@ -1898,10 +1895,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">Age effect x 0.50; group effect x 1.50</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">5.1%</td>
+<td style="text-align: right;">4.8%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">48.1%</td>
-<td style="text-align: right;">93.6%</td>
+<td style="text-align: right;">12.1%</td>
+<td style="text-align: right;">83.2%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-009</td>
@@ -1942,10 +1939,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">Age effect x 1.00; group effect x 1.50</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">5.8%</td>
+<td style="text-align: right;">5.6%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">38.5%</td>
-<td style="text-align: right;">91.2%</td>
+<td style="text-align: right;">9.1%</td>
+<td style="text-align: right;">79.6%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-010</td>
@@ -1986,10 +1983,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">Age effect x 1.50; group effect x 1.50</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">6.3%</td>
+<td style="text-align: right;">5.1%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">34.6%</td>
-<td style="text-align: right;">90.8%</td>
+<td style="text-align: right;">9.4%</td>
+<td style="text-align: right;">81.1%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-011</td>
@@ -2030,10 +2027,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">N = 50</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">5.5%</td>
+<td style="text-align: right;">5.0%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">33.7%</td>
-<td style="text-align: right;">84.9%</td>
+<td style="text-align: right;">7.4%</td>
+<td style="text-align: right;">66.8%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-012</td>
@@ -2074,10 +2071,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">N = 100</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">6.0%</td>
+<td style="text-align: right;">5.4%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">38.2%</td>
-<td style="text-align: right;">88.3%</td>
+<td style="text-align: right;">8.3%</td>
+<td style="text-align: right;">74.3%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-013</td>
@@ -2118,10 +2115,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">N = 150</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">5.2%</td>
+<td style="text-align: right;">4.9%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">40.3%</td>
-<td style="text-align: right;">89.7%</td>
+<td style="text-align: right;">9.7%</td>
+<td style="text-align: right;">71.9%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-014</td>
@@ -2162,10 +2159,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">N = 200</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">5.6%</td>
+<td style="text-align: right;">5.1%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">43.7%</td>
-<td style="text-align: right;">91.4%</td>
+<td style="text-align: right;">10.1%</td>
+<td style="text-align: right;">80.1%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-015</td>
@@ -2294,10 +2291,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">Intercept = -1.50</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">4.9%</td>
+<td style="text-align: right;">4.5%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">37.8%</td>
-<td style="text-align: right;">84.4%</td>
+<td style="text-align: right;">11.9%</td>
+<td style="text-align: right;">76.2%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-018</td>
@@ -2338,10 +2335,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">Intercept = 1.50</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">6.0%</td>
+<td style="text-align: right;">5.3%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">34.8%</td>
-<td style="text-align: right;">95.5%</td>
+<td style="text-align: right;">5.2%</td>
+<td style="text-align: right;">76.9%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-019</td>
@@ -2382,10 +2379,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">Trials = 5</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">4.9%</td>
+<td style="text-align: right;">3.9%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">21.0%</td>
-<td style="text-align: right;">82.8%</td>
+<td style="text-align: right;">7.7%</td>
+<td style="text-align: right;">57.3%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-020</td>
@@ -2426,10 +2423,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">Trials = 10</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">5.3%</td>
+<td style="text-align: right;">5.1%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">33.3%</td>
-<td style="text-align: right;">89.8%</td>
+<td style="text-align: right;">8.5%</td>
+<td style="text-align: right;">67.5%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-021</td>
@@ -2470,7 +2467,7 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">Trials = 50</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">6.0%</td>
+<td style="text-align: right;">6.3%</td>
 <td style="text-align: right;">0.000</td>
 <td style="text-align: right;">0.0%</td>
 <td style="text-align: right;">–</td>
@@ -2514,10 +2511,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">Chance = 0.25</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">5.8%</td>
+<td style="text-align: right;">5.9%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">40.5%</td>
-<td style="text-align: right;">94.6%</td>
+<td style="text-align: right;">6.7%</td>
+<td style="text-align: right;">82.7%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-023</td>
@@ -2558,10 +2555,10 @@ Table&nbsp;11: Scenario-level results for the forced-choice atlas.
 <td style="text-align: left;">Chance = 0.3333</td>
 <td style="text-align: left;">chance-corrected logit</td>
 <td style="text-align: left;">Chance-corrected binomial logit</td>
-<td style="text-align: right;">5.6%</td>
+<td style="text-align: right;">5.7%</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">41.0%</td>
-<td style="text-align: right;">94.5%</td>
+<td style="text-align: right;">8.0%</td>
+<td style="text-align: right;">76.8%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">FC-024</td>
@@ -2614,7 +2611,7 @@ Table&nbsp;12: Scenario-level results for the within-family logit-probit atlas.
 </figcaption>
 <div aria-describedby="tbl-atlas-wf-full-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="cell caption-top table table-sm table-striped small">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 4%">
 <col style="width: 12%">
@@ -3482,7 +3479,7 @@ Table&nbsp;13: Scenario-level results for the sum-score atlas.
 </figcaption>
 <div aria-describedby="tbl-atlas-ss-full-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="cell caption-top table table-sm table-striped small">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 4%">
 <col style="width: 11%">
@@ -4133,6 +4130,581 @@ Table&nbsp;13: Scenario-level results for the sum-score atlas.
 </div>
 </div>
 </section>
+<section id="diagnostic-calibration" class="level2" data-number="8.4">
+<h2 data-number="8.4" class="anchored" data-anchor-id="diagnostic-calibration"><span class="header-section-number">8.4</span> Diagnostic calibration</h2>
+<div class="cell">
+<div id="tbl-atlas-diagnostic-calibration" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-atlas-diagnostic-calibration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;14: Flagging rates of each applicable DHARMa and Pregibon-style check under the misspecified link and under the generating link, in the same simulated datasets. The generating-link column is the calibration reference.
+</figcaption>
+<div aria-describedby="tbl-atlas-diagnostic-calibration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 24%">
+<col style="width: 13%">
+<col style="width: 33%">
+<col style="width: 13%">
+<col style="width: 15%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Case</th>
+<th style="text-align: left;">Setting</th>
+<th style="text-align: left;">Diagnostic</th>
+<th style="text-align: right;">Wrong-link flagging</th>
+<th style="text-align: right;">Correct-link flagging</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 100</td>
+<td style="text-align: left;">DHARMa uniformity</td>
+<td style="text-align: right;">1.6%</td>
+<td style="text-align: right;">1.9%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 100</td>
+<td style="text-align: left;">DHARMa dispersion</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">0.0%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 100</td>
+<td style="text-align: left;">DHARMa residual quantiles over fitted values</td>
+<td style="text-align: right;">0.6%</td>
+<td style="text-align: right;">1.0%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 100</td>
+<td style="text-align: left;">DHARMa residual quantiles over focal predictor</td>
+<td style="text-align: right;">0.7%</td>
+<td style="text-align: right;">0.9%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 100</td>
+<td style="text-align: left;">Pregibon-style added-term link check</td>
+<td style="text-align: right;">10.8%</td>
+<td style="text-align: right;">14.0%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 250</td>
+<td style="text-align: left;">DHARMa uniformity</td>
+<td style="text-align: right;">4.0%</td>
+<td style="text-align: right;">6.6%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 250</td>
+<td style="text-align: left;">DHARMa dispersion</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">0.3%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 250</td>
+<td style="text-align: left;">DHARMa residual quantiles over fitted values</td>
+<td style="text-align: right;">1.3%</td>
+<td style="text-align: right;">2.4%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 250</td>
+<td style="text-align: left;">DHARMa residual quantiles over focal predictor</td>
+<td style="text-align: right;">1.1%</td>
+<td style="text-align: right;">2.2%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 250</td>
+<td style="text-align: left;">Pregibon-style added-term link check</td>
+<td style="text-align: right;">12.1%</td>
+<td style="text-align: right;">15.0%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 500</td>
+<td style="text-align: left;">DHARMa uniformity</td>
+<td style="text-align: right;">10.0%</td>
+<td style="text-align: right;">20.2%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 500</td>
+<td style="text-align: left;">DHARMa dispersion</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">6.0%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 500</td>
+<td style="text-align: left;">DHARMa residual quantiles over fitted values</td>
+<td style="text-align: right;">2.9%</td>
+<td style="text-align: right;">5.2%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 500</td>
+<td style="text-align: left;">DHARMa residual quantiles over focal predictor</td>
+<td style="text-align: right;">3.0%</td>
+<td style="text-align: right;">4.7%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 500</td>
+<td style="text-align: left;">Pregibon-style added-term link check</td>
+<td style="text-align: right;">20.4%</td>
+<td style="text-align: right;">5.9%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 1000</td>
+<td style="text-align: left;">DHARMa uniformity</td>
+<td style="text-align: right;">30.7%</td>
+<td style="text-align: right;">53.9%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 1000</td>
+<td style="text-align: left;">DHARMa dispersion</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">65.8%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 1000</td>
+<td style="text-align: left;">DHARMa residual quantiles over fitted values</td>
+<td style="text-align: right;">9.1%</td>
+<td style="text-align: right;">11.8%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 1000</td>
+<td style="text-align: left;">DHARMa residual quantiles over focal predictor</td>
+<td style="text-align: right;">8.8%</td>
+<td style="text-align: right;">11.0%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Sample size = 1000</td>
+<td style="text-align: left;">Pregibon-style added-term link check</td>
+<td style="text-align: right;">30.8%</td>
+<td style="text-align: right;">4.7%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Sample size = 200</td>
+<td style="text-align: left;">DHARMa uniformity</td>
+<td style="text-align: right;">2.2%</td>
+<td style="text-align: right;">2.7%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Sample size = 200</td>
+<td style="text-align: left;">DHARMa dispersion</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">0.0%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Sample size = 200</td>
+<td style="text-align: left;">DHARMa residual quantiles over fitted values</td>
+<td style="text-align: right;">1.9%</td>
+<td style="text-align: right;">2.2%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Sample size = 200</td>
+<td style="text-align: left;">DHARMa residual distribution across design cells</td>
+<td style="text-align: right;">6.0%</td>
+<td style="text-align: right;">7.5%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Sample size = 300</td>
+<td style="text-align: left;">DHARMa uniformity</td>
+<td style="text-align: right;">3.4%</td>
+<td style="text-align: right;">3.8%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Sample size = 300</td>
+<td style="text-align: left;">DHARMa dispersion</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">0.0%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Sample size = 300</td>
+<td style="text-align: left;">DHARMa residual quantiles over fitted values</td>
+<td style="text-align: right;">2.4%</td>
+<td style="text-align: right;">3.4%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Sample size = 300</td>
+<td style="text-align: left;">DHARMa residual distribution across design cells</td>
+<td style="text-align: right;">7.9%</td>
+<td style="text-align: right;">9.8%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Sample size = 700</td>
+<td style="text-align: left;">DHARMa uniformity</td>
+<td style="text-align: right;">7.7%</td>
+<td style="text-align: right;">9.7%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Sample size = 700</td>
+<td style="text-align: left;">DHARMa dispersion</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">0.0%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Sample size = 700</td>
+<td style="text-align: left;">DHARMa residual quantiles over fitted values</td>
+<td style="text-align: right;">7.2%</td>
+<td style="text-align: right;">8.9%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Sample size = 700</td>
+<td style="text-align: left;">DHARMa residual distribution across design cells</td>
+<td style="text-align: right;">13.2%</td>
+<td style="text-align: right;">16.8%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Sample size = 1200</td>
+<td style="text-align: left;">DHARMa uniformity</td>
+<td style="text-align: right;">14.9%</td>
+<td style="text-align: right;">17.4%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Sample size = 1200</td>
+<td style="text-align: left;">DHARMa dispersion</td>
+<td style="text-align: right;">0.3%</td>
+<td style="text-align: right;">13.3%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Sample size = 1200</td>
+<td style="text-align: left;">DHARMa residual quantiles over fitted values</td>
+<td style="text-align: right;">14.1%</td>
+<td style="text-align: right;">17.9%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Sample size = 1200</td>
+<td style="text-align: left;">DHARMa residual distribution across design cells</td>
+<td style="text-align: right;">23.5%</td>
+<td style="text-align: right;">28.7%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = -0.80</td>
+<td style="text-align: left;">DHARMa uniformity</td>
+<td style="text-align: right;">4.0%</td>
+<td style="text-align: right;">6.6%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = -0.80</td>
+<td style="text-align: left;">DHARMa dispersion</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">0.3%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = -0.80</td>
+<td style="text-align: left;">DHARMa residual quantiles over fitted values</td>
+<td style="text-align: right;">1.3%</td>
+<td style="text-align: right;">2.4%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = -0.80</td>
+<td style="text-align: left;">DHARMa residual quantiles over focal predictor</td>
+<td style="text-align: right;">1.1%</td>
+<td style="text-align: right;">2.2%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = -0.80</td>
+<td style="text-align: left;">Pregibon-style added-term link check</td>
+<td style="text-align: right;">12.1%</td>
+<td style="text-align: right;">15.0%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = -1.50</td>
+<td style="text-align: left;">DHARMa uniformity</td>
+<td style="text-align: right;">1.9%</td>
+<td style="text-align: right;">1.2%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = -1.50</td>
+<td style="text-align: left;">DHARMa dispersion</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">0.1%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = -1.50</td>
+<td style="text-align: left;">DHARMa residual quantiles over fitted values</td>
+<td style="text-align: right;">1.0%</td>
+<td style="text-align: right;">1.7%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = -1.50</td>
+<td style="text-align: left;">DHARMa residual quantiles over focal predictor</td>
+<td style="text-align: right;">1.2%</td>
+<td style="text-align: right;">1.5%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = -1.50</td>
+<td style="text-align: left;">Pregibon-style added-term link check</td>
+<td style="text-align: right;">13.7%</td>
+<td style="text-align: right;">15.3%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = 0.00</td>
+<td style="text-align: left;">DHARMa uniformity</td>
+<td style="text-align: right;">5.7%</td>
+<td style="text-align: right;">17.4%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = 0.00</td>
+<td style="text-align: left;">DHARMa dispersion</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">1.5%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = 0.00</td>
+<td style="text-align: left;">DHARMa residual quantiles over fitted values</td>
+<td style="text-align: right;">1.8%</td>
+<td style="text-align: right;">3.6%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = 0.00</td>
+<td style="text-align: left;">DHARMa residual quantiles over focal predictor</td>
+<td style="text-align: right;">1.7%</td>
+<td style="text-align: right;">3.5%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = 0.00</td>
+<td style="text-align: left;">Pregibon-style added-term link check</td>
+<td style="text-align: right;">11.2%</td>
+<td style="text-align: right;">13.2%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = 0.80</td>
+<td style="text-align: left;">DHARMa uniformity</td>
+<td style="text-align: right;">6.6%</td>
+<td style="text-align: right;">17.9%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = 0.80</td>
+<td style="text-align: left;">DHARMa dispersion</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">3.2%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = 0.80</td>
+<td style="text-align: left;">DHARMa residual quantiles over fitted values</td>
+<td style="text-align: right;">1.5%</td>
+<td style="text-align: right;">4.8%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = 0.80</td>
+<td style="text-align: left;">DHARMa residual quantiles over focal predictor</td>
+<td style="text-align: right;">1.4%</td>
+<td style="text-align: right;">4.6%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = 0.80</td>
+<td style="text-align: left;">Pregibon-style added-term link check</td>
+<td style="text-align: right;">9.0%</td>
+<td style="text-align: right;">10.8%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = 1.50</td>
+<td style="text-align: left;">DHARMa uniformity</td>
+<td style="text-align: right;">7.4%</td>
+<td style="text-align: right;">14.8%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = 1.50</td>
+<td style="text-align: left;">DHARMa dispersion</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">4.9%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = 1.50</td>
+<td style="text-align: left;">DHARMa residual quantiles over fitted values</td>
+<td style="text-align: right;">2.4%</td>
+<td style="text-align: right;">5.2%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = 1.50</td>
+<td style="text-align: left;">DHARMa residual quantiles over focal predictor</td>
+<td style="text-align: right;">2.6%</td>
+<td style="text-align: right;">5.4%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Forced-choice chance-floor case</td>
+<td style="text-align: left;">Intercept = 1.50</td>
+<td style="text-align: left;">Pregibon-style added-term link check</td>
+<td style="text-align: right;">36.5%</td>
+<td style="text-align: right;">9.1%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Intercept = 1.50</td>
+<td style="text-align: left;">DHARMa uniformity</td>
+<td style="text-align: right;">3.4%</td>
+<td style="text-align: right;">3.8%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Intercept = 1.50</td>
+<td style="text-align: left;">DHARMa dispersion</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">0.0%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Intercept = 1.50</td>
+<td style="text-align: left;">DHARMa residual quantiles over fitted values</td>
+<td style="text-align: right;">2.4%</td>
+<td style="text-align: right;">3.4%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Intercept = 1.50</td>
+<td style="text-align: left;">DHARMa residual distribution across design cells</td>
+<td style="text-align: right;">7.9%</td>
+<td style="text-align: right;">9.8%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Intercept = 0.00</td>
+<td style="text-align: left;">DHARMa uniformity</td>
+<td style="text-align: right;">4.1%</td>
+<td style="text-align: right;">5.2%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Intercept = 0.00</td>
+<td style="text-align: left;">DHARMa dispersion</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">0.0%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Intercept = 0.00</td>
+<td style="text-align: left;">DHARMa residual quantiles over fitted values</td>
+<td style="text-align: right;">2.7%</td>
+<td style="text-align: right;">4.2%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Intercept = 0.00</td>
+<td style="text-align: left;">DHARMa residual distribution across design cells</td>
+<td style="text-align: right;">8.5%</td>
+<td style="text-align: right;">11.0%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Intercept = 0.75</td>
+<td style="text-align: left;">DHARMa uniformity</td>
+<td style="text-align: right;">3.0%</td>
+<td style="text-align: right;">3.1%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Intercept = 0.75</td>
+<td style="text-align: left;">DHARMa dispersion</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">0.0%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Intercept = 0.75</td>
+<td style="text-align: left;">DHARMa residual quantiles over fitted values</td>
+<td style="text-align: right;">3.0%</td>
+<td style="text-align: right;">2.4%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Intercept = 0.75</td>
+<td style="text-align: left;">DHARMa residual distribution across design cells</td>
+<td style="text-align: right;">7.9%</td>
+<td style="text-align: right;">8.1%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Intercept = 2.25</td>
+<td style="text-align: left;">DHARMa uniformity</td>
+<td style="text-align: right;">4.8%</td>
+<td style="text-align: right;">6.8%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Intercept = 2.25</td>
+<td style="text-align: left;">DHARMa dispersion</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">0.0%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Intercept = 2.25</td>
+<td style="text-align: left;">DHARMa residual quantiles over fitted values</td>
+<td style="text-align: right;">2.8%</td>
+<td style="text-align: right;">4.3%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Probit-generated, logit-fitted case</td>
+<td style="text-align: left;">Intercept = 2.25</td>
+<td style="text-align: left;">DHARMa residual distribution across design cells</td>
+<td style="text-align: right;">10.3%</td>
+<td style="text-align: right;">13.3%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+</section>
 </section>
 
 </main>
@@ -4188,14 +4760,13 @@ Table&nbsp;13: Scenario-level results for the sum-score atlas.
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-      const outerScaffold = trigger.parentElement.cloneNode(true);
-      const codeEl = outerScaffold.querySelector('code');
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
         }
-      }
-      return codeEl.innerText;
+        return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy

@@ -23,8 +23,8 @@ renv/lock/
 
 # The rendered simulation atlas is published on GitHub Pages, so its companion
 # asset directory must be tracked despite the *_files/ rule above.
-!/simulation-atlas/Simulation-atlas-report_files/
-!/simulation-atlas/Simulation-atlas-report_files/**
+!/simulation-atlas/Supplement-B-Simulation-atlas_files/
+!/simulation-atlas/Supplement-B-Simulation-atlas_files/**
 
 *.log
 *.tmp

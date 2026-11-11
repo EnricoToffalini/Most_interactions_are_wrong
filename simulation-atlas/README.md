@@ -26,7 +26,11 @@ combinations, model labels, and slice memberships are retained.
   DHARMa and Pregibon checks are applied both to the wrong-link model (detection)
   and to the correct-link model (calibration); the chance-corrected GLMM uses
   `nAGQ = 10`. Forced-choice and within-family diagnostic data use individual
-  binary trials and retain their manuscript random-intercept structures.
+  binary trials and retain their manuscript random-intercept structures. The
+  grid also covers the manuscript's Poisson count (log generated, identity
+  fitted), binary continuous-predictor (probit GLMM generated, logit fitted)
+  and Gamma (log generated, inverse fitted) diagnostic scenarios, with the
+  manuscript DGPs and GLM/GLMM fits; non-converged GLMs count as failed fits.
 - `03-summarize-atlas.R`: reads raw results and writes app-facing CSV/RDS
   summaries. As in the manuscript, forced-choice primary rates use fits passing
   the minimal lme4 checks, with flagged fits summarized separately; within-family
@@ -36,6 +40,12 @@ combinations, model labels, and slice memberships are retained.
   no model fitting.
 - `raw/`: one ignored RDS file per scenario, run mode, and B.
 - `Supplement-B-Simulation-atlas.qmd`: reads precomputed CSV summaries.
+- `Supplement-B-Simulation-atlas-explorer.qmd`: interactive tables only, one
+  self-contained HTML file (`embed-resources`, `reactable`), usable as a paper
+  attachment. It reads the same summaries and reports the same rates, one row
+  per generating scenario with the fitted models as columns, plus the
+  diagnostic atlas in the layout of the manuscript's diagnostic table. No text,
+  figures or appendix.
 
 There is no `simulation-atlas/R/` helper framework. Parameters, seed arithmetic,
 DGPs, fits, and interaction extraction are local to each family runner.
@@ -44,7 +54,7 @@ DGPs, fits, and interaction extraction are local to each family runner.
 
 | Environment variable | Default / meaning |
 | --- | --- |
-| `ATLAS_MODE` | `full`; `smoke` selects one core anchor per family and two diagnostic anchors |
+| `ATLAS_MODE` | `full`; `smoke` selects one core anchor per family and the five diagnostic anchors |
 | `N_SIM` | **3000 for every full scenario**; 3 for smoke, unless explicitly overridden |
 | `N_CORES` | Explicit worker override |
 | `SLURM_CPUS_PER_TASK` | Worker count when `N_CORES` is unset |
@@ -68,7 +78,8 @@ Seed arithmetic appears directly in the family scripts:
 ```text
 seed = (20260807 + family_offset + stream_offset
         + scenario_number * 10000 + replication) modulo .Machine$integer.max
-family_offset: forced choice 1000000; sum scores 2000000; within family 3000000
+family_offset: forced choice 1000000; sum scores 2000000; within family 3000000;
+               count 5000000; binary continuous 6000000; Gamma 7000000 (diagnostics only)
 stream_offset: core 0; diagnostics 4000000
 ```
 
@@ -106,13 +117,15 @@ Rscript simulation-atlas/02c-run-sum-scores.R
 Rscript simulation-atlas/02d-run-diagnostics.R
 Rscript simulation-atlas/03-summarize-atlas.R
 quarto render simulation-atlas/Supplement-B-Simulation-atlas.qmd
+quarto render simulation-atlas/Supplement-B-Simulation-atlas-explorer.qmd
 ```
 
 To run the grid, all four families, and the summaries in separate R processes
 with the same environment settings, use `sh run-atlas.sh` from the repository
 root. This wrapper defaults to the full SLURM settings (`ATLAS_RUN_DHARMA=TRUE`,
 `ATLAS_OVERWRITE=TRUE`); explicitly set either variable to `FALSE` to override
-it. Render Supplement B afterward with the `quarto render` command above.
+it. Render both versions of Supplement B afterward with the `quarto render`
+commands above.
 
 On SLURM, leave `N_CORES` unset to use `SLURM_CPUS_PER_TASK` and prefix the R
 commands with `srun`. The existing `slurm/05-atlas.slurm` shows this sequence.
@@ -141,9 +154,13 @@ and rendered artifacts when the scenario grid or simulation code changes.
 
 The diagnostic definitions (checks, applicability, Pregibon refit, correct-link
 calibration) match `scripts/04-diagnostic-worked-example.R`. The Atlas covers
-only the two diagnostic cases it varies (chance floor and 2 x 2 binary repeated
-trials); the manuscript's count, continuous-binary and Gamma diagnostic scenarios
-have no Atlas counterpart.
+all five manuscript diagnostic scenarios; each `D-*-002` row is the manuscript
+anchor, and the other rows vary sample size and severity. Severity is the
+intercept for the chance floor (`D-FC`) and the two binary repeated-trial cases
+(`D-WF`, `D-BC`, reference intercept), and a common multiplier of the two main
+effects for count (`D-CT`) and Gamma (`D-GA`): there the intercept only rescales
+the means (for Gamma with inverse link it leaves the fit unchanged), whereas the
+main effects set the curvature over the observed range.
 
 Keep code, grids, and compact summaries in Git. Raw replications remain ignored
 and can be archived with the existing project archive materials.

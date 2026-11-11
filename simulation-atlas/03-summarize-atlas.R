@@ -108,7 +108,10 @@ diagnostics <- data.frame(
   correct_column = c(NA, "dharma_correct_uniformity_p", "dharma_correct_dispersion_p", "dharma_correct_quantile_fitted_p",
                      "dharma_correct_quantile_predictor_p", "dharma_correct_categorical_design_p", "pregibon_correct_p"),
   forced_choice = c(TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE), # structural applicability by family
-  within_family = c(TRUE, TRUE, TRUE, TRUE, FALSE, TRUE, FALSE)) # Pregibon not identifiable in the saturated 2 x 2
+  within_family = c(TRUE, TRUE, TRUE, TRUE, FALSE, TRUE, FALSE), # Pregibon not identifiable in the saturated 2 x 2
+  count = c(TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE),
+  binary_continuous = c(TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE),
+  gamma = c(TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE))
 
 # detection rate: p < alpha, or TRUE for the logical AIC flag
 detection <- function(values) {

@@ -557,9 +557,39 @@ report_kable <- function(x, align = NULL, long = FALSE, ...) {
 
 # Diagnostic helpers -------------------------------------------------------
 
+# Diagnostic cases in the order of the manuscript diagnostic table
 diagnostic_family_title <- c(
+  count = "Poisson count: log generated, identity fitted",
   forced_choice = "Forced-choice chance-floor case",
-  within_family = "Probit-generated, logit-fitted case"
+  within_family = "Probit-generated, logit-fitted case",
+  binary_continuous = "Binary continuous predictor: probit generated, logit fitted",
+  gamma = "Gamma: log generated, inverse fitted"
+)
+diagnostic_families <- names(diagnostic_family_title)
+
+# Sample size is N, or the number of subjects for the repeated-trial binary cases.
+# Severity is the intercept (reference intercept for the binary cases), or a common
+# multiplier of the two main effects for the count and Gamma cases.
+diagnostic_n_column <- c(
+  count = "N",
+  forced_choice = "N",
+  within_family = "n_subjects",
+  binary_continuous = "n_subjects",
+  gamma = "N"
+)
+diagnostic_severity_column <- c(
+  count = "beta_main_1_multiplier",
+  forced_choice = "beta_intercept",
+  within_family = "reference_beta_intercept",
+  binary_continuous = "reference_beta_intercept",
+  gamma = "beta_main_1_multiplier"
+)
+diagnostic_severity_label <- c(
+  count = "Main-effect multiplier",
+  forced_choice = "Intercept",
+  within_family = "Intercept",
+  binary_continuous = "Intercept",
+  gamma = "Main-effect multiplier"
 )
 
 diagnostic_expand_slices <- function(dat) {
@@ -575,43 +605,44 @@ diagnostic_expand_slices <- function(dat) {
 
     out$slice_view <- slice
     out$slice_label <- if (slice == "sample_size") {
-      "Sample size"
+      rep("Sample size", nrow(out))
     } else {
-      "Intercept"
+      unname(diagnostic_severity_label[out$family])
     }
     out$x_value <- NA_real_
-
-    if (slice == "sample_size") {
-      out$x_value[out$family == "forced_choice"] <- out$N[
-        out$family == "forced_choice"
-      ]
-      out$x_value[out$family == "within_family"] <- out$n_subjects[
-        out$family == "within_family"
-      ]
+    columns <- if (slice == "sample_size") {
+      diagnostic_n_column
     } else {
-      out$x_value[out$family == "forced_choice"] <- out$beta_intercept[
-        out$family == "forced_choice"
-      ]
-      out$x_value[
-        out$family == "within_family"
-      ] <- out$reference_beta_intercept[out$family == "within_family"]
+      diagnostic_severity_column
+    }
+    for (r in seq_len(nrow(out))) {
+      out$x_value[r] <- out[[columns[[out$family[r]]]]][r]
     }
 
     pieces[[counter]] <- out
     counter <- counter + 1L
   }
 
-  do.call(rbind, pieces)
+  out <- do.call(rbind, pieces)
+  # case, then slice, then setting; order() keeps the original order of ties
+  out[order(
+    match(out$family, diagnostic_families),
+    match(out$slice_view, c("sample_size", "severity")),
+    out$x_value
+  ), , drop = FALSE]
 }
 
 make_diagnostic_plot_data <- function() {
   base <- diagnostic[
-    diagnostic$family %in% c("forced_choice", "within_family"),
+    diagnostic$family %in% diagnostic_families,
     ,
     drop = FALSE
   ]
   dat <- diagnostic_expand_slices(base)
   dat$family_label <- unname(diagnostic_family_title[dat$family])
+  # one panel per case and slice, in the order of diagnostic_expand_slices()
+  dat$panel <- paste0(dat$family_label, "\n", dat$slice_label)
+  panel_levels <- unique(dat$panel)
 
   # One pseudo-interaction row per scenario within each slice. The manuscript
   # anchor belongs to both sensitivity slices and is therefore shown in both.
@@ -623,6 +654,7 @@ make_diagnostic_plot_data <- function() {
       "family",
       "family_label",
       "slice_label",
+      "panel",
       "x_value",
       "pseudo_interaction_detection_rate",
       "pseudo_interaction_ci_low",
@@ -645,6 +677,7 @@ make_diagnostic_plot_data <- function() {
     "family",
     "family_label",
     "slice_label",
+    "panel",
     "x_value",
     "diagnostic",
     "detection_rate",
@@ -661,13 +694,16 @@ make_diagnostic_plot_data <- function() {
     "family",
     "family_label",
     "slice_label",
+    "panel",
     "x_value",
     "quantity",
     "rate",
     "low",
     "high"
   )
-  rbind(pseudo[, common], checks[, common])
+  out <- rbind(pseudo[, common], checks[, common])
+  out$panel <- factor(out$panel, levels = panel_levels)
+  out
 }
 
 plot_diagnostic_atlas <- function() {
@@ -685,12 +721,16 @@ plot_diagnostic_atlas <- function() {
   ) +
     geom_line() +
     geom_point(size = 2) +
+    # eight quantities, more than the six shapes of the default palette
+    scale_shape_manual(values = c(16, 17, 15, 3, 4, 8, 1, 2)) +
     scale_y_continuous(
       limits = c(0, 1),
       breaks = seq(0, 1, by = 0.2),
       labels = function(x) paste0(round(100 * x), "%")
     ) +
-    facet_grid(family_label ~ slice_label, scales = "free_x") +
+    # facet_wrap, not facet_grid, so that each panel has its own x scale
+    # (the severity setting is an intercept or a main-effect multiplier)
+    facet_wrap(~panel, ncol = 2, scales = "free_x") +
     labs(
       x = NULL,
       y = "Detection / selection rate",
@@ -704,7 +744,7 @@ plot_diagnostic_atlas <- function() {
 aic_table <- function() {
   base <- diagnostic[
     diagnostic$family %in%
-      c("forced_choice", "within_family") &
+      diagnostic_families &
       diagnostic$diagnostic == "AIC favors generating link",
     ,
     drop = FALSE
@@ -741,13 +781,14 @@ aic_table <- function() {
 diagnostic_used_table <- function() {
   dat <- diagnostic[
     diagnostic$family %in%
-      c("forced_choice", "within_family") &
+      diagnostic_families &
       diagnostic$applicable %in% TRUE &
       diagnostic$computed %in% TRUE,
     ,
     drop = FALSE
   ]
-  parts <- split(dat, dat$family)
+  parts <- split(dat, factor(dat$family, levels = diagnostic_families))
+  parts <- parts[vapply(parts, nrow, integer(1)) > 0]
   out <- do.call(
     rbind,
     lapply(parts, function(x) {
@@ -766,7 +807,7 @@ diagnostic_used_table <- function() {
 calibration_table <- function() {
   base <- diagnostic[
     diagnostic$family %in%
-      c("forced_choice", "within_family") &
+      diagnostic_families &
       diagnostic$applicable %in% TRUE &
       diagnostic$computed %in% TRUE &
       diagnostic$diagnostic != "AIC favors generating link",
@@ -877,7 +918,7 @@ knitr::kable(
 )
 ```
 
-The forced-choice atlas must be regenerated before numerical ranges are reported for the revised mixed-model design. The saved atlas results from the earlier fixed-effect design are not valid for this specification.
+Across the atlas, the matched chance-corrected-logit model rejects from `r rate_range_text("forced_choice", model = "Chance-corrected binomial logit")`. The standard binomial logit ranges from `r rate_range_text("forced_choice", model = "Standard binomial logit")`, the standard binomial probit from `r rate_range_text("forced_choice", model = "Standard binomial probit")`, and the Gaussian identity model from `r rate_range_text("forced_choice", model = "Gaussian identity")`. These rates use fits passing the minimal fit-quality checks; the share of flagged fits reaches `r pct(max(family_rows("forced_choice")$fit_problem_rate, na.rm = TRUE))` in some scenarios, and the appendix tables report it scenario by scenario. For the standard binomial GLMMs, the wrong-scale rates vary most with the size of the main effects and with sample size; the intercept, the number of trials and the chance level change them less within the declared ranges.
 
 ## One-dimensional sensitivity slices
 
@@ -1043,7 +1084,7 @@ The surface shows how the mapping from latent values to a bounded total can turn
 
 # Diagnostic atlas
 
-The diagnostic analyses cover the forced-choice chance-floor case and the probit-generated, logit-fitted repeated-trial case. The forced-choice diagnostic uses the same trial-level random-intercept DGP and paired standard-logit and chance-corrected-logit GLMMs as the revised manuscript scenario, with `nAGQ = 10` for the chance-corrected GLMM. They examine how pseudo-interaction risk and diagnostic detection change with sample size and intercept. The checks are those of the manuscript and Supplement A: DHARMa with its default settings, and the Pregibon-style added-term check refitted with the family, link, random intercept, and quadrature setting of the model being diagnosed.
+The diagnostic analyses cover the five diagnostic scenarios of the manuscript, with the same data-generating processes and paired models: a Poisson count generated with a log link and fitted with an identity link; the forced-choice chance-floor case, with standard-logit and chance-corrected-logit GLMMs (`nAGQ = 10` for the chance-corrected GLMM); the probit-generated, logit-fitted repeated-trial case with a 2 x 2 design; its counterpart with a continuous predictor, x ~ Uniform(0, 1), and 30 trials per subject; and a Gamma response generated with a log link and fitted with an inverse link. For each case, the manuscript scenario is the reference, and the other scenarios vary sample size and severity one at a time. Severity is the intercept for the forced-choice and the two binary repeated-trial cases, where it moves the expected values along the curved part of the link. For the count and Gamma cases, it is a common multiplier of the two main effects, which sets how much curvature the two links show over the observed range: there the intercept only rescales the means, and with the inverse Gamma link it leaves the fitted model unchanged. The checks are those of the manuscript and Supplement A: DHARMa with its default settings, and the Pregibon-style added-term check refitted with the family, link, random intercept, and quadrature setting of the model being diagnosed.
 
 Diagnostics are applied to the **misspecified interaction model**, matching the manuscript's post-estimation question: once the fitted model has produced the product-term finding, does that same model show enough evidence of misspecification to warn the analyst? As in the manuscript, the same DHARMa and Pregibon-style checks are also applied to the generating-link interaction model as a calibration reference (@tbl-atlas-diagnostic-calibration). AIC compares prespecified candidate mean models with the same structural interaction formula. Positive delta AIC, defined as AIC of the misspecified model minus AIC of the generating model, favors the generating link.
 
@@ -1054,15 +1095,15 @@ Diagnostics are applied to the **misspecified interaction model**, matching the 
 knitr::kable(diagnostic_used_table(), align = c("l", "l"))
 ```
 
-Checks not listed were not applicable to the design. In particular, the design-cell residual check is used only for the categorical repeated-trial case, whereas residual quantile checks over a focal predictor require a continuous predictor.
+Checks not listed were not applicable to the design. In particular, the design-cell residual check is used only for the 2 x 2 repeated-trial case, whereas residual quantile checks over a focal predictor require a continuous predictor (age for the count and forced-choice cases, x for the other two). The Pregibon-style check is not identifiable in the saturated 2 x 2 interaction model.
 
 ## Detection across sensitivity slices
 
 ```{r}
 #| label: fig-atlas-diagnostics
-#| fig-cap: "Diagnostic atlas. Pseudo-interaction detection is shown together with each diagnostic or candidate-model comparison. Sample-size and scale-location slices are shown separately."
+#| fig-cap: "Diagnostic atlas. Pseudo-interaction detection is shown together with each diagnostic or candidate-model comparison. For each case, the sample-size slice (left) and the severity slice (right; intercept, or multiplier of the two main effects) are shown separately."
 #| fig-width: 10
-#| fig-height: 7
+#| fig-height: 15
 
 plot_diagnostic_atlas()
 ```
