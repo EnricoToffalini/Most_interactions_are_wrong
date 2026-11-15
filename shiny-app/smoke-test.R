@@ -85,20 +85,18 @@ stopifnot(all(grid$beta_age_group[grid$family == "forced_choice"] == 0))
 stopifnot(all(grid$beta_x_group[grid$family == "sum_scores"] == 0))
 stopifnot(all(grid$beta_group_condition[grid$family == "within_family"] == 0))
 
-forced_anchor <- grid[grid$family == "forced_choice" & grid$paper_anchor, ]
-sum_anchor <- grid[grid$family == "sum_scores" & grid$paper_anchor, ]
-within_anchor <- grid[grid$family == "within_family" & grid$paper_anchor, ]
+# The grid contains the manuscript parameter combinations (as ordinary scenarios)
+forced_ms <- with(grid, grid[family == "forced_choice" & N == 250 & k_trials == 20 & chance == 0.5 &
+  beta_age == 0.6 & beta_group == -0.9 & beta_intercept %in% c(-0.8, 0, 0.8), ])
+sum_ms <- with(grid, grid[family == "sum_scores" & N == 600 & J == 9 & theta_sd == 1 &
+  beta_x == 0.85 & beta_group == -0.9 & threshold_shift %in% c(1.6, 0, -1.6), ])
+within_ms <- with(grid, grid[family == "within_family" & n_subjects == 700 & k_trials == 15 & target_icc == 0.3 &
+  reference_beta_intercept == 1.5 & reference_beta_group == -1 & reference_beta_condition == -1, ])
 stopifnot(
-  nrow(forced_anchor) == 3,
-  setequal(forced_anchor$beta_intercept, c(-0.8, 0, 0.8)),
-  all(forced_anchor$N == 250), all(forced_anchor$k_trials == 20),
-  nrow(sum_anchor) == 3,
-  setequal(sum_anchor$threshold_shift, c(1.6, 0, -1.6)),
-  all(sum_anchor$N == 600), all(sum_anchor$J == 9),
-  nrow(within_anchor) == 2,
-  setequal(within_anchor$generating_link, c("logit", "probit")),
-  all(within_anchor$n_subjects == 700), all(within_anchor$k_trials == 15),
-  all(grepl("logit", within_anchor$fitted_link) & grepl("probit", within_anchor$fitted_link))
+  nrow(forced_ms) == 3, setequal(forced_ms$beta_intercept, c(-0.8, 0, 0.8)),
+  nrow(sum_ms) == 3, setequal(sum_ms$threshold_shift, c(1.6, 0, -1.6)),
+  nrow(within_ms) == 2, setequal(within_ms$generating_link, c("logit", "probit")),
+  all(grepl("logit", within_ms$fitted_link) & grepl("probit", within_ms$fitted_link))
 )
 
 summary_files <- c(
@@ -203,14 +201,6 @@ if (atlas_bundle$available) {
   stopifnot(all(abs(matched_rows$deterministic_pseudo_interaction) < 1e-12))
 
   for (family in families) {
-    anchors <- atlas_anchor_data(atlas_bundle$core, family)
-    if (nrow(anchors)) {
-      stopifnot(
-        inherits(atlas_anchor_plot(anchors), "ggplot"),
-        nrow(atlas_anchor_table(anchors)) == nrow(anchors),
-        any(anchors$matched)
-      )
-    }
     slices <- atlas_slice_overview_data(atlas_bundle$core, family)
     if (nrow(slices)) {
       stopifnot(

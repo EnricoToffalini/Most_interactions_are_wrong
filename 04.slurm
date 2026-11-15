@@ -25,3 +25,4 @@ export N_SIM=3000
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate r460
 srun Rscript --vanilla scripts/04-diagnostic-worked-example.R
+Rscript --vanilla scripts/04b-figure-diagnostic-flagging.R

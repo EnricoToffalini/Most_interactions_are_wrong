@@ -1,4 +1,7 @@
 ---
+# ARCHIVED full report (text, figures, appendix). Supplement B is now
+# ../Supplement-B-Simulation-atlas-explorer.qmd. Not kept in sync with the atlas
+# code; see README.md in this folder before restoring it.
 title: "Supplement B - Simulation Atlas"
 subtitle: "Extended sensitivity analyses for The Link Function Problem in Psychological Interaction Testing"
 author:
@@ -592,6 +595,37 @@ diagnostic_severity_label <- c(
   gamma = "Main-effect multiplier"
 )
 
+# Values quoted in the diagnostic text
+dg_rate <- function(id, check = "AIC favors generating link", column = "detection_rate") {
+  diagnostic[diagnostic$scenario_id == id & diagnostic$diagnostic == check, column][1]
+}
+dg_rows <- function(families, pattern) {
+  diagnostic[
+    diagnostic$family %in% families &
+      diagnostic$applicable %in% TRUE &
+      diagnostic$computed %in% TRUE &
+      grepl(pattern, diagnostic$diagnostic),
+    ,
+    drop = FALSE
+  ]
+}
+dg_max <- function(families, pattern, column = "detection_rate") {
+  max(dg_rows(families, pattern)[[column]], na.rm = TRUE)
+}
+dg_min <- function(families, pattern, column = "detection_rate") {
+  min(dg_rows(families, pattern)[[column]], na.rm = TRUE)
+}
+binomial_cases <- c("forced_choice", "within_family", "binary_continuous")
+# largest excess of wrong-link over correct-link DHARMa flagging, in percentage points
+dharma_excess_binomial <- with(
+  dg_rows(binomial_cases, "^DHARMa"),
+  max(detection_rate - correct_link_flag_rate, na.rm = TRUE)
+)
+pseudo_max_fc <- max(
+  diagnostic$pseudo_interaction_detection_rate[diagnostic$family == "forced_choice"],
+  na.rm = TRUE
+)
+
 diagnostic_expand_slices <- function(dat) {
   pieces <- list()
   counter <- 1L
@@ -632,84 +666,98 @@ diagnostic_expand_slices <- function(dat) {
   ), , drop = FALSE]
 }
 
+# One row per scenario, slice and plotted quantity. DHARMa is summarized by the
+# highest flagging rate across the applicable residual checks, as the upper end
+# of the DHARMa range in the manuscript diagnostic table; the separate checks
+# are reported in the calibration table of the appendix.
 make_diagnostic_plot_data <- function() {
   base <- diagnostic[
-    diagnostic$family %in% diagnostic_families,
+    diagnostic$family %in% diagnostic_families &
+      diagnostic$applicable %in% TRUE &
+      diagnostic$computed %in% TRUE,
     ,
     drop = FALSE
   ]
   dat <- diagnostic_expand_slices(base)
-  dat$family_label <- unname(diagnostic_family_title[dat$family])
-  # one panel per case and slice, in the order of diagnostic_expand_slices()
-  dat$panel <- paste0(dat$family_label, "\n", dat$slice_label)
-  panel_levels <- unique(dat$panel)
-
-  # One pseudo-interaction row per scenario within each slice. The manuscript
-  # anchor belongs to both sensitivity slices and is therefore shown in both.
-  pseudo_key <- interaction(dat$scenario_id, dat$slice_view, drop = TRUE)
-  pseudo <- dat[
-    !duplicated(pseudo_key),
-    c(
-      "scenario_id",
-      "family",
-      "family_label",
-      "slice_label",
-      "panel",
-      "x_value",
-      "pseudo_interaction_detection_rate",
-      "pseudo_interaction_ci_low",
-      "pseudo_interaction_ci_high"
-    )
-  ]
-  names(pseudo)[names(pseudo) == "pseudo_interaction_detection_rate"] <- "rate"
-  names(pseudo)[names(pseudo) == "pseudo_interaction_ci_low"] <- "low"
-  names(pseudo)[names(pseudo) == "pseudo_interaction_ci_high"] <- "high"
-  pseudo$quantity <- "Pseudo-interaction detection"
-
-  # Retain diagnostics that were used for the relevant scenario.
-  checks <- dat[
-    dat$applicable %in% TRUE & dat$computed %in% TRUE,
-    ,
-    drop = FALSE
-  ]
-  checks <- checks[, c(
-    "scenario_id",
-    "family",
-    "family_label",
-    "slice_label",
-    "panel",
-    "x_value",
-    "diagnostic",
-    "detection_rate",
-    "detection_ci_low",
-    "detection_ci_high"
-  )]
-  names(checks)[names(checks) == "detection_rate"] <- "rate"
-  names(checks)[names(checks) == "detection_ci_low"] <- "low"
-  names(checks)[names(checks) == "detection_ci_high"] <- "high"
-  names(checks)[names(checks) == "diagnostic"] <- "quantity"
-
-  common <- c(
-    "scenario_id",
-    "family",
-    "family_label",
-    "slice_label",
-    "panel",
-    "x_value",
-    "quantity",
-    "rate",
-    "low",
-    "high"
+  # one panel per case and slice, in the order of diagnostic_expand_slices();
+  # the manuscript anchor belongs to both slices and is shown in both
+  dat$panel <- paste0(
+    unname(diagnostic_family_title[dat$family]),
+    "\n",
+    dat$slice_label
   )
-  out <- rbind(pseudo[, common], checks[, common])
+  panel_levels <- unique(dat$panel)
+  max_or_na <- function(x) if (any(is.finite(x))) max(x[is.finite(x)]) else NA_real_
+
+  key <- paste(dat$scenario_id, dat$panel)
+  out <- NULL
+  for (k in unique(key)) {
+    x <- dat[key == k, , drop = FALSE]
+    dh <- x[startsWith(x$diagnostic, "DHARMa"), , drop = FALSE]
+    pg <- x[startsWith(x$diagnostic, "Pregibon"), , drop = FALSE]
+    ai <- x[x$diagnostic == "AIC favors generating link", , drop = FALSE]
+    out <- rbind(out, data.frame(
+      panel = x$panel[1],
+      x_value = x$x_value[1],
+      quantity = c(
+        "Pseudo-interaction detection",
+        "AIC favors generating link",
+        "DHARMa, highest check",
+        "Pregibon-style check",
+        "DHARMa, highest check",
+        "Pregibon-style check"
+      ),
+      model = c(
+        "Wrong link",
+        "Wrong link",
+        "Wrong link",
+        "Wrong link",
+        "Correct link",
+        "Correct link"
+      ),
+      rate = c(
+        x$pseudo_interaction_detection_rate[1],
+        if (nrow(ai)) ai$detection_rate[1] else NA_real_,
+        max_or_na(dh$detection_rate),
+        if (nrow(pg)) pg$detection_rate[1] else NA_real_,
+        max_or_na(dh$correct_link_flag_rate),
+        if (nrow(pg)) pg$correct_link_flag_rate[1] else NA_real_
+      )
+    ))
+  }
+  out <- out[is.finite(out$rate), , drop = FALSE]
   out$panel <- factor(out$panel, levels = panel_levels)
   out
 }
 
+diagnostic_plot_theme <- function(p) {
+  p +
+    geom_line() +
+    geom_point(size = 2) +
+    scale_y_continuous(
+      limits = c(0, 1),
+      breaks = seq(0, 1, by = 0.2),
+      labels = function(x) paste0(round(100 * x), "%")
+    ) +
+    # facet_wrap, not facet_grid, so that each panel has its own x scale
+    # (the severity setting is an intercept or a main-effect multiplier)
+    facet_wrap(~panel, ncol = 2, scales = "free_x") +
+    theme_minimal(base_size = 10) +
+    theme(panel.grid.minor = element_blank(), legend.position = "top")
+}
+
+# Wrong-link model: pseudo-interaction, AIC, and how often each check flags it
 plot_diagnostic_atlas <- function() {
   dat <- make_diagnostic_plot_data()
+  dat <- dat[dat$model == "Wrong link", , drop = FALSE]
+  dat$quantity <- factor(dat$quantity, levels = c(
+    "Pseudo-interaction detection",
+    "AIC favors generating link",
+    "Pregibon-style check",
+    "DHARMa, highest check"
+  ))
 
-  ggplot(
+  p <- ggplot(
     dat,
     aes(
       x = x_value,
@@ -719,26 +767,41 @@ plot_diagnostic_atlas <- function() {
       shape = quantity
     )
   ) +
-    geom_line() +
-    geom_point(size = 2) +
-    # eight quantities, more than the six shapes of the default palette
-    scale_shape_manual(values = c(16, 17, 15, 3, 4, 8, 1, 2)) +
-    scale_y_continuous(
-      limits = c(0, 1),
-      breaks = seq(0, 1, by = 0.2),
-      labels = function(x) paste0(round(100 * x), "%")
-    ) +
-    # facet_wrap, not facet_grid, so that each panel has its own x scale
-    # (the severity setting is an intercept or a main-effect multiplier)
-    facet_wrap(~panel, ncol = 2, scales = "free_x") +
     labs(
       x = NULL,
       y = "Detection / selection rate",
       linetype = NULL,
       shape = NULL
-    ) +
-    theme_minimal(base_size = 10) +
-    theme(panel.grid.minor = element_blank(), legend.position = "top")
+    )
+  diagnostic_plot_theme(p)
+}
+
+# The same checks on the wrong-link and on the correct-link model: a check is
+# informative about the link only if the first rate clearly exceeds the second
+plot_diagnostic_calibration <- function() {
+  dat <- make_diagnostic_plot_data()
+  dat <- dat[dat$quantity %in% c("DHARMa, highest check", "Pregibon-style check"), , drop = FALSE]
+  dat$model <- factor(dat$model, levels = c("Wrong link", "Correct link"))
+  dat$series <- interaction(dat$quantity, dat$model, sep = ", ", drop = TRUE)
+
+  p <- ggplot(
+    dat,
+    aes(
+      x = x_value,
+      y = rate,
+      group = series,
+      linetype = model,
+      shape = quantity
+    )
+  ) +
+    geom_hline(yintercept = 0.05, linetype = "dotted", linewidth = 0.35) +
+    labs(
+      x = NULL,
+      y = "Flagging rate",
+      linetype = NULL,
+      shape = NULL
+    )
+  diagnostic_plot_theme(p)
 }
 
 aic_table <- function() {
@@ -760,6 +823,8 @@ aic_table <- function() {
   out <- data.frame(
     Case = unname(diagnostic_family_title[dat$family]),
     Setting = paste0(dat$slice_label, " = ", setting_value),
+    # share of replications with a finite product-term test under the wrong link
+    `Wrong-link fits` = pct(dat$pseudo_interaction_n_successful / dat$n_attempted),
     `Pseudo-interaction detection` = pct(dat$pseudo_interaction_detection_rate),
     `AIC favors generating link` = pct(dat$detection_rate),
     `Median delta AIC` = num(dat$aic_delta_median, 2),
@@ -840,7 +905,7 @@ scenario_counts <- table(grid$family)
 
 # Purpose and scope
 
-Supplement B extends the three manuscript simulations by varying selected parameters while keeping the true interaction equal to zero on the generating scale. It uses one-dimensional sensitivity slices and small main-effect surfaces rather than a full Cartesian design.
+Supplement B extends the three manuscript simulations and the diagnostic simulation by varying selected parameters while keeping the true interaction equal to zero on the generating scale. It uses one-dimensional sensitivity slices and small main-effect surfaces rather than a full Cartesian design.
 
 Reference scenarios retain the generating settings of the corresponding manuscript simulations. In every scenario, a rejection under the matched generating model estimates the nominal generating-scale rejection rate; under another scale, it is a **pseudo-interaction detection rate**. For forced choice, these primary rates use finite tests from fits passing the minimal lme4 fit-quality checks. Apparent rejection rates among flagged fits are reported separately. For the logit-probit and sum-score families, as in the manuscript, the rates use every finite test. Publication runs request 3,000 Monte Carlo replications.
 
@@ -1101,14 +1166,31 @@ Checks not listed were not applicable to the design. In particular, the design-c
 
 ```{r}
 #| label: fig-atlas-diagnostics
-#| fig-cap: "Diagnostic atlas. Pseudo-interaction detection is shown together with each diagnostic or candidate-model comparison. For each case, the sample-size slice (left) and the severity slice (right; intercept, or multiplier of the two main effects) are shown separately."
+#| fig-cap: "Diagnostic atlas, misspecified interaction model. Pseudo-interaction detection is shown together with the AIC comparison, the Pregibon-style check and the most sensitive DHARMa residual check of each scenario. For each case, the sample-size slice (left) and the severity slice (right; intercept, or multiplier of the two main effects) are shown separately; the manuscript scenario appears in both."
 #| fig-width: 10
 #| fig-height: 15
 
 plot_diagnostic_atlas()
 ```
 
-The rates in this figure answer different questions. Pseudo-interaction detection is the probability that the misspecified fitted scale yields a significant product term. Pregibon-style detection is the probability that the added-term link check flags a departure. AIC reports how often the generating link has the lower AIC within the specified candidate pair. The curves therefore need not be complements of one another. Diagnostic misalignment occurs when the interaction conclusion changes more readily than the diagnostic workflow signals a problem.
+The rates in this figure answer different questions. Pseudo-interaction detection is the probability that the misspecified fitted scale yields a significant product term. Pregibon-style detection is the probability that the added-term link check flags a departure. AIC reports how often the generating link has the lower AIC within the specified candidate pair. The curves therefore need not be complements of one another. Diagnostic misalignment occurs when the interaction conclusion changes more readily than the diagnostic workflow signals a problem. DHARMa is summarized by the highest flagging rate across its applicable residual checks, the upper end of the DHARMa range in the manuscript diagnostic table; the individual checks are reported in @tbl-atlas-diagnostic-calibration.
+
+In the count and Gamma cases the checks followed the pseudo-interaction. Across their slices, the Pregibon-style check flagged the identity-link count model in `r pct(dg_min("count", "^Pregibon"))` to `r pct(dg_max("count", "^Pregibon"))` of replications and the inverse-link Gamma model in `r pct(dg_min("gamma", "^Pregibon"))` to `r pct(dg_max("gamma", "^Pregibon"))`, rising with sample size and main-effect size together with pseudo-interaction detection, while it flagged the correct-link models in at most `r pct(dg_max(c("count", "gamma"), "^Pregibon", "correct_link_flag_rate"))`. Among the residual checks, the quantile check over the focal predictor was the most sensitive. It flagged the count model almost always with larger samples or stronger main effects than in the manuscript scenario, but the Gamma model in at most `r pct(dg_max("gamma", "focal predictor"))` of replications, at the strongest main effects.
+
+The three binomial cases differ. In no scenario did a DHARMa check flag the misspecified model more than `r formatC(100 * dharma_excess_binomial, format = "f", digits = 1)` percentage points more often than the correct-link model, although pseudo-interaction detection reached `r pct(pseudo_max_fc)` in the forced-choice case. The Pregibon-style check separated the two forced-choice models only in larger samples and at the highest intercept: at N = 1000 it flagged the standard logit in `r pct(dg_rate("D-FC-004", "Pregibon-style added-term link check"))` of replications and the chance-corrected logit in `r pct(dg_rate("D-FC-004", "Pregibon-style added-term link check", "correct_link_flag_rate"))`, and at intercept 1.50 in `r pct(dg_rate("D-FC-008", "Pregibon-style added-term link check"))` and `r pct(dg_rate("D-FC-008", "Pregibon-style added-term link check", "correct_link_flag_rate"))`, whereas at N = 100 and 250 it flagged the correct model more often, as in the manuscript. In the binary continuous-predictor case it flagged either model in `r pct(min(dg_min("binary_continuous", "^Pregibon"), dg_min("binary_continuous", "^Pregibon", "correct_link_flag_rate")))` to `r pct(max(dg_max("binary_continuous", "^Pregibon"), dg_max("binary_continuous", "^Pregibon", "correct_link_flag_rate")))` of replications in every scenario, close to the nominal rate.
+
+## Calibration of the checks
+
+```{r}
+#| label: fig-atlas-diagnostic-calibration
+#| fig-cap: "The same checks applied to the misspecified (solid) and to the correctly specified (dashed) interaction model fitted to the same data. A check is informative about the link only when the first rate clearly exceeds the second. DHARMa: highest flagging rate across the applicable residual checks, so the two DHARMa lines may refer to different checks. The dotted line marks nominal alpha."
+#| fig-width: 10
+#| fig-height: 15
+
+plot_diagnostic_calibration()
+```
+
+With the package defaults, DHARMa flagged the correctly specified mixed models more often as the number of participants grew. In the forced-choice case at N = 1000, the dispersion check flagged the correct chance-corrected model in `r pct(dg_rate("D-FC-004", "DHARMa dispersion", "correct_link_flag_rate"))` of replications and the uniformity check in `r pct(dg_rate("D-FC-004", "DHARMa uniformity", "correct_link_flag_rate"))`. With 1200 subjects, the design-cell check flagged the correct probit model in `r pct(dg_rate("D-WF-004", "DHARMa residual distribution across design cells", "correct_link_flag_rate"))` of replications in the 2 x 2 case, and the quantile check over fitted values did so in `r pct(dg_rate("D-BC-004", "DHARMa residual quantiles over fitted values", "correct_link_flag_rate"))` in the continuous-predictor case. In these cases, a larger sample made the residual checks fire more often under both links instead of separating them. For the count and Gamma GLMs, correct-link flagging stayed at or below `r pct(dg_max(c("count", "gamma"), "^DHARMa", "correct_link_flag_rate"))`, the highest value occurring in the smallest count sample.
 
 ## Strength of the AIC comparison
 
@@ -1116,10 +1198,14 @@ The rates in this figure answer different questions. Pseudo-interaction detectio
 #| label: tbl-atlas-aic
 #| tbl-cap: "AIC comparison across the diagnostic atlas. Positive delta AIC favors the generating link. The within-two column reports the proportion of finite comparisons with absolute delta AIC below 2."
 
-knitr::kable(aic_table(), align = c("l", "l", "r", "r", "r", "r", "r"))
+report_kable(aic_table(), align = c("l", "l", "r", "r", "r", "r", "r", "r"), long = TRUE)
 ```
 
 The AIC win rate is reported together with the magnitude of the difference because these describe different situations. A generating link that wins frequently by a very small margin is weaker evidence than one that wins by a large margin. As in the manuscript, these comparisons rank a limited candidate set. They do not identify the substantively correct scale by themselves.
+
+AIC favored the generating link in at least `r pct(dg_min(binomial_cases, "^AIC"))` of replications in every binomial scenario and in at least `r pct(dg_min("count", "^AIC"))` in the count scenarios. In the Gamma case it did so in `r pct(dg_min("gamma", "^AIC"))` to `r pct(dg_max("gamma", "^AIC"))` of replications, and with the main effects halved the absolute difference was below 2 in `r pct(dg_rate("D-GA-005", column = "aic_delta_within_two_rate"))` of them.
+
+The wrong-link fits column reports how often the misspecified model returned a finite product-term test. In the count case the identity-link Poisson fit, which needs positive fitted means, often failed when the main effects were large: it returned a test in `r pct(dg_rate("D-CT-007", column = "fit_success_rate"))` of replications at multiplier 1.25 and in `r pct(dg_rate("D-CT-008", column = "fit_success_rate"))` at 1.5. All rates for these two scenarios are conditional on the successful fits; as in the manuscript, non-converged GLMs are treated as failed fits.
 
 # Scope and interpretation
 

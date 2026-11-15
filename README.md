@@ -40,7 +40,7 @@ quarto render paper/paper-v2.qmd
 quarto render paper/Supplement-A-Technical-details.qmd
 ```
 
-`run.sh` runs the review, two figures, three main simulations, and diagnostics in
+`run.sh` runs the review, two figures, three main simulations, and diagnostics (with their flagging-rate figure) in
 order. The optional `scripts/00-sandbox-one-scenario.R` is run separately.
 
 The tracked files in `tables/`, `figs/` and `outputs/` are precomputed results.
@@ -78,6 +78,9 @@ offline workflow.
 
 - `04-diagnostic-worked-example.R`
   Compares pseudo-interaction detection rates with diagnostic detection rates and same-formula AIC comparisons under deliberately wrong-link fits.
+
+- `04b-figure-diagnostic-flagging.R`
+  Plots the DHARMa flagging rates at alpha = .05, correct versus wrong link, for each scenario and check, from `tables/diagnostic-calibration.csv` written by `04`; no new simulation. Also draws ROC curves of the same checks for inspection only (`outputs/inspection/diagnostic-roc.pdf`).
 
 ## Computational settings and individual runs
 

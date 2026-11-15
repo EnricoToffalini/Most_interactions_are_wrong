@@ -5,8 +5,10 @@
 Supplement B (`simulation-atlas/`) is an extension of the manuscript simulations:
 it repeats the same DGPs, fitted models, diagnostics and summaries over more
 levels and conditions. It must never use a different definition of anything the
-paper and Supplement A report. Its anchor scenarios must reproduce the
-manuscript ones.
+paper and Supplement A report. Its grid includes the manuscript parameter
+combinations, which must reproduce the manuscript results; they are ordinary
+grid scenarios and are not labelled or marked as manuscript scenarios anywhere
+(grid, summaries, Supplement B, Shiny app).
 
 Whenever you change a manuscript script (`scripts/`), or the methods described in
 `paper/paper-v2.qmd` or `paper/Supplement-A-Technical-details.qmd`, apply the same
@@ -21,9 +23,11 @@ change to the corresponding atlas code in the same task:
 | scenario parameters in any of the above | `simulation-atlas/01-build-scenario-grid.R` (values are repeated there, not read from `scripts/`) |
 | summary rules (fit filters, applicability of checks, rates) | `simulation-atlas/03-summarize-atlas.R` |
 
-Then check `simulation-atlas/README.md` and the text of
-`simulation-atlas/Supplement-B-Simulation-atlas.qmd`, and update anything they
-say about the changed definitions. When you finish, list any mismatch that remains
+Then check `simulation-atlas/README.md` and
+`simulation-atlas/Supplement-B-Simulation-atlas-explorer.qmd` (Supplement B: its
+introduction and the notes above each table), and update anything they say about
+the changed definitions. The full report in `simulation-atlas/archive/` is not
+maintained; leave it alone unless asked to restore it. When you finish, list any mismatch that remains
 and say why it is intended. For example, the atlas draws aggregated binomial
 counts in `02b`, which gives an equivalent likelihood.
 

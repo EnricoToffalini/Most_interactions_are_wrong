@@ -39,13 +39,15 @@ combinations, model labels, and slice memberships are retained.
   in the `correct_link_*` columns, the correct-link calibration rate. It performs
   no model fitting.
 - `raw/`: one ignored RDS file per scenario, run mode, and B.
-- `Supplement-B-Simulation-atlas.qmd`: reads precomputed CSV summaries.
-- `Supplement-B-Simulation-atlas-explorer.qmd`: interactive tables only, one
-  self-contained HTML file (`embed-resources`, `reactable`), usable as a paper
-  attachment. It reads the same summaries and reports the same rates, one row
-  per generating scenario with the fitted models as columns, plus the
-  diagnostic atlas in the layout of the manuscript's diagnostic table. No text,
-  figures or appendix.
+- `Supplement-B-Simulation-atlas-explorer.qmd`: **Supplement B**. Interactive
+  tables, one self-contained HTML file (`embed-resources`, `reactable`), usable
+  as a paper attachment. It reads the precomputed summaries and reports the
+  manuscript rates, one row per generating scenario with the fitted models as
+  columns (forced choice: each rate with the share of flagged, excluded fits
+  in brackets), plus the diagnostic atlas in the layout of the manuscript's
+  diagnostic table. A short introduction, no figures or appendix.
+- `archive/`: the earlier full report (text, figures, numerical appendix), no
+  longer Supplement B and not maintained; see `archive/README.md`.
 
 There is no `simulation-atlas/R/` helper framework. Parameters, seed arithmetic,
 DGPs, fits, and interaction extraction are local to each family runner.
@@ -54,7 +56,7 @@ DGPs, fits, and interaction extraction are local to each family runner.
 
 | Environment variable | Default / meaning |
 | --- | --- |
-| `ATLAS_MODE` | `full`; `smoke` selects one core anchor per family and the five diagnostic anchors |
+| `ATLAS_MODE` | `full`; `smoke` selects scenario 002 of each core family (FC, SS, WF) and of each diagnostic case (D-FC, D-WF, D-CT, D-BC, D-GA) |
 | `N_SIM` | **3000 for every full scenario**; 3 for smoke, unless explicitly overridden |
 | `N_CORES` | Explicit worker override |
 | `SLURM_CPUS_PER_TASK` | Worker count when `N_CORES` is unset |
@@ -116,7 +118,6 @@ Rscript simulation-atlas/02b-run-within-family.R
 Rscript simulation-atlas/02c-run-sum-scores.R
 Rscript simulation-atlas/02d-run-diagnostics.R
 Rscript simulation-atlas/03-summarize-atlas.R
-quarto render simulation-atlas/Supplement-B-Simulation-atlas.qmd
 quarto render simulation-atlas/Supplement-B-Simulation-atlas-explorer.qmd
 ```
 
@@ -124,8 +125,7 @@ To run the grid, all four families, and the summaries in separate R processes
 with the same environment settings, use `sh run-atlas.sh` from the repository
 root. This wrapper defaults to the full SLURM settings (`ATLAS_RUN_DHARMA=TRUE`,
 `ATLAS_OVERWRITE=TRUE`); explicitly set either variable to `FALSE` to override
-it. Render both versions of Supplement B afterward with the `quarto render`
-commands above.
+it. Render Supplement B afterward with the `quarto render` command above.
 
 On SLURM, leave `N_CORES` unset to use `SLURM_CPUS_PER_TASK` and prefix the R
 commands with `srun`. The existing `slurm/05-atlas.slurm` shows this sequence.
@@ -154,8 +154,8 @@ and rendered artifacts when the scenario grid or simulation code changes.
 
 The diagnostic definitions (checks, applicability, Pregibon refit, correct-link
 calibration) match `scripts/04-diagnostic-worked-example.R`. The Atlas covers
-all five manuscript diagnostic scenarios; each `D-*-002` row is the manuscript
-anchor, and the other rows vary sample size and severity. Severity is the
+all five manuscript diagnostic scenarios; in each case the rows vary sample size
+and severity, and the `D-*-002` row belongs to both sweeps. Severity is the
 intercept for the chance floor (`D-FC`) and the two binary repeated-trial cases
 (`D-WF`, `D-BC`, reference intercept), and a common multiplier of the two main
 effects for count (`D-CT`) and Gamma (`D-GA`): there the intercept only rescales

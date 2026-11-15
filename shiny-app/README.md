@@ -43,7 +43,7 @@ from the paper pipeline is currently hidden (its code is commented out in
 `app.R` and can be restored by uncommenting).
 
 The additional **Simulation atlas** tab explores precomputed sensitivity
-slices around the manuscript anchors. Full atlas files, when available, are
+slices. Full atlas files, when available, are
 read from the canonical `../simulation-atlas/data/` directory; smoke-test files
 are visibly labeled and are never presented as complete results. The original
 explorer remains usable when atlas summaries are absent. See
@@ -80,20 +80,17 @@ the app at the same repository-relative path.
 The tab is deliberately shallow: **one** control at the top selects the paper
 case (Simulation 1, 2 or 3, each labeled with its figure number), and a panel
 then states where to read that case in the paper, which figure the numbers
-belong to, and which supplement section documents them. Three wide, full-width
+belong to, and which supplement section documents them. Two wide, full-width
 pages follow, with no sidebars:
 
-1. **What the paper prints.** The manuscript anchors only, recomputed by the
-   atlas: one grouped bar chart plus a table, with the model fitted on the
-   generating scale outlined and flagged. Nothing to configure.
-2. **Beyond the paper's scenarios.** One small-multiples figure covers *every*
+1. **How far does the result travel?** One small-multiples figure covers *every*
    one-dimensional sensitivity slice at once (one panel per varied parameter),
    followed by the main-effect surface. A single radio button switches both
    figures between the Monte Carlo pseudo-interaction detection rate and the
    deterministic induced product term on the fitted link scale (the quantity
-   Supplement S5 tabulates). One grouped dropdown, with the manuscript anchors
-   listed first, opens any individual scenario in detail.
-3. **Do routine checks catch it?** The pseudo-interaction rate and every
+   Supplement S5 tabulates). One grouped dropdown opens any individual
+   scenario in detail.
+2. **Do routine checks catch it?** The pseudo-interaction rate and every
    computed diagnostic in one figure per varied parameter, plus the AIC
    magnitude table. No controls; the page names the corresponding scenario of
    the paper's diagnostic table.

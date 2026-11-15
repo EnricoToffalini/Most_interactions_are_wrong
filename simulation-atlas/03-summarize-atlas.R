@@ -91,7 +91,7 @@ rownames(core_summary) <- NULL
 ####################################################
 
 plan <- read.csv("simulation-atlas/data/diagnostic-grid.csv")
-if (mode == "smoke") plan <- plan[plan$diagnostic_paper_anchor | plan$family == "sum_scores", ]
+if (mode == "smoke") plan <- plan[plan$scenario_id %in% c("D-FC-002", "D-WF-002", "D-CT-002", "D-BC-002", "D-GA-002") | plan$family == "sum_scores", ]
 supported <- plan$scenario_id[plan$family != "sum_scores"]
 # prefer the files with DHARMa checks if all are present, else the DHARMa-free files
 paths <- sprintf("simulation-atlas/raw/diagnostic-%s-%s-B%d.rds", supported, mode, B)

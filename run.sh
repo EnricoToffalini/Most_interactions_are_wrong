@@ -11,3 +11,4 @@ Rscript --vanilla scripts/03a-simulation-forced-choice.R
 Rscript --vanilla scripts/03b-simulation-within-family-links.R
 Rscript --vanilla scripts/03c-simulation-sum-scores.R
 Rscript --vanilla scripts/04-diagnostic-worked-example.R
+Rscript --vanilla scripts/04b-figure-diagnostic-flagging.R

@@ -328,22 +328,13 @@ tables referenced from the manuscript.]{.card__desc}
 :::: {.grid}
 
 ::: {.card}
-[HTML report]{.card__kind}
-
-[Simulation atlas (Supplement B)](simulation-atlas/Supplement-B-Simulation-atlas.html){.card__title}
-
-[Extended sensitivity analyses around the manuscript scenarios, well beyond the
-conditions printed in the paper.]{.card__desc}
-:::
-
-::: {.card}
 [Interactive tables]{.card__kind}
 
-[Simulation atlas explorer](simulation-atlas/Supplement-B-Simulation-atlas-explorer.html){.card__title}
+[Simulation atlas (Supplement B)](simulation-atlas/Supplement-B-Simulation-atlas-explorer.html){.card__title}
 
 [Every atlas scenario in filterable tables: rejection rates of each fitted
 model across sample sizes, intercepts, trials, main effects and the other
-varied parameters, with the paper scenarios marked.]{.card__desc}
+varied parameters, plus the diagnostic atlas.]{.card__desc}
 :::
 
 ::::

@@ -20,7 +20,7 @@ dir.create("simulation-atlas/raw", recursive = TRUE, showWarnings = FALSE)
 
 grid <- read.csv("simulation-atlas/data/diagnostic-grid.csv")
 scenarios <- grid[grid$family != "sum_scores", ]
-if (mode == "smoke") scenarios <- scenarios[scenarios$diagnostic_paper_anchor, ]
+if (mode == "smoke") scenarios <- scenarios[scenarios$scenario_id %in% c("D-FC-002", "D-WF-002", "D-CT-002", "D-BC-002", "D-GA-002"), ]
 
 pval <- function(test) if (inherits(test, "try-error") || length(test$p.value) != 1) NA else test$p.value
 # DHARMa testCategorical with defaults; flagged if any within-cell uniformity test

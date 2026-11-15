@@ -1,0 +1,184 @@
+﻿==============================================================================
+01. PAGINA 2
+Sezione / posizione: Abstract
+Rettangolo evidenziato: x=71.5-539.6; y=100.8-285.2.
+
+Testo evidenziato:
+Equal differences on one scale become different differences on another scale. This is crucial for
+interaction testing because an interaction is a difference between differences, and in psychological
+research the observed response and the construct of interest are often expressed on different
+scales. Therefore, the same data can show an interaction on one scale and not on another.
+Generalized Linear Models make this problem explicit by separating two decisions, the family, which
+describes the nature of the response variable, and the link function, which sets the scale on which
+effects are additive. Because a model without an interaction term is additive on the link scale,
+choosing a link is choosing what ‘no interaction’ means.
+
+Commento originale:
+forse qui ridurre perché il rischio maggiore è percezione di "no novelty"
+
+==============================================================================
+02. PAGINA 2
+Sezione / posizione: Abstract
+Rettangolo evidenziato: x=71.5-514.5; y=268.2-309.1.
+
+Testo evidenziato:
+The paper has two connected parts.
+
+Commento originale:
+raccordo goffo, togliere
+
+==============================================================================
+03. PAGINA 2
+Sezione / posizione: Abstract
+Rettangolo evidenziato: x=71.5-518.9; y=292.1-380.8.
+
+Testo evidenziato:
+a preregistered review of recent articles from five prominent psychology journals shows that
+interaction testing is routinely performed in research, that the link function is most often
+unspecified, and that constrained outcomes are frequently analyzed with Gaussian identity-link
+models.
+
+Commento originale:
+forse vale la pena spendere qualche parola in più sui risultati della preregistered review risparmiando parole dalle frasi iniziali?
+
+==============================================================================
+04. PAGINA 3
+Sezione / posizione: The Link Function Problem in Psychological Interaction Testing - apertura
+Rettangolo evidenziato: x=107.5-277.3; y=127.6-144.6.
+
+Testo evidenziato:
+We start with a simplified example.
+
+Commento originale:
+altro raccordo goffo da togliere
+
+==============================================================================
+05. PAGINA 4
+Sezione / posizione: Introduzione - dipendenza dalla scala e misurazione
+Rettangolo evidenziato: x=131.8-175.6; y=480.5-497.4.
+
+Testo evidenziato:
+routinely
+
+Contesto:
+Researchers routinely conceptualize constructs such as cognitive ability or symptom severity as
+continuous latent dimensions (Embretson & Reise, 2000; Wagenmakers et al., 2012).
+
+Commento originale:
+forse "routinely" non è la parola giusta
+
+==============================================================================
+06. PAGINA 6
+Sezione / posizione: Introduzione - letteratura sulla dipendenza dalla scala
+Rettangolo evidenziato: x=71.5-507.5; y=408.7-449.6.
+
+Testo evidenziato:
+More recently, Wagenmakers et al. (2012) separated removable from nonremovable interactions.
+
+Commento originale:
+verificare se è davvero "recent": a me il concetto di removability sembrava più vecchio; comunque basta cambiare il wording leggermente
+
+==============================================================================
+07. PAGINA 7
+Sezione / posizione: Introduzione - presentazione degli obiettivi del lavoro
+Rettangolo evidenziato: x=71.5-517.0; y=289.2-330.1.
+
+Testo evidenziato:
+We then develop a framework that separates outcome family, link function, and target metric, and
+work it through three cases
+
+Contesto:
+Il passaggio prosegue con i tre casi: forced-choice accuracy with a chance floor, choice between
+logit and probit links, and sum scores.
+
+Commento originale:
+forse qui essere espliciti nell'ancorarlo a GLM?
+
+==============================================================================
+08. PAGINA 9
+Sezione / posizione: Current Practice in Psychological Interaction Testing: A Preregistered Review - Review Method
+Rettangolo evidenziato: x=95.4-343.6; y=169.7-186.6.
+
+Testo evidenziato:
+when the constraint was identifiable from the report
+
+Contesto:
+By a Gaussian-identity analysis on a constrained outcome we mean a Gaussian linear regression with
+an identity link applied to an outcome with formal constraints, such as bounds, discreteness,
+positivity, or a known chance level. This is a conservative screening flag, applied only when the
+constraint was identifiable from the report and does not imply the substantive conclusion is wrong.
+
+Commento originale:
+si intende tipo che c'è scritto "ANOVA" immagino, ma forse va chiarito?
+
+==============================================================================
+09. PAGINA 11
+Sezione / posizione: Table 1 - Descriptive summary of the preregistered review
+Rettangolo evidenziato: x=71.5-540.5; y=440.8-471.4.
+
+Testo evidenziato:
+Interaction-testing articles with interactions on latent outcomes only | n = 8 | Denom. = 208 | 3.8%
+| 95% CI (%) = [2.0, 7.4]
+
+Commento originale:
+questo è ridondante ma informativo per esplicitare e quantificare meglio il caso delle latenti
+
+==============================================================================
+10. PAGINA 11
+Sezione / posizione: Table 1 - Descriptive summary of the preregistered review
+Rettangolo evidenziato: x=71.5-540.5; y=594.2-624.8.
+
+Testo evidenziato:
+Eligible empirical articles not testing interactions | n = 137 | Denom. = 345 | 39.7% | 95% CI (%) =
+[34.7, 45.0]
+
+Commento originale:
+questo dato sembra completamente ridondante e da togliere
+
+==============================================================================
+11. PAGINA 12
+Sezione / posizione: Review Findings - paragrafo conclusivo dopo Table 2
+Rettangolo evidenziato: x=107.5-534.7; y=478.6-495.6.
+
+Testo evidenziato:
+A descriptive review cannot establish how often published interactions are scale artifacts,
+
+Commento originale:
+formulazione brutta in terza persona
+
+==============================================================================
+12. PAGINA 13
+Sezione / posizione: The Link Function Problem in Three Common Cases - apertura
+Rettangolo evidenziato: x=71.5-520.4; y=100.8-165.6.
+
+Testo evidenziato:
+To show what link misspecification does to interaction tests, we conducted three simulation studies.
+Each asks whether a data-generating process that is purely additive on one scale yields a
+statistically significant interaction when it is modeled on another scale.
+
+Commento originale:
+compattare questo inizio con il paragrafo subito sotto che riconosce la letteratura pregressa, in modo da sembrare meno naive
+
+==============================================================================
+13. PAGINA 30
+Sezione / posizione: Discussion
+Rettangolo evidenziato: x=278.5-333.5; y=73.2-91.8.
+
+Testo evidenziato:
+Discussion
+
+Commento originale:
+forse "Conclusions?" alcune formulazioni da umanizzare ma la logica mi sembra ok
+
+==============================================================================
+14. PAGINA 30
+Sezione / posizione: Discussion
+Rettangolo evidenziato: x=71.5-532.9; y=531.2-572.0.
+
+Testo evidenziato:
+This difficulty is of a different kind from the one documented in work on the precision of
+interaction estimates (Baranger et al., 2023; Castillo et al., 2026).
+
+Commento originale:
+troppo compatto qui, inoltre Castillo riconosce il problema della dipendenza dalla scala
+

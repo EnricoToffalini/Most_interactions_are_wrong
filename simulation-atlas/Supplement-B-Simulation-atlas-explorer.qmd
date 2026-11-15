@@ -1,5 +1,6 @@
 ---
-title: "Supplement B - Simulation Atlas: interactive tables"
+title: "Supplement B - Simulation Atlas"
+subtitle: "Extended sensitivity analyses for The Link Function Problem in Psychological Interaction Testing"
 author:
   - Margherita Calderan
   - Filippo Gambarota
@@ -19,6 +20,7 @@ format:
         <style>
         .tab-note { font-size: .85rem; color: #5f5f5f; margin: .2rem 0 .6rem; }
         .reactable { font-size: .84rem; font-variant-numeric: tabular-nums; }
+        .flag-note { font-size: .72rem; opacity: .8; white-space: nowrap; }
         .reactable select {
           width: 100%; height: 1.7rem; font-size: .78rem;
           border: 1px solid #d6d6d6; border-radius: 3px; background: #fff;
@@ -32,11 +34,11 @@ editor: source
 ---
 
 <!--
-Interactive companion of Supplement B: the atlas results only, one filterable
-table per manuscript simulation plus the diagnostic atlas. It reads the same
-precomputed summaries as Supplement-B-Simulation-atlas.qmd and uses the same
-rates (forced choice: fits passing the minimal lme4 checks; other families:
-every finite p-value). Render with
+Supplement B: the atlas results as filterable tables, one per manuscript
+simulation plus the diagnostic atlas. It reads the precomputed summaries in
+data/ and uses the rates of the manuscript (forced choice: fits passing the
+minimal lme4 checks; other families: every finite p-value). The earlier full
+report with text and figures is archived in archive/. Render with
 
     quarto render simulation-atlas/Supplement-B-Simulation-atlas-explorer.qmd
 -->
@@ -55,9 +57,8 @@ diagnostic <- read.csv(here("simulation-atlas/data/diagnostic-atlas-summary.csv"
 pct <- function(x) ifelse(is.finite(x), sprintf("%.1f%%", 100 * x), "--")
 par_text <- function(x) ifelse(is.finite(x), as.character(round(x, 4)), "--")
 
-# Which parameter each scenario varies with respect to the paper scenarios
+# Sensitivity sweeps, in the order the rows are listed
 varied_label <- c(
-  paper_anchor = "--",
   main_effect_surface = "Main effects",
   sample_size = "Sample size",
   scale_location = "Intercept",
@@ -70,21 +71,23 @@ varied_label <- c(
 )
 varied_order <- unname(unique(varied_label))
 
-# One row per generating scenario, one rate column per fitted model
-wide <- function(family, models) {
+# One row per generating scenario, one rate column per fitted model (plus
+# "<column>_flag", the share of that model's fits failing the fit-quality checks)
+wide <- function(family, models, sort_by) {
   dat <- core[core$family == family, ]
   out <- dat[!duplicated(dat$scenario_id), ]
   for (m in names(models)) {
     d <- dat[dat$model_label == m, ]
     out[[models[[m]]]] <- d$rejection_rate_ok[match(out$scenario_id, d$scenario_id)]
+    out[[paste0(models[[m]], "_flag")]] <- d$fit_problem_rate[match(out$scenario_id, d$scenario_id)]
   }
-  out$paper <- ifelse(out$paper_anchor %in% TRUE, out$scenario_label, "")
-  # Shown: the parameter varied by this scenario. Filtered: every sweep the
-  # scenario belongs to, so that a sweep also lists the paper scenarios in it.
-  out$varied_main <- factor(varied_label[out$slice], levels = varied_order)
-  out$varied <- vapply(strsplit(out$slice_membership, ";", fixed = TRUE), function(z)
-    paste(setdiff(unique(varied_label[z]), "--"), collapse = "; "), "")
-  out[order(!(out$paper_anchor %in% TRUE), out$varied_main), ]
+  # rows ordered by sweep (the first one, for a scenario shared by several), then by the parameter values
+  first <- vapply(strsplit(out$slice_membership, ";", fixed = TRUE), function(z) {
+    v <- unname(varied_label[z])
+    v[!is.na(v)][1]
+  }, "")
+  out$varied_main <- factor(first, levels = varied_order)
+  out[do.call(order, c(list(out$varied_main), unname(as.list(out[sort_by])))), ]
 }
 
 # Rates above alpha = .05 are shaded red, more intensely as they approach 1
@@ -100,11 +103,6 @@ exact_js <- JS("function(rows, id, value) {
     var v = row.values[id];
     if (typeof v === 'number') return Math.abs(v - Number(value)) < 1e-9;
     return String(v) === value;
-  });
-}")
-member_js <- JS("function(rows, id, value) {
-  return rows.filter(function(row) {
-    return String(row.values[id]).split('; ').indexOf(value) >= 0;
   });
 }")
 select_filter <- function(table_id, choices = NULL) {
@@ -127,13 +125,13 @@ col_par <- function(name, table_id, width = 80) {
 col_chr <- function(name, table_id, width = 110) {
   colDef(name = name, minWidth = width, filterMethod = exact_js, filterInput = select_filter(table_id))
 }
-col_varied <- function(table_id, shown, sweeps) {
-  colDef(name = "Varied", minWidth = 100, sortable = FALSE, cell = function(value, index) as.character(shown[index]),
-         filterMethod = member_js, filterInput = select_filter(table_id, sweeps))
-}
-col_rate <- function(name, width = 88, shade = TRUE) {
-  colDef(name = name, minWidth = width, align = "right", filterable = FALSE,
-         cell = function(value) pct(value), style = if (shade) rate_style)
+# flag: optional share of flagged (excluded) fits, shown in brackets under the rate
+col_rate <- function(name, width = 88, shade = TRUE, flag = NULL) {
+  colDef(name = name, minWidth = width, align = "right", filterable = FALSE, style = if (shade) rate_style,
+         cell = function(value, index) {
+           if (is.null(flag)) return(pct(value))
+           tagList(pct(value), tags$div(class = "flag-note", sprintf("(%s flagged)", pct(flag[index]))))
+         })
 }
 
 atlas_table <- function(out, table_id, columns, groups) {
@@ -148,9 +146,11 @@ atlas_table <- function(out, table_id, columns, groups) {
 }
 ```
 
+Each table repeats a simulation of the manuscript over a declared set of sensitivity scenarios, varying one parameter at a time (or two main effects jointly). Generating interactions are always zero, so a rejection under the matched model estimates the nominal rate and under any other model a pseudo-interaction rate. Each scenario has 3,000 Monte Carlo replications; rates use α = .05 and the replications with a valid test, as stated above each table. The drop-down filters select parameter values; fixing all parameters but one lists a sensitivity sweep. The scenario grid, simulation code and summaries are in the `simulation-atlas/` folder of the project repository.
+
 ## Simulation 1: Forced-choice accuracy
 
-[Product-term rejection rate at α = .05 among fits passing the minimal fit-quality checks. The age-by-group term is zero on the chance-corrected logit scale; the chance-corrected model is the matched model. *Flagged fits*: share of chance-corrected fits failing the checks. Coefficients on the generating scale; random-intercept ICC .30. *Varied*: parameter changed with respect to the paper scenarios; filtering it lists the whole sweep, paper scenarios included.]{.tab-note}
+[Product-term rejection rate at α = .05 among fits passing the minimal fit-quality checks; in brackets under each rate, the share of that model's fits flagged by the checks and therefore excluded. The age-by-group term is zero on the chance-corrected logit scale; the chance-corrected model is the matched model. Coefficients on the generating scale; random-intercept ICC .30.]{.tab-note}
 
 ```{r}
 #| label: tab-forced-choice
@@ -161,29 +161,24 @@ fc <- wide("forced_choice", c(
   "Standard binomial logit" = "logit",
   "Standard binomial probit" = "probit",
   "Gaussian identity" = "gauss"
-))
-fc$flagged <- with(core[core$family == "forced_choice" & core$model_label == "Chance-corrected binomial logit", ],
-                   fit_problem_rate[match(fc$scenario_id, scenario_id)])
+), sort_by = c("N", "k_trials", "chance", "beta_intercept", "beta_age", "beta_group"))
 
 atlas_table(fc, id,
   columns = list(
-    paper = col_chr("Paper scenario", id),
-    varied = col_varied(id, fc$varied_main, c("Main effects", "Sample size", "Intercept", "Trials", "Chance level")),
     N = col_par("N", id),
     k_trials = col_par("Trials", id),
     chance = col_par("Chance level", id),
     beta_intercept = col_par("Intercept", id),
     beta_age = col_par("Age coef.", id),
     beta_group = col_par("Group coef.", id),
-    cc = col_rate("Chance-corrected logit (matched)"),
-    logit = col_rate("Standard logit"),
-    probit = col_rate("Standard probit"),
-    gauss = col_rate("Gaussian identity"),
-    flagged = col_rate("Flagged fits", shade = FALSE)
+    cc = col_rate("Chance-corrected logit (matched)", 100, flag = fc$cc_flag),
+    logit = col_rate("Standard logit", 100, flag = fc$logit_flag),
+    probit = col_rate("Standard probit", 100, flag = fc$probit_flag),
+    gauss = col_rate("Gaussian identity", 100, flag = fc$gauss_flag)
   ),
   groups = list(
-    colGroup("Generating scenario", c("paper", "varied", "N", "k_trials", "chance", "beta_intercept", "beta_age", "beta_group")),
-    colGroup("Rejection rate by fitted GLMM / LMM", c("cc", "logit", "probit", "gauss", "flagged"))
+    colGroup("Generating scenario", c("N", "k_trials", "chance", "beta_intercept", "beta_age", "beta_group")),
+    colGroup("Rejection rate by fitted GLMM / LMM (in brackets: fits flagged and excluded)", c("cc", "logit", "probit", "gauss"))
   )
 )
 ```
@@ -196,7 +191,8 @@ atlas_table(fc, id,
 #| label: tab-within-family
 
 id <- "atlas-within-family"
-wf <- wide("within_family", c("Binomial logit" = "fit_logit", "Binomial probit" = "fit_probit"))
+wf <- wide("within_family", c("Binomial logit" = "fit_logit", "Binomial probit" = "fit_probit"),
+           sort_by = c("n_subjects", "k_trials", "target_icc", "beta_intercept", "beta_group", "beta_condition"))
 logit_gen <- wf$generating_link == "logit"
 wf$matched <- ifelse(logit_gen, wf$fit_logit, wf$fit_probit)
 wf$wrong <- ifelse(logit_gen, wf$fit_probit, wf$fit_logit)
@@ -205,8 +201,6 @@ wf <- wf[order(wf$generating_link != "probit"), ]
 atlas_table(wf, id,
   columns = list(
     generating_link = col_chr("Generating link", id, 90),
-    paper = col_chr("Paper scenario", id),
-    varied = col_varied(id, wf$varied_main, c("Main effects", "Sample size", "Intercept", "Trials", "ICC")),
     n_subjects = col_par("Participants", id, 95),
     k_trials = col_par("Trials per cell", id),
     target_icc = col_par("ICC", id),
@@ -217,7 +211,7 @@ atlas_table(wf, id,
     wrong = col_rate("Wrong link")
   ),
   groups = list(
-    colGroup("Generating scenario", c("generating_link", "paper", "varied", "n_subjects", "k_trials", "target_icc", "beta_intercept", "beta_group", "beta_condition")),
+    colGroup("Generating scenario", c("generating_link", "n_subjects", "k_trials", "target_icc", "beta_intercept", "beta_group", "beta_condition")),
     colGroup("Rejection rate by fitted link", c("matched", "wrong"))
   )
 )
@@ -235,12 +229,10 @@ ss <- wide("sum_scores", c(
   "Latent generating scale" = "latent",
   "Observed sum-score identity" = "identity",
   "Gaussian-probit bounded score" = "bounded"
-))
+), sort_by = c("N", "J", "theta_sd", "threshold_shift", "beta_x", "beta_group"))
 
 atlas_table(ss, id,
   columns = list(
-    paper = col_chr("Paper scenario", id),
-    varied = col_varied(id, ss$varied_main, c("Main effects", "Sample size", "Intercept", "Number of items", "Latent SD")),
     N = col_par("N", id),
     J = col_par("Items", id),
     theta_sd = col_par("Latent SD", id),
@@ -252,7 +244,7 @@ atlas_table(ss, id,
     bounded = col_rate("Bounded-score probit")
   ),
   groups = list(
-    colGroup("Generating scenario", c("paper", "varied", "N", "J", "theta_sd", "threshold_shift", "beta_x", "beta_group")),
+    colGroup("Generating scenario", c("N", "J", "theta_sd", "threshold_shift", "beta_x", "beta_group")),
     colGroup("Rejection rate by fitted model", c("latent", "identity", "bounded"))
   )
 )
@@ -260,7 +252,7 @@ atlas_table(ss, id,
 
 ## Diagnostics
 
-[Count: Poisson log-generated data fitted with an identity (wrong) versus a log (correct) link. Chance-floor accuracy: standard logit (wrong) versus chance-corrected logit (correct) GLMMs, from the lower-performance scenario of Simulation 1. Binary repeated trials: probit-generated data fitted with a logit (wrong) versus a probit (correct) GLMM, in the 2 x 2 design and with a continuous predictor x ~ Uniform(0, 1). Gamma: log-generated data fitted with an inverse (wrong) versus a log (correct) link. *N*: participants. *Main effects*: multiplier of the two main effects (count and Gamma only), the severity setting where the intercept only rescales the means. Flagging rates are given as correct / wrong link; DHARMa: range across the residual checks applicable to the design, package defaults; Pregibon: N.I. = not identifiable in the saturated 2 x 2 design. *AIC prefers correct*: share of replications in which the correct-link model had the lower AIC.]{.tab-note}
+[Count: Poisson log-generated data fitted with an identity (wrong) versus a log (correct) link. Chance-floor accuracy: standard logit (wrong) versus chance-corrected logit (correct) GLMMs, with the generating model of Simulation 1. Binary repeated trials: probit-generated data fitted with a logit (wrong) versus a probit (correct) GLMM, in the 2 x 2 design and with a continuous predictor x ~ Uniform(0, 1). Gamma: log-generated data fitted with an inverse (wrong) versus a log (correct) link. *N*: participants. *Main effects*: multiplier of the two main effects (count and Gamma only), the severity setting where the intercept only rescales the means. Flagging rates are given as correct / wrong link; DHARMa: range across the residual checks applicable to the design, package defaults; Pregibon: N.I. = not identifiable in the saturated 2 x 2 design. *AIC prefers correct*: share of replications in which the correct-link model had the lower AIC. *Wrong-link fits*: share of replications in which the wrong-link model returned a finite product-term test; the other rates are conditional on these fits (non-converged GLMs count as failed, as in the manuscript).]{.tab-note}
 
 ```{r}
 #| label: tab-diagnostics
@@ -291,14 +283,11 @@ out <- do.call(rbind, lapply(split(dg, dg$scenario_id), function(d) {
   severity <- if (d$family[1] %in% c("count", "gamma")) "Main effects" else "Intercept"
   data.frame(
     case = unname(case_label[d$family[1]]),
-    paper = if (d$diagnostic_paper_anchor[1] %in% TRUE) "Yes" else "",
-    varied_main = if (d$diagnostic_paper_anchor[1] %in% TRUE) "--" else
-      if (grepl("sample_size", d$diagnostic_slice_membership[1])) "Sample size" else severity,
-    varied = paste(c("Sample size", severity)[c(grepl("sample_size", d$diagnostic_slice_membership[1]),
-                                                grepl("severity", d$diagnostic_slice_membership[1]))], collapse = "; "),
+    varied_main = if (grepl("sample_size", d$diagnostic_slice_membership[1])) "Sample size" else severity,
     n = if (d$family[1] %in% c("within_family", "binary_continuous")) d$n_subjects[1] else d$N[1],
     intercept = d$beta_intercept[1],
     multiplier = if (d$family[1] %in% c("count", "gamma")) d$beta_main_1_multiplier[1] else NA_real_,
+    fits = d$pseudo_interaction_n_successful[1] / d$n_attempted[1],
     pseudo = d$pseudo_interaction_detection_rate[1],
     dharma = pair_text(range_text(dh$correct_link_flag_rate), range_text(dh$detection_rate)),
     pregibon = if (!nrow(pg) || !(pg$applicable[1] %in% TRUE)) "N.I." else if (!pg$used[1]) "--" else
@@ -307,25 +296,24 @@ out <- do.call(rbind, lapply(split(dg, dg$scenario_id), function(d) {
     stringsAsFactors = FALSE
   )
 }))
-out$varied_main <- factor(out$varied_main, levels = c("--", "Sample size", "Intercept", "Main effects"))
+out$varied_main <- factor(out$varied_main, levels = c("Sample size", "Intercept", "Main effects"))
 out <- out[order(match(out$case, case_label), out$varied_main, out$n, out$intercept, out$multiplier), ]
 
 atlas_table(out, id,
   columns = list(
     case = col_chr("Case", id, 150),
-    paper = col_chr("Paper scenario", id, 90),
-    varied = col_varied(id, out$varied_main, c("Sample size", "Intercept", "Main effects")),
     n = col_par("N", id),
     intercept = col_par("Intercept", id),
     multiplier = col_par("Main effects", id),
+    fits = col_rate("Wrong-link fits", 80, shade = FALSE),
     pseudo = col_rate("Pseudo-interaction rate, wrong link", 120),
     dharma = colDef(name = "DHARMa flagging, correct / wrong link", minWidth = 195, align = "right", filterable = FALSE),
     pregibon = colDef(name = "Pregibon flagging, correct / wrong link", minWidth = 130, align = "right", filterable = FALSE),
     aic = col_rate("AIC prefers correct link", 100, shade = FALSE)
   ),
   groups = list(
-    colGroup("Scenario", c("case", "paper", "varied", "n", "intercept", "multiplier")),
-    colGroup("Rates across replications", c("pseudo", "dharma", "pregibon", "aic"))
+    colGroup("Scenario", c("case", "n", "intercept", "multiplier")),
+    colGroup("Rates across replications", c("fits", "pseudo", "dharma", "pregibon", "aic"))
   )
 )
 ```

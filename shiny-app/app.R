@@ -125,11 +125,10 @@ ui <- fluidPage(
         "precomputed sensitivity summaries."),
       h4("If you have the paper in front of you"),
       p("Go straight to the ", strong("Simulation atlas"), " tab. It is organized by",
-        "manuscript case: choose Simulation 1, 2 or 3, and the first page recomputes",
-        "exactly the scenarios printed in that simulation's figure, with the paper",
-        "section, figure number and supplement reference stated on screen. The two",
-        "further pages ask how far the result travels beyond those scenarios and",
-        "whether routine model checks would have caught the problem.")
+        "manuscript case: choose Simulation 1, 2 or 3, with the paper section, figure",
+        "number and supplement reference stated on screen. The two pages ask how far",
+        "the result travels across sample sizes, scale locations and the other varied",
+        "parameters, and whether routine model checks would have caught the problem.")
     ),
 
     # Tab 2 ----------------------------------------------------------------
@@ -309,7 +308,7 @@ ui <- fluidPage(
 
     # Simulation atlas ------------------------------------------------------
     # Deliberately organised around the manuscript: one choice at the top, then
-    # three wide pages that answer three questions in the paper's own order.
+    # two wide pages that answer two questions in the paper's own order.
     tabPanel(
       "Simulation atlas",
       br(),
@@ -329,15 +328,13 @@ ui <- fluidPage(
               " simulations in the browser."),
             tags$ol(
               tags$li("Pick the simulation you are currently reading. That single choice",
-                      " drives all three pages below."),
-              tags$li(strong("Page 1"), " recomputes exactly the scenarios printed in the",
-                      " paper, so the numbers can be read side by side with the figure."),
-              tags$li(strong("Page 2"), " leaves the paper and asks how far its result",
-                      " travels; ", strong("page 3"), " asks whether routine model checks",
-                      " would have warned the analyst.")
+                      " drives both pages below."),
+              tags$li(strong("Page 1"), " asks how far the paper's result travels across",
+                      " the declared sensitivity scenarios; ", strong("page 2"), " asks whether",
+                      " routine model checks would have warned the analyst.")
             ),
-            p(em("The atlas is a set of declared sensitivity slices around the manuscript",
-                 " anchors, not an exhaustive map of psychological settings."))
+            p(em("The atlas is a set of declared sensitivity slices, not an exhaustive map",
+                 " of psychological settings."))
           )
         ),
         uiOutput("atlas_status"),
@@ -350,20 +347,7 @@ ui <- fluidPage(
       tabsetPanel(
 
         tabPanel(
-          "1. What the paper prints",
-          br(),
-          fluidRow(column(
-            12,
-            uiOutput("atlas_anchor_intro"),
-            plotOutput("atlas_anchor_plot", height = "440px"),
-            br(),
-            tableOutput("atlas_anchor_table"),
-            uiOutput("atlas_anchor_note")
-          ))
-        ),
-
-        tabPanel(
-          "2. Beyond the paper's scenarios",
+          "1. How far does the result travel?",
           br(),
           fluidRow(column(
             12,
@@ -382,7 +366,7 @@ ui <- fluidPage(
             hr(),
             h4("Any single scenario in detail"),
             p("The same numbers, one scenario at a time, with the expected values the",
-              "scenario was generated from. Manuscript anchors are listed first."),
+              "scenario was generated from."),
             uiOutput("atlas_scenario_ui"),
             fluidRow(
               column(5, plotOutput("atlas_expected_plot", height = "340px")),
@@ -397,7 +381,7 @@ ui <- fluidPage(
         ),
 
         tabPanel(
-          "3. Do routine checks catch it?",
+          "2. Do routine checks catch it?",
           br(),
           fluidRow(column(
             12,
@@ -759,7 +743,7 @@ server <- function(input, output, session) {
 
   # Simulation atlas: compact precomputed summaries only --------------------
   # One reactive family, derived from the single top-level control, feeds every
-  # display on all three atlas pages.
+  # display on both atlas pages.
   output$atlas_status <- renderUI({
     class <- if (ATLAS_DATA$run_type == "full") "alert alert-info" else "alert alert-warning"
     tags$div(class = class, ATLAS_DATA$message)
@@ -771,11 +755,6 @@ server <- function(input, output, session) {
       "The precomputed atlas is not installed. See simulation-atlas/README.md."
     ))
     input$atlas_case
-  })
-
-  atlas_replications <- reactive({
-    rows <- ATLAS_DATA$core[ATLAS_DATA$core$family == atlas_family(), , drop = FALSE]
-    unique(rows$B_requested)
   })
 
   # The paper reference stays visible; the longer design prose is folded away so
@@ -792,7 +771,7 @@ server <- function(input, output, session) {
       tags$div(
         class = "panel-body",
         line("Where to read it", guide$section),
-        line("Figure these numbers belong to",
+        line("Figure in the paper",
              sprintf("%s. %s.", guide$figure, guide$figure_panel)),
         line("Supplement", guide$supplement),
         tags$details(
@@ -809,64 +788,7 @@ server <- function(input, output, session) {
     )
   })
 
-  # Page 1: the manuscript anchors -----------------------------------------
-  atlas_anchors <- reactive({
-    rows <- atlas_anchor_data(ATLAS_DATA$core, atlas_family())
-    validate(need(nrow(rows) > 0, "No manuscript anchors are stored for this case."))
-    rows
-  })
-
-  output$atlas_anchor_intro <- renderUI({
-    guide <- atlas_guide(atlas_family())
-    rows <- atlas_anchors()
-    tagList(
-      h4(sprintf("The scenarios behind %s of the paper", guide$figure)),
-      p("These are the manuscript's own scenarios, recomputed by the atlas with its",
-        "own deterministic seeds and", strong(sprintf("%s replications",
-                                                      paste(atlas_replications(), collapse = "/"))),
-        "per fitted model. Differences from the printed figure of a few percentage",
-        "points are Monte Carlo error, not a different result."),
-      p(sprintf(
-        "%d scenario(s) x %d fitted model(s) are shown. In each one the product term is exactly zero on the generating scale.",
-        length(unique(rows$scenario_id)), length(unique(rows$model_label))
-      ))
-    )
-  })
-
-  output$atlas_anchor_plot <- renderPlot({
-    plot <- atlas_anchor_plot(atlas_anchors())
-    validate(need(!is.null(plot), "No anchor plot is available for this case."))
-    plot + app_theme
-  })
-
-  output$atlas_anchor_table <- renderTable({
-    atlas_anchor_table(atlas_anchors())
-  }, striped = TRUE, bordered = TRUE, spacing = "s")
-
-  output$atlas_anchor_note <- renderUI({
-    rows <- atlas_anchors()
-    unstable <- rows[is.finite(rows$fit_success_rate) & rows$fit_success_rate < 0.95, , drop = FALSE]
-    tagList(
-      p("The induced product term is computed without any sampling: it is the",
-        "product term that the generating expected values already imply once they",
-        "are evaluated on the fitted link scale. Under a matched link it is zero by",
-        "construction; under a wrong link it is a fixed nonzero value, and that is",
-        "the reason the rejection rate departs from alpha. The rejection rate under",
-        "a wrong link reflects power to detect that fitted-scale product term."),
-      if (nrow(unstable)) {
-        tags$div(
-          class = "alert alert-warning",
-          tags$strong("Numerically demanding cells: "),
-          paste(sprintf("%s / %s (%.1f%% of fits converged)", unstable$anchor_x,
-                        unstable$model_label, 100 * unstable$fit_success_rate),
-                collapse = "; "),
-          ". The paper discusses this instability as itself informative."
-        )
-      }
-    )
-  })
-
-  # Page 2: beyond the anchors ---------------------------------------------
+  # Page 1: sensitivity scenarios -----------------------------------------
   output$atlas_beyond_intro <- renderUI({
     guide <- atlas_guide(atlas_family())
     tagList(
@@ -874,8 +796,7 @@ server <- function(input, output, session) {
       p("The paper reports a small number of tuned, transparent scenarios.",
         guide$beyond),
       p("Nothing here is interpolated: every point and tile is a precomputed",
-        "scenario. The anchors of", strong(guide$case), "appear as the central point of",
-        "each panel.")
+        "scenario.")
     )
   })
 
@@ -940,7 +861,7 @@ server <- function(input, output, session) {
     plot
   })
 
-  # Page 3: diagnostics ----------------------------------------------------
+  # Page 2: diagnostics ----------------------------------------------------
   atlas_diagnostic_family <- reactive({
     validate(need(nrow(ATLAS_DATA$diagnostic) > 0,
                   "The diagnostic atlas summary is not installed."))

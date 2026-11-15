@@ -3,12 +3,11 @@
 # comes from the compact summaries written by simulation-atlas/03-summarize-atlas.R.
 #
 # The display layer is organised around the manuscript rather than around the
-# storage format: a reader with the paper open picks one paper case, sees the
-# manuscript anchors first, and only then the sensitivity slices that go beyond
-# them.
+# storage format: a reader with the paper open picks one paper case and sees
+# its sensitivity slices.
 
 ATLAS_CORE_REQUIRED <- c(
-  "scenario_id", "family", "slice_membership", "paper_anchor", "scenario_label",
+  "scenario_id", "family", "slice_membership", "scenario_label",
   "generating_link", "model_label", "fitted_link", "B_requested",
   "fit_success_rate", "false_positive_rate", "false_positive_ci_low",
   "false_positive_ci_high", "deterministic_pseudo_interaction", "run_type"
@@ -133,10 +132,9 @@ ATLAS_PAPER_GUIDE <- list(
       "Trial-level accuracy is generated from a chance-corrected logit mixed model",
       "with a .50 chance floor and a subject random intercept for latent ICC .30:",
       "age effect 0.60, group effect -0.90, and an age-by-group product term of exactly zero",
-      "on the conditional generating scale. The three manuscript scenarios differ only in the intercept",
-      "(-0.80, 0.00, +0.80), which is where the Lower performance, Middle performance and",
-      "Higher performance scenarios come from: overall accuracy sits just above the .50",
-      "chance floor, in the middle of the above-chance range, or close to 1."
+      "on the conditional generating scale. The paper varies the intercept (-0.80, 0.00, +0.80),",
+      "so that overall accuracy sits just above the .50 chance floor, in the middle of the",
+      "above-chance range, or close to 1."
     ),
     models = paste(
       "Four models are fitted to the same binary trial data with the same subject random",
@@ -188,8 +186,7 @@ ATLAS_PAPER_GUIDE <- list(
     ),
     diagnostic_case = paste(
       "The \"Binary repeated trials\" row of Table 3, listed as scenario D3 in Supplement S5:",
-      "probit generated, logit fitted.",
-      "The paper's diagnostic anchor uses 300 subjects rather than the 700 of Simulation 2."
+      "probit generated, logit fitted, with 300 subjects rather than the 700 of Simulation 2."
     )
   ),
   sum_scores = list(
@@ -210,10 +207,9 @@ ATLAS_PAPER_GUIDE <- list(
       "N = 600 participants on a latent continuous scale (SD 1) with a continuous predictor",
       "(effect 0.85), a group effect of -0.90 and no x-by-group product term on that latent",
       "scale. Each latent value becomes 9 ordinal items scored 0 to 3, summed to a total on",
-      "a 0-to-27 scale. The three manuscript scenarios shift the item thresholds by +1.60,",
-      "0.00 and -1.60, which is where the Lower range, Middle range and Upper range",
-      "scenarios come from: harder items push the expected totals down the observed scale,",
-      "easier items push them up."
+      "a 0-to-27 scale. The paper shifts the item thresholds by +1.60, 0.00 and -1.60:",
+      "harder items push the expected totals down the observed scale, easier items push",
+      "them up."
     ),
     models = paste(
       "Three analysis scales: the observed sum-score identity model (a Gaussian linear model",
@@ -251,7 +247,6 @@ atlas_case_choices <- function(families) {
 
 atlas_slice_label <- function(slice) {
   labels <- c(
-    paper_anchor = "Manuscript anchors",
     main_effect_surface = "Main-effect surface",
     sample_size = "Sample size",
     scale_location = "Scale location",
@@ -262,7 +257,6 @@ atlas_slice_label <- function(slice) {
     latent_location = "Latent location",
     icc = "Intraclass correlation",
     severity = "Misspecification severity",
-    diagnostic_anchor = "Paper diagnostic anchor",
     diagnostic_not_defined = "No paper diagnostic defined"
   )
   value <- unname(labels[slice])
@@ -402,80 +396,7 @@ atlas_metric_label <- function(metric) {
   if (identical(metric, "detection")) ATLAS_DETECTION_LABEL else ATLAS_DETERMINISTIC_LABEL
 }
 
-# ------------------------------------------------- manuscript anchor views ---
-
-atlas_anchor_data <- function(core, family) {
-  rows <- core[core$family == family & core$paper_anchor %in% TRUE, , drop = FALSE]
-  if (!nrow(rows)) return(rows)
-  rows$matched <- atlas_is_matched(rows)
-  rows$series <- atlas_series_label(rows)
-  rows$anchor_x <- if (identical(family, "within_family")) {
-    paste0(rows$generating_link, "-generated data")
-  } else {
-    atlas_scenario_display_label(rows)
-  }
-  rows <- rows[order(rows$scenario_id, rows$series), , drop = FALSE]
-  rows$anchor_x <- factor(rows$anchor_x, levels = unique(rows$anchor_x))
-  rows$series <- factor(rows$series, levels = unique(rows$series))
-  rows
-}
-
-atlas_anchor_plot <- function(rows) {
-  if (!nrow(rows)) return(NULL)
-  dodge <- ggplot2::position_dodge(width = 0.8)
-  # The outline marks the matched model. It is drawn inside the single bar layer
-  # rather than as a second layer, because a dodged layer holding only the
-  # matched rows would not keep its slot in the dodge.
-  rows$outline <- ifelse(rows$matched, "grey10", NA_character_)
-  # group is set explicitly: without it the outline aesthetic would enter the
-  # implicit grouping of the bar layer only, and the layers would dodge apart.
-  ggplot2::ggplot(rows, ggplot2::aes(anchor_x, false_positive_rate,
-                                     fill = series, group = series)) +
-    ggplot2::geom_hline(yintercept = 0.05, linetype = "dashed", color = "grey40") +
-    ggplot2::geom_col(ggplot2::aes(color = outline), position = dodge,
-                      width = 0.75, linewidth = 0.9) +
-    ggplot2::geom_errorbar(
-      ggplot2::aes(ymin = false_positive_ci_low, ymax = false_positive_ci_high),
-      position = dodge, width = 0.18, color = "grey25", na.rm = TRUE
-    ) +
-    ggplot2::geom_text(
-      ggplot2::aes(y = false_positive_ci_high, label = atlas_format_rate(false_positive_rate)),
-      position = dodge, vjust = -0.6, size = 3.4, color = "grey20", na.rm = TRUE
-    ) +
-    ggplot2::scale_color_identity(guide = "none") +
-    atlas_series_scales(levels(rows$series))[[3]] +
-    ggplot2::scale_y_continuous(limits = c(0, 1.05), breaks = seq(0, 1, 0.2)) +
-    ggplot2::labs(
-      x = NULL, y = "Product-term rejection rate",
-      title = "Manuscript anchors, recomputed by the atlas",
-      subtitle = paste(
-        "Bars with a black outline are fitted on the generating scale: their rate is nominal.",
-        "\nEvery other bar is a pseudo-interaction rate. The dashed line marks alpha = .05."
-      )
-    )
-}
-
-atlas_anchor_table <- function(rows) {
-  if (!nrow(rows)) return(data.frame())
-  out <- data.frame(
-    Scenario = as.character(rows$anchor_x),
-    `Generating scale` = as.character(rows$generating_link),
-    `Fitted model` = as.character(rows$model_label),
-    `Matches generating scale` = ifelse(rows$matched, "yes", "no"),
-    `Rejection rate [95% CI]` = sprintf(
-      "%.3f [%.3f, %.3f]", rows$false_positive_rate,
-      rows$false_positive_ci_low, rows$false_positive_ci_high
-    ),
-    `Induced product term` = atlas_format_value(rows$deterministic_pseudo_interaction, 4),
-    `Fit success` = sprintf("%.1f%%", 100 * rows$fit_success_rate),
-    `Replications` = rows$B_requested,
-    check.names = FALSE, stringsAsFactors = FALSE
-  )
-  rownames(out) <- NULL
-  out
-}
-
-# ------------------------------------------------ sensitivity beyond anchors --
+# ---------------------------------------------------- sensitivity slices ---
 
 # All one-dimensional slices of a family in a single long frame, with the panel
 # named after the parameter that actually varies. This replaces a slice / value
@@ -614,7 +535,7 @@ atlas_scenario_choices <- function(core, family) {
   scenarios <- core[core$family == family, , drop = FALSE]
   if (!nrow(scenarios)) return(list())
   scenarios <- scenarios[!duplicated(scenarios$scenario_id), , drop = FALSE]
-  preferred <- c("paper_anchor", ATLAS_ONE_D_SLICES, "main_effect_surface")
+  preferred <- c(ATLAS_ONE_D_SLICES, "main_effect_surface")
   slices <- c(intersect(preferred, unique(scenarios$slice)),
               setdiff(unique(scenarios$slice), preferred))
   groups <- lapply(slices, function(slice) {
@@ -639,13 +560,9 @@ atlas_scenario_rows <- function(core, scenario_id) {
 atlas_scenario_headline <- function(rows) {
   if (!nrow(rows)) return("No matching precomputed scenario.")
   row <- rows[1, , drop = FALSE]
-  guide <- atlas_guide(row$family)
-  anchor <- if (isTRUE(row$paper_anchor)) {
-    sprintf("Manuscript anchor of %s. ", if (is.null(guide)) "the paper" else guide$case)
-  } else ""
   sprintf(
-    "%s%s (%s). Generating scale: %s, with a product term of exactly zero. %d replications per fitted model.",
-    anchor, atlas_scenario_display_label(row), row$scenario_id,
+    "%s (%s). Generating scale: %s, with a product term of exactly zero. %d replications per fitted model.",
+    atlas_scenario_display_label(row), row$scenario_id,
     row$generating_link, row$B_requested
   )
 }
