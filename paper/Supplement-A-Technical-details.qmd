@@ -51,7 +51,7 @@ author-note:
     conflict-of-interest: ~
     financial-support: ~
     gratitude: ~
-    authorship-agreements: ~
+    authorship-agreements: "Margherita Calderan and Filippo Gambarota contributed equally to this work and share first authorship."
 bibliography: references.bib
 floatsintext: true
 format:

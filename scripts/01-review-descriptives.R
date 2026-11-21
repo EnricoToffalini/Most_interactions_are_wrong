@@ -65,6 +65,9 @@ stopifnot(nrow(coded) == n_observed, nrow(coded) == nrow(final_data))
 
 n_non_identity <- sum(coded$Uses_non_identity_link_function == 1, na.rm = TRUE)
 n_explicit <- sum(coded$Explicit_link_function == 1, na.rm = TRUE)
+# explicit link refers to any model in the article, non-identity link to the tested interactions: the two overlap only in part
+n_non_identity_not_explicit <- sum(coded$Uses_non_identity_link_function == 1 & coded$Explicit_link_function == 0, na.rm = TRUE)
+n_identity_only_not_explicit <- sum(coded$Uses_non_identity_link_function == 0 & coded$Explicit_link_function == 0, na.rm = TRUE)
 n_incorrect_identity <- sum(coded$Incorrect_identity_link_function == 1, na.rm = TRUE)
 n_significant_incorrect_identity <- sum(coded$Incorrect_identity_link_function == 1 & coded$Finds_significant_interaction == 1, na.rm = TRUE)
 
@@ -75,7 +78,7 @@ n_significant_incorrect_identity <- sum(coded$Incorrect_identity_link_function =
 review_summary <- data.frame(
   row_id = c("eligible_empirical", "testing_interactions", "observed_outcome_interactions", "latent_only_interactions",
              "non_identity_link", "explicit_link", "incorrect_identity", "significant_incorrect_identity",
-             "eligible_not_testing_interactions"),
+             "eligible_not_testing_interactions", "non_identity_not_explicit", "identity_only_not_explicit"),
   quantity = c("Screened articles satisfying the eligibility criteria",
                "Eligible empirical articles testing at least one interaction",
                "Interaction-testing articles with at least one observed-outcome interaction (coded sample)",
@@ -84,11 +87,15 @@ review_summary <- data.frame(
                "Coded articles with explicit link function",
                "Coded articles with Gaussian-identity analyses on constrained observed outcomes",
                "Gaussian-identity cases with at least one significant interaction",
-               "Eligible empirical articles not testing interactions"),
+               "Eligible empirical articles not testing interactions",
+               "Non-identity-link articles not stating the link",
+               "Articles without explicit link testing interactions only with identity-link models"),
   n = c(n_eligible, n_interactions, n_observed, n_latent_only, n_non_identity, n_explicit,
-        n_incorrect_identity, n_significant_incorrect_identity, n_non_interactions),
+        n_incorrect_identity, n_significant_incorrect_identity, n_non_interactions,
+        n_non_identity_not_explicit, n_identity_only_not_explicit),
   denominator_n = c(n_screened, n_eligible, n_interactions, n_interactions, n_observed, n_observed,
-                    n_observed, n_incorrect_identity, n_eligible))
+                    n_observed, n_incorrect_identity, n_eligible,
+                    n_non_identity, n_observed - n_explicit))
 review_summary$percent <- pct(review_summary$n, review_summary$denominator_n)
 review_summary$ci_low <- NA
 review_summary$ci_high <- NA
