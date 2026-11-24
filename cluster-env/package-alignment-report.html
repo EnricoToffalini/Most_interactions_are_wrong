@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Allineamento pacchetti R: renv.lock vs env conda r460</title>
+<style>
+:root { --fg:#1d1d1f; --muted:#5f6368; --line:#e3e3e6; --bg:#fff; --soft:#f6f7f9;
+  --ok:#1e7a46; --okbg:#e6f4ec; --warn:#8a5a00; --warnbg:#fdf3dc; --bad:#a3262a; --badbg:#fbe9ea; --info:#1f5fa8; --infobg:#e8f0fb; }
+@media (prefers-color-scheme: dark) { :root { --fg:#e8e8ea; --muted:#a0a3a8; --line:#33363b; --bg:#16171a; --soft:#1f2125;
+  --ok:#7fd3a0; --okbg:#173325; --warn:#f0c46b; --warnbg:#382c12; --bad:#f19ca0; --badbg:#3a1a1c; --info:#8ab8f0; --infobg:#172a42; } }
+* { box-sizing:border-box }
+body { margin:0; font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; color:var(--fg); background:var(--bg) }
+main { max-width:1000px; margin:0 auto; padding:40px 24px 80px }
+h1 { font-size:26px; margin:0 0 6px } h2 { font-size:19px; margin:42px 0 10px; padding-top:10px; border-top:1px solid var(--line) }
+h3 { font-size:16px; margin:24px 0 6px }
+.sub { color:var(--muted); margin:0 0 24px }
+code { font:13px ui-monospace,SFMono-Regular,Menlo,monospace; background:var(--soft); padding:1px 5px; border-radius:4px }
+table { border-collapse:collapse; width:100%; margin:10px 0 6px; font-size:14px }
+th,td { text-align:left; padding:6px 10px; border-bottom:1px solid var(--line); vertical-align:top }
+th { font-weight:600; color:var(--muted); font-size:12.5px; text-transform:uppercase; letter-spacing:.03em }
+td:nth-child(2),td:nth-child(3),td:nth-child(4) { font-family:ui-monospace,Menlo,monospace; font-size:13px }
+tr.key td:first-child { font-weight:600 }
+.b { display:inline-block; padding:1px 8px; border-radius:10px; font-size:12px; font-weight:600 }
+.same { background:var(--okbg); color:var(--ok) } .newer { background:var(--warnbg); color:var(--warn) }
+.older,.missing { background:var(--badbg); color:var(--bad) }
+.tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:18px 0 }
+.tile { background:var(--soft); border-radius:10px; padding:14px 16px }
+.tile .n { font-size:26px; font-weight:700 } .tile .l { color:var(--muted); font-size:13px }
+.box { border-left:4px solid var(--info); background:var(--infobg); padding:12px 16px; border-radius:0 8px 8px 0; margin:16px 0 }
+.box.ok { border-color:var(--ok); background:var(--okbg) } .box.warn { border-color:var(--warn); background:var(--warnbg) }
+.box.bad { border-color:var(--bad); background:var(--badbg) }
+.box p { margin:4px 0 }
+.risk td:last-child { white-space:nowrap }
+details summary { cursor:pointer; color:var(--info); margin:10px 0 }
+ul { padding-left:22px } li { margin:3px 0 }
+.muted { color:var(--muted); font-size:13px }
+</style></head><body><main>
+
+<h1>Allineamento dei pacchetti R</h1>
+<p class="sub"><code>renv.lock</code> del repository vs env conda <code>r460</code> usato da slurm sul cluster DPSS (<code>~/projects/git/Most_interactions_are_wrong</code>, commit <code>2b3e34c</code>) · controllo del 24 novembre 2026</p>
+
+<div class="box ok"><p><b>Conclusione.</b> Gli output delle simulazioni sono stati prodotti tutti con lo stesso ambiente, l'env <code>r460</code>. Il disallineamento con <code>renv.lock</code> non cambia i risultati: è un problema di <b>documentazione e riproducibilità</b>. Ci sono due cose da correggere: il testo che cita R 4.5.1 e <code>renv</code> come fonte delle versioni, e il lock stesso, che non descrive l'ambiente usato. Non c'è niente da rilanciare.</p></div>
+
+<div class="tiles">
+<div class="tile"><div class="n">108</div><div class="l">pacchetti in <code>renv.lock</code></div></div>
+<div class="tile"><div class="n">35</div><div class="l">stessa versione sul cluster</div></div>
+<div class="tile"><div class="n">63</div><div class="l">più recenti sul cluster</div></div>
+<div class="tile"><div class="n">10</div><div class="l">mancanti sul cluster</div></div>
+</div>
+
+<h2>1. Gli ambienti a confronto</h2>
+<table>
+<tr><th>Ambiente</th><th>R</th><th>Come si attiva</th><th>Ruolo</th></tr>
+<tr><td><code>renv.lock</code></td><td>4.5.1</td><td>non si attiva: nel repository mancano <code>.Rprofile</code> e la cartella <code>renv/</code></td><td>istantanea vecchia, non usata da nessuno</td></tr>
+<tr><td>conda <code>r460</code> (cluster)</td><td>4.6.0</td><td><code>conda activate r460</code> nei 5 file <code>.slurm</code>, poi <code>Rscript --vanilla</code></td><td><b>ha prodotto tutti gli output delle simulazioni</b></td></tr>
+<tr><td>Locale</td><td>4.6.2</td><td>libreria di sistema, <code>--vanilla</code></td><td>figure illustrative, review, render dei documenti</td></tr>
+</table>
+<p class="muted">Nell'env <code>r460</code> conda fornisce solo <code>r-base</code>: tutti gli altri pacchetti sono stati installati con <code>install.packages()</code> dentro la libreria dell'env.</p>
+
+<h2>2. Pacchetti chiave</h2>
+<table>
+<tr><th>Pacchetto</th><th>renv.lock</th><th>Cluster r460</th><th>Locale</th><th>Cluster vs lock</th></tr>
+<tr class="key"><td>DHARMa</td><td>0.4.7</td><td>0.5.0</td><td>0.5.0</td><td><span class="b newer">più recente</span></td></tr>
+<tr class="key"><td>ggplot2</td><td>4.0.1</td><td>4.0.3</td><td>4.0.3</td><td><span class="b newer">più recente</span></td></tr>
+<tr class="key"><td>glmmTMB</td><td>1.1.11</td><td>1.1.14</td><td>1.1.14</td><td><span class="b newer">più recente</span></td></tr>
+<tr class="key"><td>lme4</td><td>1.1-36</td><td>2.0-6</td><td>2.0-1</td><td><span class="b newer">più recente</span></td></tr>
+<tr class="key"><td>Matrix</td><td>1.6-2</td><td>1.7-6</td><td>1.7-6</td><td><span class="b newer">più recente</span></td></tr>
+<tr class="key"><td>minqa</td><td>1.2.8</td><td>1.2.8</td><td>1.2.8</td><td><span class="b same">uguale</span></td></tr>
+<tr class="key"><td>nloptr</td><td>2.1.1</td><td>2.2.1</td><td>2.2.1</td><td><span class="b newer">più recente</span></td></tr>
+<tr class="key"><td>patchwork</td><td>1.3.0</td><td>—</td><td>1.3.2</td><td><span class="b missing">mancante</span></td></tr>
+<tr class="key"><td>psyphy</td><td>0.3</td><td>0.3</td><td>0.3</td><td><span class="b same">uguale</span></td></tr>
+<tr class="key"><td>readxl</td><td>1.4.5</td><td>—</td><td>1.4.5</td><td><span class="b missing">mancante</span></td></tr>
+<tr class="key"><td>reformulas</td><td>0.4.0</td><td>0.4.4</td><td>0.4.4</td><td><span class="b newer">più recente</span></td></tr>
+<tr class="key"><td>TMB</td><td>1.9.17</td><td>1.9.25</td><td>1.9.21</td><td><span class="b newer">più recente</span></td></tr>
+</table>
+<p class="muted"><code>patchwork</code> e <code>readxl</code> mancano sul cluster ma servono solo a <code>scripts/01-review-descriptives.R</code> e <code>scripts/02b-figure-logit-probit-fitted-example.R</code>, che girano in locale.</p>
+
+<h2>3. Con quali versioni sono stati prodotti gli output</h2>
+<p>Per ogni output ho controllato due cose: la data dell'ultimo commit e il numero di core registrato nelle impostazioni salvate (<code>n_cores = 90</code>, quindi il cluster). Le ho confrontate con le date di compilazione dei pacchetti nell'env <code>r460</code>, lette dai file <code>DESCRIPTION</code>.</p>
+<table>
+<tr><th>Evento</th><th>Data</th></tr>
+<tr><td>Creazione dell'env <code>r460</code> (R 4.6.0)</td><td>28/07/2026</td></tr>
+<tr><td>Installazione di lme4 2.0-6, glmmTMB 1.1.14, TMB 1.9.25, Matrix 1.7-6, DHARMa 0.5.0</td><td>24/08/2026</td></tr>
+<tr><td>Installazione di psyphy 0.3</td><td>12/10/2026</td></tr>
+<tr><td>Simulazioni 2 e 3 (<code>simulation-summary-within-family-links.csv</code>, <code>…-sum-scores.csv</code>), 90 core</td><td>13/10/2026</td></tr>
+<tr><td>Simulazione 1 e simulazione diagnostica (<code>…-forced-choice.csv</code>, <code>…-diagnostic-worked-example.csv</code>, <code>diagnostic-calibration.csv</code>, <code>outputs/diagnostic-simulation-replications.csv</code>), commit "slurm run"</td><td>27/10/2026</td></tr>
+<tr><td>Atlas (<code>simulation-atlas/data/atlas-summary.*</code>)</td><td>12/11/2026</td></tr>
+</table>
+<div class="box ok"><p>Tutti gli output in uso sono successivi all'installazione dei pacchetti attuali e sono stati prodotti sul cluster, quindi con lo stesso ambiente. Il log <code>slurm-9310.out</code> lo conferma: carica <code>DHARMa 0.5.0</code> e non riporta avvisi di incompatibilità.</p>
+<p>L'unico file più vecchio è <code>tables/simulation-summary-forced-choice-common-convergence.csv</code> (26/08, run con <code>nAGQ = 1</code>). Nessun documento o script lo legge più, e il Supplement ne cita solo il dato storico 42–47%.</p></div>
+
+<h2>4. Cosa cambia tra le versioni del lock e quelle del cluster</h2>
+<p>Ho letto le note di rilascio (NEWS) di lme4, DHARMa e glmmTMB e tenuto solo le modifiche che toccano le funzioni usate negli script.</p>
+<table class="risk">
+<tr><th>Modifica</th><th>Dove ci tocca</th><th>Effetto sui nostri risultati</th></tr>
+<tr><td><b>DHARMa 0.5.0</b>: nei GLMM <code>simulateResiduals</code> passa di default a simulazioni <i>condizionali</i> sugli effetti casuali ("major change in the calculated scaled residuals").</td><td>D2, D3, D4 (tutti i controlli DHARMa sui GLMM), calibrazione</td><td><span class="b missing">rilevante</span><br>I risultati sono stati prodotti con la 0.5.0, che è anche la versione dichiarata in paper e Supplement, quindi sono coerenti. Con il lock (0.4.7) i residui sarebbero diversi.</td></tr>
+<tr><td><b>DHARMa 0.5.0</b>: corretta un'incoerenza in <code>testQuantiles()</code> (#465).</td><td>controlli sui quantili, D1–D5</td><td><span class="b newer">minore</span><br>È incluso nella versione usata.</td></tr>
+<tr><td><b>lme4 2.0-6</b>: i nodi di Gauss–Hermite per <code>nAGQ &gt; 1</code> sono ora simmetrizzati ("small changes to numerical results for any glmer() fit with nAGQ &gt; 1").</td><td>modello chance-corrected con <code>nAGQ = 10</code> (Sim. 1, D2)</td><td><span class="b newer">minore</span><br>Piccole differenze numeriche rispetto a lme4 1.x o 2.0-1. È incluso nella versione usata.</td></tr>
+<tr><td><b>lme4 2.0-6</b>: corretti due bug di memoria che causavano errori intermittenti in <code>glmer()</code> ("Downdated VtV is not positive definite" e altri fallimenti spuri), più visibili sotto carico di memoria.</td><td>tutti i fit <code>glmer</code> (Sim. 1, D2), tasso di fit flagged</td><td><span class="b newer">favorevole</span><br>Con le versioni precedenti (compresa la 2.0-1 in locale) alcuni fit potevano fallire per un bug e risultare flagged. La versione usata sul cluster ha la correzione.</td></tr>
+<tr><td><b>lme4 1.1-38</b>: i controlli di convergenza basati sulle derivate vengono saltati sopra 10.000 osservazioni (<code>check.conv.nobsmax</code>) e per i fit singolari.</td><td>criterio di flag in Sim. 1 e D2 (<code>optinfo$conv$lme4$messages</code>)</td><td><span class="b same">nessuno</span><br>Le osservazioni sono 250 × 20 = 5.000, sotto la soglia. I fit singolari sono già flagged con <code>isSingular(tol = 1e-4)</code>.</td></tr>
+<tr><td><b>lme4 2.0-1</b>: <code>isSingular()</code> diventa una funzione generica S3; nuove strutture di covarianza; ordine di stampa di <code>confint</code>.</td><td><code>isSingular(fit, tol = 1e-4)</code></td><td><span class="b same">nessuno</span><br>Il comportamento per i <code>merMod</code> è invariato.</td></tr>
+<tr><td><b>glmmTMB 1.1.12–1.1.14</b>: correzioni su <code>predict</code>, sui residui di Pearson per modelli Beta e su strutture di covarianza non usate.</td><td>Sim. 2, D3, D4</td><td><span class="b same">nessuno</span><br>Le modifiche non riguardano modelli binomiali con intercetta casuale né i test di Wald.</td></tr>
+<tr><td><b>R 4.5.1 → 4.6.0</b></td><td>generatore di numeri casuali, <code>glm</code>, <code>lm</code></td><td><span class="b same">nessuno noto</span><br>Il generatore di numeri casuali predefinito non è cambiato.</td></tr>
+</table>
+<p class="muted">Le parti deterministiche (valori impliciti, prodotto sulle diverse scale, figure illustrative) non dipendono dalle versioni dei pacchetti di modellazione.</p>
+
+<h2>5. Problemi aperti e cosa suggerisco</h2>
+<div class="box bad"><p><b>Il testo non corrisponde all'ambiente usato.</b> Il paper (<code>paper-v2.qmd</code>, riga 578) e la S6 del Supplement A dicono "R version 4.5.1". Il Supplement aggiunge che le versioni "are pinned with <code>renv</code>, which is the source of truth". In realtà le simulazioni sono state fatte con R 4.6.0, lme4 2.0-6, glmmTMB 1.1.14, DHARMa 0.5.0 e psyphy 0.3. Nel Supplement il "4.5.1" l'ho inserito io durante la revisione, prendendolo dal lock.</p></div>
+<div class="box warn"><p><b>Locale e cluster non coincidono.</b> In locale ci sono lme4 2.0.1 (senza le correzioni della 2.0-6) e TMB 1.9.21. Questo non tocca le simulazioni, ma rilanciare in locale non riprodurrebbe esattamente i risultati del cluster.</p></div>
+<div class="box warn"><p><b>Gli output non registrano l'ambiente.</b> A parte <code>scripts/01</code>, che salva <code>R.version.string</code>, nessuno script salva <code>sessionInfo()</code> insieme ai risultati. In questo controllo l'ambiente l'ho ricostruito dalle date.</p></div>
+<h3>Interventi proposti</h3>
+<ul>
+<li><b>Rigenerare il lock dall'env <code>r460</code></b>, con <code>renv::snapshot()</code> lanciato in quell'ambiente, oppure esportare un elenco dei pacchetti dichiarandolo come riferimento.</li>
+<li><b>Correggere il testo</b> in S6 del Supplement A e nel paper: R 4.6.0 e le versioni dei pacchetti chiave. Per il paper serve il via libera dei coautori.</li>
+<li><b>Salvare <code>sessionInfo()</code></b> nell'<code>.rds</code> di ogni simulazione, accanto a <code>settings</code>.</li>
+<li><b>Allineare la libreria locale</b> a quella del cluster (almeno lme4 2.0-6 e TMB 1.9.25), se in futuro si rilancia qualcosa in locale.</li>
+<li><b>Opzionale:</b> un controllo empirico (50–100 repliche per scenario con lo stesso seed, lock contro <code>r460</code>). Dopo questa analisi non sembra necessario.</li>
+</ul>
+
+<h2>6. Elenco completo dei pacchetti</h2>
+<details><summary>Mostra tutti i 108 pacchetti di <code>renv.lock</code></summary>
+<table>
+<tr><th>Pacchetto</th><th>renv.lock</th><th>Cluster r460</th><th>Locale</th><th>Cluster vs lock</th></tr>
+<tr><td>ape</td><td>5.8-1</td><td>5.8-1</td><td>5.8-1</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>askpass</td><td>1.2.1</td><td>1.2.1</td><td>1.2.1</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>base64enc</td><td>0.1-3</td><td>0.1-6</td><td>0.1-6</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>boot</td><td>1.3-31</td><td>1.3-32</td><td>1.3-32</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>bslib</td><td>0.9.0</td><td>0.12.0</td><td>0.10.0</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>cachem</td><td>1.1.0</td><td>1.1.0</td><td>1.1.0</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>cellranger</td><td>1.1.0</td><td>—</td><td>1.1.0</td><td><span class="b missing">mancante</span></td></tr>
+<tr><td>cli</td><td>3.6.5</td><td>3.6.6</td><td>3.6.6</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>codetools</td><td>0.2-20</td><td>0.2-20</td><td>0.2-20</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>commonmark</td><td>1.9.2</td><td>2.0.0</td><td>2.0.0</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>cpp11</td><td>0.5.2</td><td>0.5.5</td><td>0.5.5</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>crayon</td><td>1.5.3</td><td>—</td><td>1.5.3</td><td><span class="b missing">mancante</span></td></tr>
+<tr><td>crosstalk</td><td>1.2.1</td><td>1.2.2</td><td>1.2.2</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>curl</td><td>7.0.0</td><td>7.1.0</td><td>7.1.0</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>data.table</td><td>1.17.0</td><td>1.18.6.1</td><td>1.18.4</td><td><span class="b newer">più recente</span></td></tr>
+<tr class="key"><td>DHARMa</td><td>0.4.7</td><td>0.5.0</td><td>0.5.0</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>digest</td><td>0.6.37</td><td>0.6.39</td><td>0.6.39</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>doParallel</td><td>1.0.17</td><td>1.0.17</td><td>1.0.17</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>dplyr</td><td>1.2.1</td><td>1.2.1</td><td>1.2.1</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>evaluate</td><td>1.0.3</td><td>1.0.5</td><td>1.0.5</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>farver</td><td>2.1.2</td><td>2.1.2</td><td>2.1.2</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>fastmap</td><td>1.2.0</td><td>1.2.0</td><td>1.2.0</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>fontawesome</td><td>0.5.3</td><td>0.5.3</td><td>0.5.3</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>foreach</td><td>1.5.2</td><td>1.5.2</td><td>1.5.2</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>fs</td><td>1.6.5</td><td>2.1.0</td><td>2.1.0</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>gap</td><td>1.6</td><td>1.15.2</td><td>1.15.2</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>gap.datasets</td><td>0.0.6</td><td>0.0.6</td><td>0.0.6</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>generics</td><td>0.1.3</td><td>0.1.4</td><td>0.1.4</td><td><span class="b newer">più recente</span></td></tr>
+<tr class="key"><td>ggplot2</td><td>4.0.1</td><td>4.0.3</td><td>4.0.3</td><td><span class="b newer">più recente</span></td></tr>
+<tr class="key"><td>glmmTMB</td><td>1.1.11</td><td>1.1.14</td><td>1.1.14</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>glue</td><td>1.8.1</td><td>1.8.1</td><td>1.8.1</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>gtable</td><td>0.3.6</td><td>0.3.6</td><td>0.3.6</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>highr</td><td>0.11</td><td>0.12</td><td>0.12</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>hms</td><td>1.1.3</td><td>—</td><td>1.1.4</td><td><span class="b missing">mancante</span></td></tr>
+<tr><td>htmltools</td><td>0.5.8.1</td><td>0.5.9</td><td>0.5.9</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>htmlwidgets</td><td>1.6.4</td><td>1.6.4</td><td>1.6.4</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>httpuv</td><td>1.6.15</td><td>1.6.17</td><td>1.6.17</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>httr</td><td>1.4.7</td><td>1.4.8</td><td>1.4.8</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>isoband</td><td>0.2.7</td><td>0.3.0</td><td>0.3.0</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>iterators</td><td>1.0.14</td><td>1.0.14</td><td>1.0.14</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>jquerylib</td><td>0.1.4</td><td>0.1.4</td><td>0.1.4</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>jsonlite</td><td>1.9.1</td><td>2.0.0</td><td>2.0.0</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>knitr</td><td>1.50</td><td>1.51</td><td>1.51</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>labeling</td><td>0.4.3</td><td>0.4.3</td><td>0.4.3</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>later</td><td>1.4.1</td><td>1.4.8</td><td>1.4.8</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>lattice</td><td>0.22-6</td><td>0.23-1</td><td>0.23-1</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>lazyeval</td><td>0.2.2</td><td>0.2.3</td><td>0.2.3</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>lifecycle</td><td>1.0.5</td><td>1.0.5</td><td>1.0.5</td><td><span class="b same">uguale</span></td></tr>
+<tr class="key"><td>lme4</td><td>1.1-36</td><td>2.0-6</td><td>2.0-1</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>lmtest</td><td>0.9-40</td><td>0.9-40</td><td>0.9-40</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>magrittr</td><td>2.0.3</td><td>2.0.5</td><td>2.0.5</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>MASS</td><td>7.3-60</td><td>7.3-66</td><td>7.3-66</td><td><span class="b newer">più recente</span></td></tr>
+<tr class="key"><td>Matrix</td><td>1.6-2</td><td>1.7-6</td><td>1.7-6</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>memoise</td><td>2.0.1</td><td>2.0.1</td><td>2.0.1</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>mgcv</td><td>1.9-3</td><td>1.9-4</td><td>1.9-5</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>mime</td><td>0.12</td><td>0.13</td><td>0.13</td><td><span class="b newer">più recente</span></td></tr>
+<tr class="key"><td>minqa</td><td>1.2.8</td><td>1.2.8</td><td>1.2.8</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>nlme</td><td>3.1-167</td><td>3.1-170</td><td>3.1-172</td><td><span class="b newer">più recente</span></td></tr>
+<tr class="key"><td>nloptr</td><td>2.1.1</td><td>2.2.1</td><td>2.2.1</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>numDeriv</td><td>2016.8-1.1</td><td>2016.8-1.1</td><td>2016.8-1.1</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>openssl</td><td>2.3.2</td><td>2.4.2</td><td>2.4.2</td><td><span class="b newer">più recente</span></td></tr>
+<tr class="key"><td>patchwork</td><td>1.3.0</td><td>—</td><td>1.3.2</td><td><span class="b missing">mancante</span></td></tr>
+<tr><td>pillar</td><td>1.10.2</td><td>1.11.1</td><td>1.11.1</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>pkgconfig</td><td>2.0.3</td><td>2.0.3</td><td>2.0.3</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>plotly</td><td>4.10.4</td><td>4.12.1</td><td>4.12.1</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>plyr</td><td>1.8.9</td><td>1.8.9</td><td>1.8.9</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>prettyunits</td><td>1.2.0</td><td>—</td><td>1.2.0</td><td><span class="b missing">mancante</span></td></tr>
+<tr><td>progress</td><td>1.2.3</td><td>—</td><td>1.2.3</td><td><span class="b missing">mancante</span></td></tr>
+<tr><td>promises</td><td>1.3.2</td><td>1.5.0</td><td>1.5.0</td><td><span class="b newer">più recente</span></td></tr>
+<tr class="key"><td>psyphy</td><td>0.3</td><td>0.3</td><td>0.3</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>purrr</td><td>1.2.2</td><td>1.2.2</td><td>1.2.2</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>qgam</td><td>1.3.4</td><td>2.0.0</td><td>2.0.0</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>R6</td><td>2.6.1</td><td>2.6.1</td><td>2.6.1</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>rappdirs</td><td>0.3.3</td><td>0.3.4</td><td>0.3.4</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>rbibutils</td><td>2.3</td><td>2.4.1</td><td>2.4.1</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>RColorBrewer</td><td>1.1-3</td><td>1.1-3</td><td>1.1-3</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>Rcpp</td><td>1.0.14</td><td>1.1.2</td><td>1.1.2</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>RcppEigen</td><td>0.3.4.0.2</td><td>0.3.4.0.2</td><td>0.3.4.0.2</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>Rdpack</td><td>2.6.2</td><td>2.6.6</td><td>2.6.6</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>reactable</td><td>0.4.5</td><td>—</td><td>0.4.5</td><td><span class="b missing">mancante</span></td></tr>
+<tr><td>reactR</td><td>0.6.1</td><td>—</td><td>0.6.1</td><td><span class="b missing">mancante</span></td></tr>
+<tr class="key"><td>readxl</td><td>1.4.5</td><td>—</td><td>1.4.5</td><td><span class="b missing">mancante</span></td></tr>
+<tr class="key"><td>reformulas</td><td>0.4.0</td><td>0.4.4</td><td>0.4.4</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>rematch</td><td>2.0.0</td><td>—</td><td>2.0.0</td><td><span class="b missing">mancante</span></td></tr>
+<tr><td>renv</td><td>1.1.2</td><td>1.3.1</td><td>1.2.3</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>rlang</td><td>1.1.7</td><td>1.3.0</td><td>1.2.0</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>rmarkdown</td><td>2.30</td><td>2.31</td><td>2.31</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>S7</td><td>0.2.0</td><td>0.2.2</td><td>0.2.2</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>sass</td><td>0.4.9</td><td>0.4.10</td><td>0.4.10</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>scales</td><td>1.4.0</td><td>1.4.0</td><td>1.4.0</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>shiny</td><td>1.10.0</td><td>1.14.0</td><td>1.13.0</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>sourcetools</td><td>0.1.7-1</td><td>0.1.7-2</td><td>0.1.7-2</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>stringi</td><td>1.8.7</td><td>1.8.9</td><td>1.8.9</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>stringr</td><td>1.6.0</td><td>1.6.0</td><td>1.6.0</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>sys</td><td>3.4.3</td><td>3.4.3</td><td>3.4.3</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>tibble</td><td>3.3.0</td><td>3.3.1</td><td>3.3.1</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>tidyr</td><td>1.3.1</td><td>1.3.2</td><td>1.3.2</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>tidyselect</td><td>1.2.1</td><td>1.2.1</td><td>1.2.1</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>tinytex</td><td>0.56</td><td>0.60</td><td>0.59</td><td><span class="b newer">più recente</span></td></tr>
+<tr class="key"><td>TMB</td><td>1.9.17</td><td>1.9.25</td><td>1.9.21</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>utf8</td><td>1.2.6</td><td>1.2.6</td><td>1.2.6</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>vctrs</td><td>0.7.1</td><td>0.7.3</td><td>0.7.3</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>viridisLite</td><td>0.4.2</td><td>0.4.3</td><td>0.4.3</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>withr</td><td>3.0.2</td><td>3.0.3</td><td>3.0.2</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>xfun</td><td>0.51</td><td>0.60</td><td>0.57</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>xtable</td><td>1.8-4</td><td>1.8-8</td><td>1.8-8</td><td><span class="b newer">più recente</span></td></tr>
+<tr><td>yaml</td><td>2.3.12</td><td>2.3.12</td><td>2.3.12</td><td><span class="b same">uguale</span></td></tr>
+<tr><td>zoo</td><td>1.8-13</td><td>1.9-0</td><td>1.8-15</td><td><span class="b newer">più recente</span></td></tr>
+</table></details>
+
+<h2>Come è stato fatto il controllo</h2>
+<ul class="muted">
+<li><b>Versioni del cluster:</b> lette con <code>installed.packages()</code> nell'env <code>r460</code> (<code>Rscript --vanilla</code>); date di compilazione dai campi <code>Built</code> dei file <code>DESCRIPTION</code>.</li>
+<li><b>Versioni del lock:</b> da <code>renv.lock</code>. <b>Versioni locali:</b> da <code>installed.packages()</code>.</li>
+<li><b>Provenienza degli output:</b> <code>git log</code> sui file in <code>tables/</code>, <code>outputs/</code> e <code>simulation-atlas/data/</code>; <code>settings$n_cores</code> negli <code>.rds</code>; log <code>slurm-*.out</code>.</li>
+<li><b>Modifiche:</b> NEWS di lme4 (dalla copia sul cluster, fino alla 2.0-6), DHARMa e glmmTMB, limitate alle versioni successive a quelle del lock.</li>
+<li><b>Limite:</b> un test di caricamento dei pacchetti sul nodo di login è stato terminato dal sistema (limiti delle risorse), quindi la compatibilità dei pacchetti compilati si basa sui log delle run slurm reali. Non è stato lanciato nessun job e non è stato modificato nulla sul cluster.</li>
+</ul>
+</main></body></html>
