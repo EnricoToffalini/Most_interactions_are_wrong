@@ -72,10 +72,6 @@ format:
         % break inside a cell is not mistaken for the start of a new table row.
         \usepackage{etoolbox}
         \usepackage{array}
-        % Revision marks: text between \revstart and \revend is printed in red.
-        \usepackage{xcolor}
-        \newcommand{\revstart}{\color{red}}
-        \newcommand{\revend}{\color{black}}
         \AtBeginEnvironment{longtable}{%
           \linespread{0.95}\selectfont
           \setlength{\extrarowheight}{3pt}}
@@ -148,6 +144,17 @@ fmt_rate <- function(x, digits = 1) {
   ifelse(is.na(x), "--", paste0(fmt_minus(formatC(100 * as.numeric(x), format = "f", digits = digits)), "%"))
 }
 
+# Wilson 95% interval: same formula as wilson_ci95() in scripts/common-helpers.R,
+# clipped to [0, 1] as in scripts/04-diagnostic-worked-example.R
+wilson_ci95 <- function(x, n) {
+  if (is.na(n) || n <= 0) return(c(NA_real_, NA_real_))
+  z <- qnorm(0.975)
+  p <- x / n
+  center <- (p + z^2 / (2 * n)) / (1 + z^2 / n)
+  half <- z * sqrt((p * (1 - p) + z^2 / (4 * n)) / n) / (1 + z^2 / n)
+  c(max(0, center - half), min(1, center + half))
+}
+
 fmt_rate_ci <- function(rate, low, high, digits = 1) {
   ifelse(
     is.na(rate),
@@ -178,19 +185,24 @@ short_item <- function(x) {
 # Right-align columns whose entries are numbers, rates, or intervals
 numeric_align <- function(d) {
   is_num <- vapply(d, function(v) {
-    v <- trimws(as.character(v))
-    v <- v[!v %in% c("--", "N.A.", "")]
+    v <- trimws(gsub("\\\\break", " ", as.character(v)))
+    v <- v[!v %in% c("--", "N.I.", "")]
     length(v) > 0 && all(grepl("^[\\-\u2212]?[0-9.,/% ()=n\\[\\]\u2212]+$", v, perl = TRUE))
   }, logical(1))
   ifelse(is_num, "r", "l")
 }
 
 # Print a table, keeping short tables on one page in the PDF
-print_kable <- function(d, digits = 3) {
+print_kable <- function(d, digits = 3, latex_size = NULL) {
   if (knitr::is_latex_output() && nrow(d) <= 20) {
     cat("\\needspace{", min(nrow(d) * 0.7 + 4, 15), "\\baselineskip}\n\n", sep = "")
   }
+  # Optional smaller font for wide tables in the PDF (e.g. "footnotesize")
+  if (knitr::is_latex_output() && !is.null(latex_size)) {
+    cat("\\begingroup\\", latex_size, "\n\n", sep = "")
+  }
   print(knitr::kable(d, digits = digits, align = numeric_align(d)))
+  if (knitr::is_latex_output() && !is.null(latex_size)) cat("\n\\endgroup\n")
   cat("\n\n")
 }
 
@@ -257,7 +269,7 @@ Article records were retrieved from Elsevier's Scopus database for all articles 
 
 ## Eligibility and coding workflow
 
-Eligible articles were empirical articles presenting original psychological research. The following were excluded, per protocol: reviews and meta-analyses; editorials, commentaries, opinion papers, and theoretical articles without empirical data; qualitative-only articles; replication-only studies; and psychometric validation studies. Articles were coded in detail only if they tested at least one interaction, through statistical modeling or ANOVA. Analyzing latent variables or fitting structural equation models was not in itself a reason for exclusion. Because our family and link coding was defined for observed outcomes, articles whose interaction tests all concerned latent outcomes (for example, latent moderation in a structural equation model, or moderation of latent variance components in a twin model) were recorded as eligible and interaction-testing, but were not coded in detail and did not count toward the 40 articles per journal. The preregistration did not specify this restriction, so we treat it as a protocol deviation. It was applied during screening, and we retained the resulting sample rather than reconstructing the point at which screening would otherwise have stopped. Articles combining latent-variable analyses with at least one observed-outcome interaction were coded, with the coding restricted to their observed-outcome interactions.
+Eligible articles were empirical articles presenting original psychological research. The following were excluded, per protocol: reviews and meta-analyses; editorials, commentaries, opinion papers, and theoretical articles without empirical data; qualitative-only articles; replication-only studies; and psychometric validation studies. Articles were coded in detail only if they tested at least one interaction through statistical models. Analyzing latent variables or fitting structural equation models was not in itself a reason for exclusion. Because our family and link coding was defined for observed outcomes, articles whose interaction tests all concerned latent outcomes (for example, latent moderation in a structural equation model, or moderation of latent variance components in a twin model) were recorded as eligible and interaction-testing, but were not coded in detail and did not count toward the 40 articles per journal. The preregistration did not specify this restriction, so we treat it as a protocol deviation. It was applied during screening, and we retained the resulting sample rather than reconstructing the point at which screening would otherwise have stopped. Articles combining latent-variable analyses with at least one observed-outcome interaction were coded, with the coding restricted to their observed-outcome interactions.
 
 The resulting screening flow is reported in @tbl-screening-flow.
 
@@ -298,7 +310,7 @@ Each of the 200 coded articles was independently coded by two researchers. Discr
 
 | Variable | Definition (preregistered) | Type |
 |---|-------------|---|
-| Tests interactions | Whether the article tests at least one interaction term in a statistical model or using an ANOVA. | Boolean |
+| Tests interactions | Whether the article tests at least one interaction term in a statistical model. | Boolean |
 | Uses non identity link function | Whether at least one tested interaction is presumably analyzed with a non-identity link function (for example, because a generalized linear model was used). | Boolean |
 | Explicit link function | Whether the link function is explicitly declared for at least one statistical model in the article. Indicating only which generalized linear model or family was used is not enough. | Boolean |
 | Incorrect identity link function | Whether at least one tested interaction is analyzed using an identity link function when another, non-identity link function would be more appropriate. | Boolean |
@@ -311,7 +323,7 @@ Beyond these definitions, the coders applied a small set of operational rules fo
 
 | Variable | Coded "Yes" when | Decisions that most affect the count |
 |---|------------|------------|
-| Non-identity link used | at least one tested interaction is fitted with a model implying a non-identity link, that is, any GLM or GLMM beyond the Gaussian-identity default (ANOVA, ordinary regression, linear mixed model). | A model named "logistic", "probit", "Poisson", "negative binomial", "ordinal"/"cumulative", or "Gamma" regression implies a non-identity link. |
+| Non-identity link used | at least one tested interaction is fitted with a model implying a non-identity link, that is, any generalized linear model (GLM) or generalized linear mixed model (GLMM) beyond the Gaussian-identity default (ANOVA, ordinary regression, linear mixed model). | A model named "logistic", "probit", "Poisson", "negative binomial", "ordinal"/"cumulative", or "Gamma" regression implies a non-identity link. |
 | Explicit link function | the link is stated in the report, either in words or by naming a link-specific model. | "Logistic regression" (logit), "probit regression" (probit), and "Poisson" or "log-linear" (log) count as explicit. Naming only a family, a "generalized linear model", or a "GLMM" does not. |
 | Gaussian-identity analysis on a constrained outcome | an interaction is tested with an identity-link model (ANOVA, ordinary regression, linear mixed model, or a test on cell means) applied to an outcome with formal constraints: bounded, discrete, positive-only, or with a known chance level. | Flagged only when the constraint is clear from the report. Not flagged when the analysis is explicitly justified as an observed-score estimand, or when the outcome is plausibly continuous and far from any bound. |
 | Significant interaction | at least one interaction already flagged as a Gaussian-identity analysis on a constrained outcome is reported as statistically significant, or is interpreted analogously (for example, a credible interval excluding zero) in a Bayesian analysis. | Restricted to interactions already flagged in the row above. |
@@ -319,7 +331,7 @@ Beyond these definitions, the coders applied a small set of operational rules fo
 
 : Operational rules the coders applied for the decisions that most affect the reported counts, condensed from the coding sheet. The preregistered variable definitions are in @tbl-variables. {#tbl-coding-rules disable-apaquarto-processing=true}
 
-One additional decision beyond those summarized in @tbl-coding-rules concerned transformed outcomes. Coding referred to the response on the scale on which it entered the model. When authors transformed the outcome before applying a linear model or ANOVA, the analysis was evaluated on the transformed scale and was not flagged. For example, a linear model or ANOVA applied directly to raw response times was flagged because response times are constrained to positive values, whereas the same analysis applied to log transformed response times was not. Logarithmic transformations were the most common, but the same rule was applied to the other transformations encountered in the reviewed articles.
+One additional decision beyond those summarized in @tbl-coding-rules concerned transformed outcomes. Coding referred to the response on the scale on which it entered the model. When authors transformed the outcome before applying a linear model, the analysis was evaluated on the transformed scale and was not flagged. For example, a linear model applied directly to raw response times was flagged because response times are constrained to positive values, whereas the same analysis applied to log transformed response times was not. Logarithmic transformations were the most common, but the same rule was applied to the other transformations encountered in the reviewed articles.
 
 Two notes clarify the interpretation of the coding variables. First, *Incorrect identity link function* is a conservative screening flag for a formal mismatch between the observed-outcome constraints and the identity-link generative model. Cases were flagged only when the constraint was identifiable from the published report; when the report did not allow this judgment, the case was not counted. The flag is not an error rate, not a severity grade, and does not imply that the substantive conclusion is false, since an observed-score estimand can be a deliberate and defensible target. Second, *Response variable types* is non-exclusive: one article can contribute to several categories, so the category counts do not sum to the number of articles. 
 
@@ -359,7 +371,7 @@ print_table_if_exists(
 
 ## By-journal descriptives
 
-@tbl-by-journal reports the review descriptives by journal. Link percentages are computed within the coded articles (eligible articles with at least one observed-outcome interaction, 40 per journal), whereas the interaction-testing percentage counts interactions on observed or latent outcomes and is computed within eligible articles. The main paper reports only the range of these quantities across journals and the position of *Psychological Medicine*, which had the lowest screening proportion and the highest non-identity-link proportion in this sample.
+@tbl-by-journal reports the review descriptives by journal. Link percentages are computed within the coded articles (eligible articles with at least one observed-outcome interaction, 40 per journal), whereas the interaction-testing percentage counts interactions on observed or latent outcomes and is computed within eligible articles. The main paper reports only the range across journals of two of these quantities, naming the journals at each end: the percentage of eligible articles testing interactions, and the percentage of coded articles with a Gaussian-identity analysis on a constrained outcome.
 
 ```{r}
 #| label: tbl-by-journal
@@ -413,7 +425,7 @@ $$
 \log \mu_i = 2.60 - 0.55\,(\text{age}_i - 6) + 0.65\,\text{group}_i,
 $$
 
-with no age-by-group product term on the log scale. The figure plots, for one such sample, a Gaussian identity model with an age-by-group product term on the count scale, and a Poisson-log model without it on the log and count scales. The count scenario of the diagnostic simulation (D1) adapts this coefficient pattern rather than reproducing it exactly: it keeps the same generating structure but uses a smaller sample ($N = 180$), a slightly lower intercept ($2.20$), and a smaller group effect ($0.45$); its full specification is given below under *Diagnostic simulation: data-generating processes*.
+with no age-by-group product term on the log scale. The figure plots, for one such sample, a Gaussian-identity model with an age-by-group product term on the count scale, and a Poisson-log model without it on the log and count scales. The count scenario of the diagnostic simulation (D1) adapts this coefficient pattern rather than reproducing it exactly: it keeps the same generating structure but uses a smaller sample ($N = 180$), a slightly lower intercept ($2.20$), and a smaller group effect ($0.45$); its full specification is given below under *Diagnostic simulation: data-generating processes*.
 
 The motivating $2 \times 2$ figure is fully deterministic: it evaluates four cell probabilities, without sampling. They are generated additively on the chance-corrected logit scale with $c = .50$,
 
@@ -476,9 +488,9 @@ y_{ij} \sim \mathrm{Bernoulli}(p_{ij}).
 $$
 
 The subject random-intercept standard deviation is
-$\sigma_u = \sqrt{.30(\pi^2/3)/(1-.30)} \approx 1.187$, corresponding to latent-scale ICC $.30$ under the usual logistic convention. The age-by-group product term is exactly zero on the conditional chance-corrected-logit scale. Three scenarios move the same fixed-effect structure along the accuracy range through the intercept: lower performance ($\beta_0 = -0.80$), middle performance ($\beta_0 = 0.00$), and higher performance ($\beta_0 = 0.80$). Each replication samples $N = 250$ participants. Deterministic scenario curves are evaluated at $u_i = 0$ and are not population-average probabilities.
+$\sigma_u = \sqrt{.30(\pi^2/3)/(1-.30)} \approx 1.187$, corresponding to a latent-scale intraclass correlation coefficient (ICC) of $.30$ under the usual logistic convention. The age-by-group product term is exactly zero on the conditional chance-corrected-logit scale. Three scenarios move the same fixed-effect structure along the accuracy range through the intercept: lower performance ($\beta_0 = -0.80$), middle performance ($\beta_0 = 0.00$), and higher performance ($\beta_0 = 0.80$). Each replication samples $N = 250$ participants. Deterministic scenario curves are evaluated at $u_i = 0$ and are not population-average probabilities.
 
-Four candidate models are fitted to the same trial-level data with the same `age_c * group + (1 | id)` structure: (1) a Gaussian identity LMM applied intentionally to the binary response; (2) a standard binomial-logit GLMM; (3) a standard binomial-probit GLMM; and (4) a chance-corrected binomial-logit GLMM fitted with `lme4::glmer` and `psyphy::mafc.logit(2)`. Each receives one ordinary fit attempt. \revstart The chance-corrected GLMM is the only model fitted with a non-default setting, `nAGQ = 10` instead of 1. According to the `glmer` documentation, larger values evaluate the likelihood more accurately at some computational cost. With the default, 42% to 47% of the chance-corrected fits were flagged across scenarios. The other three models are fitted with defaults.\revend{} The interaction test is the same asymptotic Wald-normal calculation for every model.
+Four candidate models are fitted to the same trial-level data with the same `age_c * group + (1 | id)` structure: (1) a Gaussian-identity linear mixed model (LMM) applied intentionally to the binary response; (2) a standard binomial-logit GLMM; (3) a standard binomial-probit GLMM; and (4) a chance-corrected binomial-logit GLMM fitted with `lme4::glmer` and `psyphy::mafc.logit(2)` as the link function. Each receives one ordinary fit attempt. The chance-corrected GLMM is the only model fitted with a non-default setting, `nAGQ = 10` instead of 1. According to the `glmer` documentation, larger values evaluate the likelihood more accurately at some computational cost. In an earlier run of the same simulation with the default `nAGQ = 1`, 42% to 47% of the chance-corrected fits were flagged across scenarios. The other three models are fitted with defaults. In every model the age-by-group interaction is a single coefficient on that model's own link scale, tested with a Wald z test ($z = \hat\beta / \widehat{SE}$, with $\widehat{SE}$ the estimated standard error, referred to the standard normal).
 
 A fit is flagged when it errors, has a non-empty `fit@optinfo$conv$lme4$messages`, is singular at tolerance $10^{-4}$, emits a targeted convergence, identifiability, Hessian, non-positive-definite, or degeneracy warning while inferential quantities are extracted, or has a non-finite interaction coefficient, standard error, or $p$-value, or a non-positive standard error. Finite $p$-values from flagged fits are retained. The primary rate is computed among fits passing these checks. The matched model's primary rate is a nominal rejection rate; the alternative models' primary rates are pseudo-interaction detection rates. The separately reported rate among flagged fits is an apparent rejection rate and not a valid inferential error rate.
 
@@ -570,7 +582,7 @@ $$
 
 so the x-by-group product term is exactly zero on the latent generating scale. The latent trait is mapped to $J = 9$ ordinal items, each scored $0$ to $3$, through a graded logistic threshold model: item $j$ has three ordered thresholds, and the probability of reaching category $k$ or higher is $\mathrm{logistic}(\theta_i - \tau_{jk})$. Thresholds are deterministic, with base values $(-1, 0, 1)$, evenly spaced item offsets from $-0.45$ to $0.45$ across the nine items, and a scenario-level shift: lower range (shift $+1.60$, harder items compress scores toward the lower bound), middle range (shift $0.00$), and upper range (shift $-1.60$). The observed outcome is the item total, bounded between $0$ and $27$, discrete, and differentially compressed across the score range.
 
-Three analyses are fitted with the same `x * group` formula, to separate the relevant scales: (1) an observed sum-score identity model, `lm()` on the manifest total; (2) a Gaussian-probit bounded-score model, a Gaussian GLM with a probit link fitted to the continuity-corrected score proportion $(\text{sum} + 0.5) / (\text{max} + 1)$, included as a sensitivity model on the manifest total rather than a measurement model; and (3) a latent-scale benchmark, `lm()` on the true $\theta$, available only because $\theta$ is known in the simulation.
+Three analyses are fitted with the same `x * group` formula, to separate the relevant scales: (1) an observed sum-score identity model, `lm()` on the manifest total; (2) a Gaussian-probit bounded-score model, a Gaussian GLM with a probit link fitted to the continuity-corrected score proportion $(\text{sum} + 0.5) / (\text{max} + 1)$, included as a sensitivity model on the manifest total rather than a measurement model; and (3) a latent-scale benchmark, `lm()` on the true $\theta$, available only because $\theta$ is known in the simulation. Predictions of the bounded-score model are mapped back to the sum-score metric by inverting the continuity correction, $\text{sum} = (\text{max} + 1)\,\hat{q} - 0.5$, where $\hat{q}$ is the predicted score proportion, so that response-scale contrasts are expressed in score points. The interaction test itself concerns the product term on the probit scale.
 
 ```{r}
 #| label: tbl-rejection-sum-score
@@ -635,7 +647,7 @@ $$
 
 *D4, binary with a continuous predictor (probit, fitted with logit).* The same structure as D3 --- $N = 300$ participants, $30$ trials each --- with the two-level condition replaced by a continuous predictor $x \sim \mathrm{Uniform}(0, 1)$, so that the contrast from $x = 0$ to $x = 1$ has the same probit-scale size as the condition contrast in D3. This scenario exists because residual checks over a focal predictor are better identified when the predictor has many unique values.
 
-*D5, Gamma mean response time (log, fitted with inverse).* For $N = 220$ participants, response times are Gamma with shape $8$ and
+*D5, Gamma mean response time (log, fitted with inverse).* For $N = 220$ participants, response times are distributed as a Gamma (with $\mu$ and shape parametrization). The shape parameter is fixed at $8$ and the $\mu$ parameter is
 
 $$
 \log \mu_i = \log(400) + 0.25\,x_i + 0.25\,\text{group}_i ,
@@ -643,7 +655,7 @@ $$
 
 so the baseline mean is $400$ ms at $x = 0$ in the reference group.
 
-@tbl-diagnostic-scenario-values reports the expected values these parameters imply, which is what the misspecified link has to reproduce with a product term.
+@tbl-diagnostic-scenario-values reports the expected values these parameters imply, which is what the wrong link has to reproduce with a product term.
 
 ```{r}
 #| label: tbl-diagnostic-scenario-values
@@ -691,15 +703,15 @@ print_table_if_exists(
 
 ## Diagnostic simulation: estimation and checks
 
-The diagnostic simulation ties each of the five link-misspecification scenarios defined above to a misspecified fitted link, holding the outcome family and the interaction formula fixed. In every replication the interaction model is fitted under the wrong link, and the primary diagnostics are applied to that same fitted model, because that is the model an analyst would inspect after finding the interaction. The same diagnostics are also applied to the corresponding correct-link interaction model as a calibration check. The technical specification of the checks is as follows.
+The diagnostic simulation ties each of the five link-misspecification scenarios defined above to a wrong fitted link, holding the outcome family and the interaction formula fixed. In every replication the interaction model is fitted under the wrong link, and the primary diagnostics are applied to that same fitted model, because that is the model an analyst would inspect after finding the interaction. The same diagnostics are also applied to the corresponding interaction model with the correct (generating) link as a calibration check. Single-level models (D1, D5) are fitted with `glm`; the repeated-trial GLMMs are fitted with `glmmTMB` in D3 and D4 and with `lme4::glmer` in D2, where the chance-corrected model uses `nAGQ = 10` as in Simulation 1 and the standard-logit model uses the default Laplace approximation. The technical specification of the checks is as follows.
 
-*Simulation-based residuals* [@dunnsmyth1996; @hartig2024] were computed with DHARMa, simulating $250$ responses from the fitted model per replication. Four prespecified checks were applied: residual uniformity (`testUniformity`), dispersion (`testDispersion`), residual quantile patterns over fitted values (`testQuantiles`), and residual structure over the focal predictor. The last check is scenario-aware: `testQuantiles` over the predictor is used when the predictor has at least eight unique values; for the $2 \times 2$ repeated-trials scenario, residuals are instead compared across the group-by-condition design cells \revstart with `testCategorical`, flagged when any of its within-cell uniformity tests (adjusted by DHARMa) or its Levene test is significant. All checks use the defaults of DHARMa 0.5.0; in this version, `simulateResiduals` simulates new responses conditionally on the fitted random effects.\revend{} @tbl-diagnostic-breakdown reports this design-cell check for D3. Cells are marked "--" only when a check is not applicable or returns no usable replications in the saved diagnostic summary.
+*Simulation-based residuals* [@dunnsmyth1996; @hartig2024] were computed with DHARMa, simulating $250$ responses from the fitted model per replication. Four prespecified checks were applied: residual uniformity (`testUniformity`), dispersion (`testDispersion`), residual quantile patterns over fitted values (`testQuantiles`), and residual structure over the focal predictor. The last check is scenario-aware: `testQuantiles` over the predictor is used when the predictor has at least eight unique values; for the $2 \times 2$ repeated-trials scenario, residuals are instead compared across the group-by-condition design cells with `testCategorical`, flagged when any of its within-cell uniformity tests (adjusted by DHARMa) or its Levene test is significant. All checks use the defaults of DHARMa 0.5.0; in this version, `simulateResiduals` simulates new responses conditionally on the fitted random effects. @tbl-diagnostic-breakdown reports this design-cell check for D3. Cells are marked "--" only when a check is not applicable or returns no usable replications in the saved diagnostic summary.
 
-*The Pregibon-style added-term link check* [@pregibon1980] extracts the fitted linear predictor, adds its square to the model formula, and tests the significance of the added term while retaining the family, link, base formula, and random-effects structure of the model being diagnosed. For GLMMs, the constructed term uses the population-level linear predictor, with the estimated random effects set to zero; this avoids feeding outcome-derived empirical Bayes estimates back into the model as an ordinary covariate. The check is reported as not applicable when the squared predictor does not increase the rank of the fixed-effects design matrix. In particular, the $2 \times 2$ interaction model is saturated over its four design cells, so its squared fitted linear predictor is exactly collinear with the existing fixed effects.
+*The Pregibon-style added-term link check* [@pregibon1980] extracts the fitted linear predictor, adds its square to the model formula, and tests the significance of the added term while retaining the family, link, base formula, and random-effects structure of the model being diagnosed. For GLMMs, the constructed term uses the population-level linear predictor, with the estimated random effects set to zero; this avoids feeding outcome-derived empirical Bayes estimates back into the model as an ordinary covariate. The check is not identifiable, and is reported as N.I., when the squared predictor does not increase the rank of the fixed-effects design matrix. In particular, the $2 \times 2$ interaction model is saturated over its four design cells, so its squared fitted linear predictor is exactly collinear with the existing fixed effects.
 
-*The chance-corrected fits in D2* use `lme4::glmer` with `psyphy::mafc.logit(2)`, \revstart`nAGQ = 10` as in Simulation 1,\revend{} and the same subject random intercept as the standard-logit GLMM. DHARMa operates directly on the fitted `merMod` object. The Pregibon-style extension, when estimable, refits the same GLMM after adding the squared fixed-effects linear predictor.
+*The chance-corrected fits in D2* use the `psyphy::mafc.logit(2)` link and the same subject random intercept as the standard-logit GLMM. DHARMa operates directly on the fitted `merMod` object. The Pregibon-style extension, when estimable, refits the same GLMM, with the same `nAGQ`, after adding the squared fixed-effects linear predictor.
 
-*The same-formula AIC comparison* contrasts the target-link and the misspecified-link interaction models, holding the response data, the likelihood family, and the structural formula fixed, so only the mean-link mapping varies. No inconclusive $\Delta$AIC category is used, so the two AIC rows in @tbl-diagnostic-breakdown are complementary whenever both AIC values are available.
+*The same-formula Akaike information criterion (AIC) comparison* contrasts the correct-link and the wrong-link interaction models, holding the response data, the likelihood family, and the structural formula fixed, so only the mean-link mapping varies. Each replication is assigned to the link with the lower AIC, without an inconclusive category, so the rows "AIC favors correct link" and "AIC favors wrong link" in @tbl-diagnostic-breakdown sum to 100% of the replications in which both AIC values are available.
 
 # S5. Supplementary tables and figures
 
@@ -757,18 +769,18 @@ print_table_if_exists(
 )
 ```
 
-## Deterministic link-scale decomposition, Simulation 2
+## Deterministic product term on each link scale, Simulation 2
 
 The nominal rejection and pseudo-interaction detection rates for Simulation 2 are reported in Section S4. @tbl-within-family-deterministic instead reports the deterministic quantities behind them: for each generating-by-fitted link combination, the product-term contrast induced by evaluating the generating cell probabilities on the fitted link scale, and the corresponding response-scale difference-in-differences. Under a matched link the induced product term is zero by construction; under a wrong link it is a fixed nonzero value. These values hold at random intercept 0; the median GLMM estimates in @tbl-rejection-within-family are smaller, because changing the link also changes how the random intercept enters the model, but they have the same sign.
 
 ```{r}
 #| label: tbl-within-family-deterministic
-#| tbl-cap: "Deterministic link-scale decomposition for Simulation 2. The induced product term is evaluated on the fitted link scale; the response-scale difference-in-differences is on the probability scale."
+#| tbl-cap: "Deterministic product term on each link scale, Simulation 2. The induced product term is evaluated on the fitted link scale; the response-scale difference-in-differences is on the probability scale."
 #| disable-apaquarto-processing: true
 #| results: asis
 
 print_table_if_exists(
-  note_if_missing = "Within-family decomposition table not available in this build.",
+  note_if_missing = "Within-family deterministic table not available in this build.",
   "tables", "simulation-summary-within-family-links.csv",
   transform = function(d) {
     data.frame(
@@ -780,6 +792,59 @@ print_table_if_exists(
       check.names = FALSE
     )
   }
+)
+```
+
+## Logit and probit fitted curves
+
+Section S4 notes that the within-family comparison is also illustrated with a separate grouped-binomial dataset of 1,000 observational units and 60 trials per unit. @fig-logit-probit-fitted shows the two fitted curves, and @tbl-logit-probit-fitted the corresponding coefficients and AIC values.
+
+The illustration makes concrete why the two links are usually treated as interchangeable and why that is not sufficient for an interaction claim. Panel A shows fitted probabilities that are hard to tell apart by eye. Panel B plots their difference, which never exceeds about two probability points but is systematic rather than noisy: it changes sign across the predictor range, so the logit fit sits above the probit fit in some regions and below it in others. A difference between differences computed on one scale therefore cannot equal the same contrast computed on the other, which is the deterministic quantity tabulated in @tbl-within-family-deterministic. The coefficients in @tbl-logit-probit-fitted are on each model's own link scale and are not comparable across rows; the AIC values are comparable, and they differ by far more than the fitted probabilities do.
+
+```{r}
+#| label: fig-logit-probit-fitted
+#| fig-cap: "Logit and probit models fitted to the same grouped-binomial dataset."
+#| out-width: "80%"
+#| results: asis
+
+include_graphic_if_exists(
+  "figs", "logit-probit-fitted-example.pdf",
+  note_if_missing = "Logit-probit fitted-curve figure not available in this build."
+)
+```
+
+```{r}
+#| label: tbl-logit-probit-fitted
+#| tbl-cap: "Coefficients and AIC for the logit and probit models fitted to the grouped-binomial illustration dataset. Intercept and slope are on each model's own link scale, so they are not directly comparable across rows."
+#| disable-apaquarto-processing: true
+#| results: asis
+
+print_table_if_exists(
+  note_if_missing = "Logit-probit model results not available in this build.",
+  "tables", "model-results-logit-probit-fitted-example.csv",
+  transform = function(d) data.frame(
+    Model = tools::toTitleCase(d$model),
+    Intercept = fmt_num(d$intercept, 3),
+    Slope = fmt_num(d$slope, 3),
+    AIC = fmt_num(d$AIC, 1),
+    check.names = FALSE
+  )
+)
+```
+
+## Deterministic pseudo-interaction under the wrong link, Simulation 2
+
+@fig-within-family-inspection shows the deterministic pseudo-interaction induced on the wrong link scale in Simulation 2, before any sampling noise. It makes explicit why matched-link cells imply an exactly additive structure while wrong-link cells do not.
+
+```{r}
+#| label: fig-within-family-inspection
+#| fig-cap: "Deterministic pseudo-interaction induced on the wrong link scale in Simulation 2."
+#| out-width: "95%"
+#| results: asis
+
+include_graphic_if_exists(
+  "outputs", "inspection", "within-family-link-pseudo-interaction.pdf",
+  note_if_missing = "Inspection figure not available in this build."
 )
 ```
 
@@ -835,50 +900,13 @@ print_table_if_exists(
 )
 ```
 
-## Logit and probit fitted curves
-
-Section S4 notes that the within-family comparison is also illustrated with a separate grouped-binomial dataset of 1,000 observational units and 60 trials per unit. @fig-logit-probit-fitted shows the two fitted curves, and @tbl-logit-probit-fitted the corresponding coefficients and AIC values.
-
-The illustration makes concrete why the two links are usually treated as interchangeable and why that is not sufficient for an interaction claim. Panel A shows fitted probabilities that are hard to tell apart by eye. Panel B plots their difference, which never exceeds about two probability points but is systematic rather than noisy: it changes sign across the predictor range, so the logit fit sits above the probit fit in some regions and below it in others. A difference between differences computed on one scale therefore cannot equal the same contrast computed on the other, which is the deterministic quantity tabulated in @tbl-within-family-deterministic. The coefficients in @tbl-logit-probit-fitted are on each model's own link scale and are not comparable across rows; the AIC values are comparable, and they differ by far more than the fitted probabilities do.
-
-```{r}
-#| label: fig-logit-probit-fitted
-#| fig-cap: "Logit and probit models fitted to the same grouped-binomial dataset."
-#| out-width: "80%"
-#| results: asis
-
-include_graphic_if_exists(
-  "figs", "logit-probit-fitted-example.pdf",
-  note_if_missing = "Logit-probit fitted-curve figure not available in this build."
-)
-```
-
-```{r}
-#| label: tbl-logit-probit-fitted
-#| tbl-cap: "Coefficients and AIC for the logit and probit models fitted to the grouped-binomial illustration dataset. Intercept and slope are on each model's own link scale, so they are not directly comparable across rows."
-#| disable-apaquarto-processing: true
-#| results: asis
-
-print_table_if_exists(
-  note_if_missing = "Logit-probit model results not available in this build.",
-  "tables", "model-results-logit-probit-fitted-example.csv",
-  transform = function(d) data.frame(
-    Model = tools::toTitleCase(d$model),
-    Intercept = fmt_num(d$intercept, 3),
-    Slope = fmt_num(d$slope, 3),
-    AIC = fmt_num(d$AIC, 1),
-    check.names = FALSE
-  )
-)
-```
-
 ## Diagnostic detection rates and AIC strength
 
 The main paper reports the DHARMa detection rate as a min-to-max range across checks. @tbl-diagnostic-breakdown gives the individual checks, the within-replication alignment between pseudo-interactions and applicable DHARMa checks, and the strength of the same-formula AIC comparison.
 
 ```{r}
 #| label: tbl-diagnostic-breakdown
-#| tbl-cap: "Diagnostic detection rates and AIC strength across five scenarios. D1 count errors (Poisson log to identity); D2 chance-floor accuracy (chance-corrected to standard logit); D3 binary 2 × 2 GLMM (probit to logit); D4 binary continuous-predictor GLMM (probit to logit); D5 Gamma mean response time (log to inverse)."
+#| tbl-cap: "Per-check results of the diagnostic simulation for the wrong-link model, by scenario. Rows give the pseudo-interaction rate, the flagging rate of each DHARMa check and of the Pregibon-style check, the proportion of pseudo-interactions missed by all DHARMa checks, and the same-formula AIC comparison with the correct-link model. Scenarios are labelled by correct link → wrong link: D1 count errors (Poisson, log → identity); D2 chance-floor accuracy (binomial, chance-corrected logit → standard logit); D3 binary 2 × 2 GLMM (probit → logit); D4 binary continuous-predictor GLMM (probit → logit); D5 Gamma mean response time (log → inverse)."
 #| disable-apaquarto-processing: true
 #| results: asis
 
@@ -958,15 +986,15 @@ if (is.null(diag_long) || is.null(diag_rep)) {
     "DHARMa residual quantiles over focal predictor" = "DHARMa: quantiles vs predictor",
     "DHARMa residual distribution across design cells" = "DHARMa: across design cells",
     "Pregibon-style added-term link check, secondary" = "Pregibon link check",
-    "AIC same interaction formula favors true link" = "AIC favors target link",
-    "AIC same interaction formula favors fitted link" = "AIC favors misspecified link"
+    "AIC same interaction formula favors true link" = "AIC favors correct link",
+    "AIC same interaction formula favors fitted link" = "AIC favors wrong link"
   )
 
   rate_cell <- function(scenario, quantity) {
     if (
       scenario == "Binary repeated trials" &&
       quantity == "Pregibon-style added-term link check, secondary"
-    ) return("N.A.")
+    ) return("N.I.")
     row <- diag_long[diag_long$scenario == scenario & diag_long$quantity == quantity, , drop = FALSE]
     if (nrow(row) != 1) {
       stop(
@@ -990,15 +1018,18 @@ if (is.null(diag_long) || is.null(diag_rep)) {
         scenario, " / ", quantity
       )
     }
-    fmt_rate(row$rate)
+    fmt_rate_ci(row$rate, row$ci_low, row$ci_high)
   }
 
   count_rate <- function(n, denominator) {
     if (is.na(denominator) || denominator == 0) return("--")
-    if (denominator == 3000) {
-      return(paste0(n, " (", fmt_percent(100 * n / denominator), ")"))
-    }
-    paste0(n, "/", denominator, " (", fmt_percent(100 * n / denominator), ")")
+    ci <- wilson_ci95(n, denominator)
+    rate <- fmt_rate_ci(n / denominator, ci[1], ci[2])
+    # In the PDF, break the cell after the count so that the rate and its
+    # interval stay together on the second line
+    sep <- if (knitr::is_latex_output()) "\\break " else " "
+    if (denominator == 3000) return(paste0(n, sep, "(", rate, ")"))
+    paste0(n, "/", denominator, sep, "(", rate, ")")
   }
 
   row_labels <- c(
@@ -1041,19 +1072,19 @@ if (is.null(diag_long) || is.null(diag_rep)) {
     )
   }
 
-  print_kable(out)
+  print_kable(out, latex_size = "footnotesize")
 }
 ```
 
-Each scenario used 3,000 replications, and each table reports its usable denominator. “Missed” means that none of the applicable prespecified DHARMa checks had $p < .05$; pseudo-interactions for which all five DHARMa p-values were missing are excluded from this conditional denominator. $\Delta\mathrm{AIC} = \mathrm{AIC}(\text{wrong link}) - \mathrm{AIC}(\text{target link})$, so positive values favor the target link and negative values favor the wrong link. The sample size shown with the median and the denominator for $|\Delta\mathrm{AIC}| < 2$ are the finite AIC comparisons. N.A. indicates that the Pregibon-style added term is not identifiable in the saturated $2 \times 2$ interaction model.
+Each scenario used 3,000 replications, and each table reports its usable denominator; where no denominator is shown, it is 3,000. Every rate is given with its Wilson 95% confidence interval. Each scenario uses four DHARMa checks: the check over the focal predictor is `testQuantiles` over a continuous predictor (D1, D2, D4, D5) or `testCategorical` across the design cells (D3); "--" marks the version that does not apply. “Missed” means that none of the applicable prespecified DHARMa checks had $p < .05$; pseudo-interactions for which all applicable DHARMa p-values were missing are excluded from this conditional denominator. $\Delta\mathrm{AIC} = \mathrm{AIC}(\text{wrong link}) - \mathrm{AIC}(\text{correct link})$, so positive values favor the correct link and negative values favor the wrong link. The sample size shown with the median and the denominator for $|\Delta\mathrm{AIC}| < 2$ are the finite AIC comparisons. N.I. = not identifiable: the Pregibon-style added term is collinear with the fixed effects in the saturated $2 \times 2$ interaction model.
 
 ## Distribution of the AIC difference
 
-The proportion of replications in which AIC favors the target link is not informative on its own, because winning by less than one AIC unit and winning by fifty describe different situations. @tbl-diagnostic-aic-distribution therefore gives the distribution of $\Delta\mathrm{AIC}$ rather than only its median.
+The proportion of replications in which AIC favors the correct link is not informative on its own, because winning by less than one AIC unit and winning by fifty describe different situations. @tbl-diagnostic-aic-distribution therefore gives the distribution of $\Delta\mathrm{AIC}$ rather than only its median.
 
 ```{r}
 #| label: tbl-diagnostic-aic-distribution
-#| tbl-cap: "Distribution of the AIC difference across replications, by diagnostic scenario. ΔAIC = AIC(wrong link) − AIC(target link), so positive values favor the target link. n = replications with both AIC values available."
+#| tbl-cap: "Distribution of the AIC difference across replications, by diagnostic scenario. ΔAIC = AIC(wrong link) − AIC(correct link), so positive values favor the correct link. n = replications with both AIC values available. Rates are given with Wilson 95% confidence intervals."
 #| disable-apaquarto-processing: true
 #| results: asis
 
@@ -1074,23 +1105,55 @@ print_table_if_exists(
       Median = fmt_num(d$median_aic_fitted_minus_true, 1),
       `75th` = fmt_num(d$q75_aic_fitted_minus_true, 1),
       `90th` = fmt_num(d$q90_aic_fitted_minus_true, 1),
-      `Within 2 units` = fmt_rate(d$aic_difference_within_2),
-      `Favors target` = fmt_rate(d$aic_favors_target),
+      `Within 2 units` = mapply(function(rate, n) {
+        ci <- wilson_ci95(round(rate * n), n)
+        fmt_rate_ci(rate, ci[1], ci[2])
+      }, d$aic_difference_within_2, d$n_aic_pairs),
+      `Favors correct link` = mapply(function(rate, n) {
+        ci <- wilson_ci95(round(rate * n), n)
+        fmt_rate_ci(rate, ci[1], ci[2])
+      }, d$aic_favors_target, d$n_aic_pairs),
       check.names = FALSE
     )
   }
 )
 ```
 
-## Calibration under correctly specified links
+## Calibration under the correct link
 
 The same DHARMa and Pregibon-style checks were applied to the corresponding correct-link interaction model in each replication. These baseline flagging rates provide a reference for interpreting detection under the wrong link. They reuse the same simulated datasets and scenarios rather than defining a new simulation.
 
-The correct-link column provides the baseline needed to interpret detection under the wrong link. \revstart The four DHARMa checks flag the correct model in at most 8% of replications in every scenario. The highest rates are the uniformity check for the chance-corrected GLMM in D2 (8%) and the comparison across design cells in D3 (8%), which flags the misspecified model at a similar rate (7%). The Pregibon-style check flags the correct chance-corrected GLMM in 14% of replications, still above the nominal level. As noted in the DHARMa documentation, the simulated residuals do not account for parameter estimation, so the DHARMa tests can be conservative; detection rates under the wrong link should therefore be read against the correct-link rates reported here rather than against the nominal $\alpha$.\revend{} For the Pregibon-style check, the random-intercept GLMMs use the population-level rather than subject-specific fitted linear predictor. The $2 \times 2$ version is not applicable because its saturated fixed-effects design already spans the proposed squared term; the continuous-predictor version is estimable, and its wrong-link flagging rate should be read against its correct-link calibration rate.
+```{r}
+#| label: calibration-numbers
+#| include: false
+
+# Numbers quoted in the text below, computed from the calibration table
+d_cal <- read_csv_if_exists("tables", "diagnostic-calibration.csv")
+cal_rate <- function(scenario, diagnostic, spec) {
+  if (is.null(d_cal)) return("--")
+  x <- d_cal$flagging_rate[
+    d_cal$scenario == scenario & d_cal$diagnostic == diagnostic &
+      d_cal$model_specification == spec
+  ]
+  if (length(x) != 1) stop("Calibration lookup failed: ", scenario, " / ", diagnostic, " / ", spec)
+  fmt_rate(x, 0)
+}
+cal_dharma_correct_max <- if (is.null(d_cal)) "--" else {
+  keep <- d_cal$model_specification == "Correct link" &
+    grepl("^DHARMa", d_cal$diagnostic) & is.finite(d_cal$flagging_rate)
+  fmt_rate(max(d_cal$flagging_rate[keep]), 0)
+}
+cal_d2_uniformity <- cal_rate("Chance-floor accuracy", "DHARMa uniformity", "Correct link")
+cal_d3_cells_correct <- cal_rate("Binary repeated trials", "DHARMa residual distribution across design cells", "Correct link")
+cal_d3_cells_wrong <- cal_rate("Binary repeated trials", "DHARMa residual distribution across design cells", "Wrong link")
+cal_d2_pregibon <- cal_rate("Chance-floor accuracy", "Pregibon-style added-term link check", "Correct link")
+```
+
+The correct-link column provides the baseline needed to interpret detection under the wrong link. The four DHARMa checks flag the correct model in at most `r cal_dharma_correct_max` of replications in every scenario. The highest rates are the uniformity check for the chance-corrected GLMM in D2 (`r cal_d2_uniformity`) and the comparison across design cells in D3 (`r cal_d3_cells_correct`), which flags the wrong-link model at a similar rate (`r cal_d3_cells_wrong`). The Pregibon-style check flags the correct chance-corrected GLMM in `r cal_d2_pregibon` of replications, still above the nominal level. As noted in the DHARMa documentation, the simulated residuals do not account for parameter estimation, so the DHARMa tests can be conservative; detection rates under the wrong link should therefore be read against the correct-link rates reported here rather than against the nominal $\alpha$. For the Pregibon-style check, the random-intercept GLMMs use the population-level rather than subject-specific fitted linear predictor. The $2 \times 2$ version is not identifiable (N.I.) because its saturated fixed-effects design already spans the proposed squared term; the continuous-predictor version is estimable, and its wrong-link flagging rate should be read against its correct-link calibration rate.
 
 ```{r}
 #| label: tbl-diagnostic-calibration
-#| tbl-cap: "Diagnostic calibration under correctly specified and misspecified links. Each cell gives the flagging rate with its Wilson 95% confidence interval and the number of successful diagnostic fits. Each cell had 3,000 attempted replications."
+#| tbl-cap: "Diagnostic calibration under the correct and the wrong link. Each cell gives the flagging rate with its Wilson 95% confidence interval and the number of successful diagnostic fits. Each cell had 3,000 attempted replications. Each scenario uses four DHARMa checks: the check over the focal predictor is testQuantiles over a continuous predictor (D1, D2, D4, D5) or testCategorical across the design cells (D3), so only the applicable version is listed. N.I. = not identifiable: the Pregibon-style added term is collinear with the fixed effects in the saturated 2 × 2 design (D3)."
 #| disable-apaquarto-processing: true
 #| results: asis
 
@@ -1184,31 +1247,15 @@ if (is.null(diag_calibration)) {
   pregibon_not_applicable <-
     paired$scenario == "Binary repeated trials" &
     paired$diagnostic == "Pregibon-style added-term link check"
-  out[pregibon_not_applicable, c("Correct-link flagging", "Wrong-link flagging")] <- "N.A."
+  out[pregibon_not_applicable, c("Correct-link flagging", "Wrong-link flagging")] <- "N.I."
 
   print_kable(out)
 }
 ```
 
-## Deterministic pseudo-interaction under the wrong link
-
-@fig-within-family-inspection shows the deterministic pseudo-interaction induced on the wrong link scale in Simulation 2, before any sampling noise. It makes explicit why matched-link cells imply an exactly additive structure while wrong-link cells do not.
-
-```{r}
-#| label: fig-within-family-inspection
-#| fig-cap: "Deterministic pseudo-interaction induced on the wrong link scale in Simulation 2."
-#| out-width: "95%"
-#| results: asis
-
-include_graphic_if_exists(
-  "outputs", "inspection", "within-family-link-pseudo-interaction.pdf",
-  note_if_missing = "Inspection figure not available in this build."
-)
-```
-
 # S6. Data, code, and computational environment
 
-All analyses were conducted in R, and the manuscript and this supplement were written in Quarto. Each simulation sets a fixed random seed, and the number of Monte Carlo replications and the significance level are recorded together with the saved results. Exact package versions are pinned with `renv`, which is the source of truth for the computational environment; the key modeling dependencies are `glmmTMB` and `lme4` for the mixed-model simulations and `DHARMa` for the diagnostic checks. The complete data, analysis code, preregistration materials, and generated outputs are archived in the public repository associated with the article, so that every table and figure can be regenerated from the raw inputs.
+All analyses were conducted in R [@rcoreteam2025, version 4.5.1], and the manuscript and this supplement were written in Quarto. Each simulation sets a fixed random seed, and the number of Monte Carlo replications and the significance level are recorded together with the saved results. Exact package versions are pinned with `renv` [@ushey2025renv], which is the source of truth for the computational environment; the key modeling dependencies are `lme4` [@bates2015] and `glmmTMB` [@brooks2017] for the mixed-model simulations, `psyphy` [@knoblauch2023psyphy] for the chance-corrected link, and `DHARMa` [@hartig2024] for the diagnostic checks. The complete data, analysis code, preregistration materials, and generated outputs are archived in the public repository associated with the article, so that every table and figure can be regenerated from the raw inputs.
 
 The manuscript simulations use a small number of transparent scenarios. A broader precomputed sensitivity atlas (Supplement B) varies key parameters over a wider grid that includes them, together with the five diagnostic scenarios, and the Shiny app explores its compact summaries without running simulations interactively. Replication-level atlas results are intended for the public repository or OSF archive and are not required to render this supplement.
 
