@@ -35,3 +35,5 @@ renv/lock/
 /simulation-atlas/raw/*
 !/simulation-atlas/raw/.gitkeep
 .rsync-backup/
+# Rendered HTML of Supplement A (the PDF is the tracked output)
+/paper/Supplement-A-Technical-details.html
