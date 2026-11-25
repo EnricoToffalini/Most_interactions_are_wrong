@@ -73,7 +73,6 @@
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \usepackage{longtable,booktabs,array}
-\newcounter{none} % for unnumbered tables
 \usepackage{calc} % for calculating minipage widths
 % Correct order of tables after \paragraph or \subparagraph
 \usepackage{etoolbox}
@@ -164,7 +163,7 @@
 
 
 
-\authorsnames[{1},{2},{1},{1},{1}]{Margherita Calderan,Filippo
+\authorsnames[{1},{2},{3},{1},{1}]{Margherita Calderan,Filippo
 Gambarota,Laura Sità,Tommaso Feraco,Enrico Toffalini}
 
 
@@ -175,7 +174,9 @@ Gambarota,Laura Sità,Tommaso Feraco,Enrico Toffalini}
 
 \authorsaffiliations{
 {Department of General Psychology, University of Padova},{Department of
-Developmental Psychology and Socialization, University of Padova}}
+Developmental Psychology and Socialization, University of
+Padova},{Department of Psychology and Cognitive Science, University of
+Trento}}
 
 
 
@@ -465,7 +466,7 @@ Nelder, 1989}; \citeproc{ref-nelderwedderburn1972}{Nelder \& Wedderburn,
 outcome family, which describes the response, and (2) the link function,
 which sets the scale on which effects combine (Box 1).
 
-\begin{tcolorbox}[enhanced jigsaw, arc=.35mm, bottomrule=.15mm, bottomtitle=1mm, breakable, colback=white, colbacktitle=quarto-callout-note-color!10!white, colframe=quarto-callout-note-color-frame, coltitle=black, left=2mm, leftrule=.75mm, opacityback=0, opacitybacktitle=0.6, rightrule=.15mm, title={Box 1: Generalized linear models: outcome family and link function}, titlerule=0mm, toprule=.15mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, toprule=.15mm, colframe=quarto-callout-note-color-frame, opacityback=0, arc=.35mm, left=2mm, breakable, bottomrule=.15mm, colback=white, opacitybacktitle=0.6, colbacktitle=quarto-callout-note-color!10!white, toptitle=1mm, coltitle=black, bottomtitle=1mm, leftrule=.75mm, title={Box 1: Generalized linear models: outcome family and link function}, rightrule=.15mm, titlerule=0mm]
 
 The \emph{outcome family} is the distribution assumed for the response.
 It defines which values the outcome can take and how observations vary
@@ -717,7 +718,6 @@ stopped at 40 coded articles per journal and the number of records
 screened was not fixed by design.}{\label{tbl-current-practice}}}
 \vspace{-20pt}}
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.5500}}
   >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.0700}}
@@ -757,7 +757,6 @@ outcomes & 144 & 200 & 72.0\% & {[}65.4, 77.8{]} \\
 Gaussian-identity cases with at least one significant interaction & 124
 & 144 & 86.1\% & {[}79.5, 90.8{]} \\
 \end{longtable}
-}
 
 \end{table}
 
@@ -785,7 +784,6 @@ Categories are non-exclusive, so one article can contribute to more than
 one row.}{\label{tbl-review-outcome-types}}}
 \vspace{-20pt}}
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}lrrr@{}}
 \toprule\noalign{}
 Outcome type & n & Denom. & \% \\
@@ -802,7 +800,6 @@ Difference / distance scores & 17 & 200 & 8.5\% \\
 Counts / error counts & 9 & 200 & 4.5\% \\
 Correlations / associations & 8 & 200 & 4.0\% \\
 \end{longtable}
-}
 
 \end{table}
 
@@ -1338,7 +1335,6 @@ and Supplement B extends them across sample sizes and effect sizes.
 scenarios.}{\label{tbl-diagnostic-scenarios}}}
 \vspace{-20pt}}
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.2000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.2100}}
@@ -1375,7 +1371,6 @@ Binary continuous predictor & probit \(\rightarrow\) logit & 0.07 &
 Gamma mean response time & log \(\rightarrow\) inverse & 0.31 &
 0.00--0.02 / 0.00--0.06 & 0.04 / 0.32 & 0.80 \\
 \end{longtable}
-}
 
 \vspace{-20pt}
 \noindent \emph{Note.} In~each replication the same data were fitted
@@ -1487,7 +1482,6 @@ it depends on the link, this should be disclosed
 across common psychological outcomes.}{\label{tbl-link-aware-workflow}}}
 \vspace{-20pt}}
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.4200}}
@@ -1528,7 +1522,6 @@ Inverse Gaussian, or transformed Gaussian, matched to absolute,
 proportional, reciprocal, or transformed change. & Compare raw-, log-,
 and response-scale summaries; inspect tail fit and predicted values. \\
 \end{longtable}
-}
 
 \end{table}
 
@@ -1645,7 +1638,7 @@ The protocol of the literature review is available at
 
 \section{References}\label{references}
 
-\protect\phantomsection\label{refs}
+\phantomsection\label{refs}
 \begin{CSLReferences}{1}{0}
 \bibitem[\citeproctext]{ref-agresti2002}
 Agresti, A. (2002). \emph{Categorical data analysis} (2nd ed.). John
@@ -1716,8 +1709,8 @@ Methods}, \emph{29}(6), 1164--1179.
 \url{https://doi.org/10.1037/met0000532}
 
 \bibitem[\citeproctext]{ref-dunnanderson2026}
-Dunn, J. C., \& Anderson, L. M. (2026). The monotonic linear model:
-Testing for removable interactions. \emph{Psychological Methods},
+Dunn, J. C., \& Anderson, L. M. (2026). The Monotonic Linear Model:
+Testing for Removable Interactions. \emph{Psychological Methods},
 \emph{31}(4), 585--606. \url{https://doi.org/10.1037/met0000626}
 
 \bibitem[\citeproctext]{ref-dunnsmyth1996}
@@ -1746,8 +1739,8 @@ psychophysical data in {R}}.
 \url{https://CRAN.R-project.org/package=psyphy}
 
 \bibitem[\citeproctext]{ref-knoblauch2012}
-Knoblauch, K., \& Maloney, L. T. (2012). \emph{Modeling psychophysical
-data in r}. Springer. \url{https://doi.org/10.1007/978-1-4614-4475-6}
+Knoblauch, K., \& Maloney, L. T. (2012). \emph{Modeling Psychophysical
+Data in R}. Springer. \url{https://doi.org/10.1007/978-1-4614-4475-6}
 
 \bibitem[\citeproctext]{ref-liddellkruschke2018}
 Liddell, T. M., \& Kruschke, J. K. (2018). Analyzing ordinal data with
@@ -1780,8 +1773,8 @@ McCullagh, P., \& Nelder, J. A. (1989). \emph{Generalized linear models}
 
 \bibitem[\citeproctext]{ref-mcneish2023}
 McNeish, D. (2023). Psychometric properties of sum scores and factor
-scores differ even when their correlation is 0.98: A response to widaman
-and revelle. \emph{Behavior Research Methods}, \emph{55}(8), 4269--4290.
+scores differ even when their correlation is 0.98: A response to Widaman
+and Revelle. \emph{Behavior Research Methods}, \emph{55}(8), 4269--4290.
 \url{https://doi.org/10.3758/s13428-022-02016-x}
 
 \bibitem[\citeproctext]{ref-mcneish2020}
@@ -1796,7 +1789,7 @@ presenting nonlinear interaction effects. \emph{Sociological Science},
 
 \bibitem[\citeproctext]{ref-mustillo2018}
 Mustillo, S. A., Lizardo, O. A., \& McVeigh, R. M. (2018). Editors{'}
-comment: A few guidelines for quantitative submissions. \emph{American
+Comment: A Few Guidelines for Quantitative Submissions. \emph{American
 Sociological Review}, \emph{83}(6), 1281--1283.
 \url{https://doi.org/10.1177/0003122418806282}
 
@@ -1818,20 +1811,20 @@ computing}. R Foundation for Statistical Computing.
 
 \bibitem[\citeproctext]{ref-rimpler2026}
 Rimpler, A., Kiers, H. A. L., \& Ravenzwaaij, D. van. (2026). Anything
-goes: Statistical interactions without substantive theory.
+Goes: Statistical Interactions Without Substantive Theory.
 \emph{Computational Brain \& Behavior}.
 \url{https://doi.org/10.1007/s42113-026-00305-8}
 
 \bibitem[\citeproctext]{ref-rohrer2026}
-Rohrer, J. M., \& Arel-Bundock, V. (2026). Models as prediction
-machines: How to convert confusing coefficients into clear quantities.
+Rohrer, J. M., \& Arel-Bundock, V. (2026). Models as Prediction
+Machines: How to Convert Confusing Coefficients Into Clear Quantities.
 \emph{Advances in Methods and Practices in Psychological Science},
 \emph{9}(2), 25152459261424825.
 \url{https://doi.org/10.1177/25152459261424825}
 
 \bibitem[\citeproctext]{ref-rohrer2021}
-Rohrer, J. M., \& Arslan, R. C. (2021). Precise answers to vague
-questions: Issues with interactions. \emph{Advances in Methods and
+Rohrer, J. M., \& Arslan, R. C. (2021). Precise Answers to Vague
+Questions: Issues With Interactions. \emph{Advances in Methods and
 Practices in Psychological Science}, \emph{4}(2), 25152459211007368.
 \url{https://doi.org/10.1177/25152459211007368}
 
@@ -1842,7 +1835,7 @@ Ushey, K., \& Wickham, H. (2025). \emph{{renv}: Project environments}.
 \bibitem[\citeproctext]{ref-wagenmakers2012}
 Wagenmakers, E.-J., Krypotos, A.-M., Criss, A. H., \& Iverson, G.
 (2012). On the interpretation of removable interactions: A survey of the
-field 33~years after loftus. \emph{Memory \& Cognition}, \emph{40}(2),
+field 33~years after Loftus. \emph{Memory \& Cognition}, \emph{40}(2),
 145--160. \url{https://doi.org/10.3758/s13421-011-0158-0}
 
 \bibitem[\citeproctext]{ref-wichmann2001}
