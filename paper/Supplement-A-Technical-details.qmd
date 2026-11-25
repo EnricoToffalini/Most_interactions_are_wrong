@@ -26,9 +26,13 @@ author:
         id: dpss
   - name: Laura Sità
     orcid: 0009-0000-6017-9979
-    email: laura.sita@unipd.it
+    email: laura.sita@unitn.it
     affiliations:
-      - ref: dpg
+      - name: University of Trento
+        department: Department of Psychology and Cognitive Science
+        city: Rovereto
+        country: Italy
+        id: unitn
   - name: Tommaso Feraco
     orcid: 0000-0002-8920-5330
     email: tommaso.feraco@unipd.it
