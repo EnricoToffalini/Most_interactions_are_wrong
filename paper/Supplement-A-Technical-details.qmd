@@ -328,12 +328,14 @@ Beyond these definitions, the coders applied a small set of operational rules fo
 | Variable | Coded "Yes" when | Decisions that most affect the count |
 |---|------------|------------|
 | Non-identity link used | at least one tested interaction is fitted with a model implying a non-identity link, that is, any generalized linear model (GLM) or generalized linear mixed model (GLMM) beyond the Gaussian-identity default (ANOVA, ordinary regression, linear mixed model). | A model named "logistic", "probit", "Poisson", "negative binomial", "ordinal"/"cumulative", or "Gamma" regression implies a non-identity link. |
-| Explicit link function | the link is stated in the report, either in words or by naming a link-specific model. | "Logistic regression" (logit), "probit regression" (probit), and "Poisson" or "log-linear" (log) count as explicit. Naming only a family, a "generalized linear model", or a "GLMM" does not. |
+| Explicit link function | the link is stated in the report, either in words or by naming a link-specific model. | "Logistic regression" (logit), "probit regression" (probit), and "Poisson" or "log-linear" (log) count as explicit. Otherwise, naming only a family, a "generalized linear model", or a "GLMM" does not. |
 | Gaussian-identity analysis on a constrained outcome | an interaction is tested with an identity-link model (ANOVA, ordinary regression, linear mixed model, or a test on cell means) applied to an outcome with formal constraints: bounded, discrete, positive-only, or with a known chance level. | Flagged only when the constraint is clear from the report. Not flagged when the analysis is explicitly justified as an observed-score estimand, or when the outcome is plausibly continuous and far from any bound. |
 | Significant interaction | at least one interaction already flagged as a Gaussian-identity analysis on a constrained outcome is reported as statistically significant, or is interpreted analogously (for example, a credible interval excluding zero) in a Bayesian analysis. | Restricted to interactions already flagged in the row above. |
 | Response-variable types | — | Non-exclusive: one article can contribute several types (sum score, accuracy or proportion, error count, response time, ordinal/Likert, neural or physiological, difference score, correlation). |
 
 : Operational rules the coders applied for the decisions that most affect the reported counts, condensed from the coding sheet. The preregistered variable definitions are in @tbl-variables. {#tbl-coding-rules disable-apaquarto-processing=true}
+
+The rule applied for *Explicit link function* is looser than the preregistered definition in @tbl-variables, which required the link to be declared and treated naming a family or a generalized linear model as insufficient. We accepted "Poisson" and "log-linear" models as explicit, although "Poisson" names a family, because the term conventionally refers to a model for counts with a log link, and other links are rarely used with the Poisson family. We treat this as a second protocol deviation; under the preregistered rule, the count of articles with an explicit link would be lower.
 
 One additional decision beyond those summarized in @tbl-coding-rules concerned transformed outcomes. Coding referred to the response on the scale on which it entered the model. When authors transformed the outcome before applying a linear model, the analysis was evaluated on the transformed scale and was not flagged. For example, a linear model applied directly to raw response times was flagged because response times are constrained to positive values, whereas the same analysis applied to log transformed response times was not. Logarithmic transformations were the most common, but the same rule was applied to the other transformations encountered in the reviewed articles.
 
@@ -551,7 +553,7 @@ The chance-corrected GLMM was flagged in `r fc_flag_cc` of replications across s
 
 Repeated binary trials are generated in a two-group, two-condition design with $N = 700$ participants, $k = 15$ trials per participant-condition cell, and a subject random intercept. The reference fixed effects on the probit scale are intercept $1.50$, group $-1.00$, condition $-1.00$, and product term $0$. When the generating link is logit, all fixed effects are multiplied by $1.65$, so that the logit and probit data-generating processes imply similar cell probabilities while preserving a zero product term on the generating link scale. The random-intercept standard deviation is set from a latent-scale ICC of $.30$, using the latent residual variance of the generating link ($\pi^2/3$ for logit, $1$ for probit).
 
-Generating and fitted links are fully crossed (logit and probit in both roles), giving two matched-link and two wrong-link cells. All models are random-intercept GLMMs fitted with `glmmTMB`, using the same `group * condition` fixed-effect formula. The separate fitted-curve illustration uses a grouped-binomial dataset with 1,000 observational units and 60 trials per unit, with one `cbind(correct, incorrect)` response per unit; it is shown in Section S5, @fig-logit-probit-fitted.
+Generating and fitted links are fully crossed (logit and probit in both roles), giving two matched-link and two wrong-link cells. All models are random-intercept GLMMs fitted with `glmmTMB`, using the same `group * condition` fixed-effect formula.
 
 ```{r}
 #| label: tbl-rejection-within-family
@@ -715,7 +717,7 @@ The diagnostic simulation ties each of the five link-misspecification scenarios 
 
 *The chance-corrected fits in D2* use the `psyphy::mafc.logit(2)` link and the same subject random intercept as the standard-logit GLMM. DHARMa operates directly on the fitted `merMod` object. The Pregibon-style extension, when estimable, refits the same GLMM, with the same `nAGQ`, after adding the squared fixed-effects linear predictor.
 
-*The same-formula Akaike information criterion (AIC) comparison* contrasts the correct-link and the wrong-link interaction models, holding the response data, the likelihood family, and the structural formula fixed, so only the mean-link mapping varies. Each replication is assigned to the link with the lower AIC, without an inconclusive category, so the rows "AIC favors correct link" and "AIC favors wrong link" in @tbl-diagnostic-breakdown sum to 100% of the replications in which both AIC values are available.
+*The same-formula Akaike information criterion (AIC) comparison* contrasts the correct-link and the wrong-link interaction models, holding the response data, the likelihood family, and the structural formula fixed, so only the mean-link mapping varies. Each replication is assigned to the link with the lower AIC, without an inconclusive category, so the rows "AIC favors correct link" and "AIC favors wrong link" in @tbl-diagnostic-breakdown sum to 100% of the replications in which both AIC values are available. To describe how strongly AIC separates the two links, we also report the proportion of replications with $|\Delta\mathrm{AIC}| < 2$, following the rule of thumb that models within 2 AIC units of the best model have substantial support [@burnham2004, p. 271]; in these replications, the comparison does not clearly favor either link.
 
 # S5. Supplementary tables and figures
 
@@ -796,43 +798,6 @@ print_table_if_exists(
       check.names = FALSE
     )
   }
-)
-```
-
-## Logit and probit fitted curves
-
-Section S4 notes that the within-family comparison is also illustrated with a separate grouped-binomial dataset of 1,000 observational units and 60 trials per unit. @fig-logit-probit-fitted shows the two fitted curves, and @tbl-logit-probit-fitted the corresponding coefficients and AIC values.
-
-The illustration makes concrete why the two links are usually treated as interchangeable and why that is not sufficient for an interaction claim. Panel A shows fitted probabilities that are hard to tell apart by eye. Panel B plots their difference, which never exceeds about two probability points but is systematic rather than noisy: it changes sign across the predictor range, so the logit fit sits above the probit fit in some regions and below it in others. A difference between differences computed on one scale therefore cannot equal the same contrast computed on the other, which is the deterministic quantity tabulated in @tbl-within-family-deterministic. The coefficients in @tbl-logit-probit-fitted are on each model's own link scale and are not comparable across rows; the AIC values are comparable, and they differ by far more than the fitted probabilities do.
-
-```{r}
-#| label: fig-logit-probit-fitted
-#| fig-cap: "Logit and probit models fitted to the same grouped-binomial dataset."
-#| out-width: "80%"
-#| results: asis
-
-include_graphic_if_exists(
-  "figs", "logit-probit-fitted-example.pdf",
-  note_if_missing = "Logit-probit fitted-curve figure not available in this build."
-)
-```
-
-```{r}
-#| label: tbl-logit-probit-fitted
-#| tbl-cap: "Coefficients and AIC for the logit and probit models fitted to the grouped-binomial illustration dataset. Intercept and slope are on each model's own link scale, so they are not directly comparable across rows."
-#| disable-apaquarto-processing: true
-#| results: asis
-
-print_table_if_exists(
-  note_if_missing = "Logit-probit model results not available in this build.",
-  "tables", "model-results-logit-probit-fitted-example.csv",
-  transform = function(d) data.frame(
-    Model = tools::toTitleCase(d$model),
-    Intercept = fmt_num(d$intercept, 3),
-    Slope = fmt_num(d$slope, 3),
-    AIC = fmt_num(d$AIC, 1),
-    check.names = FALSE
-  )
 )
 ```
 
@@ -1259,7 +1224,7 @@ if (is.null(diag_calibration)) {
 
 # S6. Data, code, and computational environment
 
-All analyses were conducted in R [@rcoreteam2025, version 4.5.1], and the manuscript and this supplement were written in Quarto. Each simulation sets a fixed random seed, and the number of Monte Carlo replications and the significance level are recorded together with the saved results. Exact package versions are pinned with `renv` [@ushey2025renv], which is the source of truth for the computational environment; the key modeling dependencies are `lme4` [@bates2015] and `glmmTMB` [@brooks2017] for the mixed-model simulations, `psyphy` [@knoblauch2023psyphy] for the chance-corrected link, and `DHARMa` [@hartig2024] for the diagnostic checks. The complete data, analysis code, preregistration materials, and generated outputs are archived in the public repository associated with the article, so that every table and figure can be regenerated from the raw inputs.
+All analyses were conducted in R [@rcoreteam2025, version 4.6.0], and the manuscript and this supplement were written in Quarto. Each simulation sets a fixed random seed, and the number of Monte Carlo replications and the significance level are recorded together with the saved results. Exact package versions are pinned with `renv` [@ushey2025renv], which is the source of truth for the computational environment; the key modeling dependencies are `lme4` [@bates2015] and `glmmTMB` [@brooks2017] for the mixed-model simulations, `psyphy` [@knoblauch2023psyphy] for the chance-corrected link, and `DHARMa` [@hartig2024] for the diagnostic checks. The complete data, analysis code, preregistration materials, and generated outputs are archived in the public repository associated with the article, so that every table and figure can be regenerated from the raw inputs.
 
 The manuscript simulations use a small number of transparent scenarios. A broader precomputed sensitivity atlas (Supplement B) varies key parameters over a wider grid that includes them, together with the five diagnostic scenarios, and the Shiny app explores its compact summaries without running simulations interactively. Replication-level atlas results are intended for the public repository or OSF archive and are not required to render this supplement.
 

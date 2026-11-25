@@ -5,9 +5,12 @@ Le informazioni sono state raccolte il 24/11/2026, in sola lettura, sul cluster
 `slurm.dpss.psy.unipd.it`. Il progetto sul cluster è in
 `~/projects/git/Most_interactions_are_wrong`, al commit `2b3e34c`.
 
-Il `renv.lock` nella radice del repository non è stato toccato. È un'istantanea
-più vecchia (R 4.5.1) e non corrisponde all'ambiente che ha prodotto i risultati:
-per il confronto si veda `package-alignment-report.html`.
+Il `renv.lock` nella radice del repository è stato rigenerato il 25/11/2026 a
+partire da questo ambiente (vedi sotto, "Come è costruito `renv.lock`"). La
+versione precedente (R 4.5.1) non corrispondeva all'ambiente che ha prodotto i
+risultati ed è recuperabile dalla storia di git. Il report
+`package-alignment-report.html` confronta quella versione precedente con il
+cluster.
 
 ## File
 
@@ -83,15 +86,44 @@ Pacchetti chiave per le analisi:
 | reformulas | 0.4.4 | 24/08/2026 |
 | psyphy | 0.3 | 12/10/2026 |
 
-## Differenze con `renv.lock` (radice del repository)
+## Come è costruito `renv.lock` (radice del repository)
 
-- **Versione di R:** 4.6.0 invece di 4.5.1.
-- **Pacchetti in più nel lockfile del cluster:** 16 pacchetti che `renv` ha trovato
-  come dipendenze installate (per esempio `pbkrtest`, `broom`, `sandwich`,
-  `RcppArmadillo`).
-- **Pacchetti mancanti sul cluster:** 10 pacchetti che non sono installati:
-  `patchwork`, `readxl` e le loro dipendenze, più `reactable`/`reactR`. Servono
-  solo agli script che girano in locale (`scripts/01`, `scripts/02b`) e all'app
-  Shiny.
-- **Campo `Hash`:** il lockfile del cluster non lo ha. `renv` lo omette con
-  questo metodo di creazione e `renv::restore()` funziona comunque.
+Il lock di riferimento del progetto unisce due fonti, con priorità al cluster:
+
+1. **Tutti i pacchetti di `renv-cluster.lock`:** 114 pacchetti, con R 4.6.0 e le
+   versioni installate nell'env `r460`. Coprono le simulazioni, la diagnostica
+   e l'atlas, cioè tutto ciò che gira su slurm.
+2. **28 pacchetti usati solo dagli script che girano in locale**, con le versioni
+   installate sulla macchina locale il 25/11/2026. Li ha trovati
+   `renv::lockfile_create(type = "implicit")` scansionando il progetto.
+   - Per la review e le figure illustrative (`scripts/01`, `scripts/02b`):
+     `patchwork` e `readxl`.
+   - Per la preparazione del dataset (`Literature_review/`): `readr` e
+     `writexl`.
+   - Per Supplement B: `here` e `reactable`.
+   - Il resto sono dipendenze di questi pacchetti.
+
+Le versioni del lock precedente sono state scartate. I 10 pacchetti che c'erano
+solo lì sono tutti inclusi al punto 2, con la versione locale; la versione è
+cambiata solo per `patchwork` (1.3.0 → 1.3.2) e `hms` (1.1.3 → 1.1.4).
+
+`renv` non viene attivato dagli script, che girano con `Rscript --vanilla`. Per
+ricreare l'ambiente, in R 4.6.0:
+
+```r
+renv::restore()
+```
+
+Versione di R, librerie di sistema, BLAS e compilatori non sono fissati da
+`renv`: per quelli il riferimento è `environment-r460.yml`.
+
+## Note su `renv-cluster.lock`
+
+- **Pacchetti in più rispetto al lock precedente:** 16 pacchetti che `renv` ha
+  trovato come dipendenze installate (per esempio `pbkrtest`, `broom`,
+  `sandwich`, `RcppArmadillo`).
+- **Pacchetti mancanti sul cluster:** `patchwork`, `readxl` e le loro
+  dipendenze, più `reactable`/`reactR`. Servono solo agli script locali e a Supplement B;
+  nel lock di riferimento sono aggiunti dalla macchina locale.
+- **Campo `Hash`:** non c'è, perché `renv` lo omette con questo metodo di
+  creazione. `renv::restore()` funziona comunque.

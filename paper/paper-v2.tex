@@ -73,6 +73,7 @@
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \usepackage{longtable,booktabs,array}
+\newcounter{none} % for unnumbered tables
 \usepackage{calc} % for calculating minipage widths
 % Correct order of tables after \paragraph or \subparagraph
 \usepackage{etoolbox}
@@ -466,7 +467,7 @@ Nelder, 1989}; \citeproc{ref-nelderwedderburn1972}{Nelder \& Wedderburn,
 outcome family, which describes the response, and (2) the link function,
 which sets the scale on which effects combine (Box 1).
 
-\begin{tcolorbox}[enhanced jigsaw, titlerule=0mm, toprule=.15mm, opacitybacktitle=0.6, rightrule=.15mm, breakable, leftrule=.75mm, coltitle=black, bottomrule=.15mm, colback=white, bottomtitle=1mm, title={Box 1: Generalized linear models: outcome family and link function}, toptitle=1mm, arc=.35mm, colbacktitle=quarto-callout-note-color!10!white, left=2mm, colframe=quarto-callout-note-color-frame, opacityback=0]
+\begin{tcolorbox}[enhanced jigsaw, arc=.35mm, bottomrule=.15mm, bottomtitle=1mm, breakable, colback=white, colbacktitle=quarto-callout-note-color!10!white, colframe=quarto-callout-note-color-frame, coltitle=black, left=2mm, leftrule=.75mm, opacityback=0, opacitybacktitle=0.6, rightrule=.15mm, title={Box 1: Generalized linear models: outcome family and link function}, titlerule=0mm, toprule=.15mm, toptitle=1mm]
 
 The \emph{outcome family} is the distribution assumed for the response.
 It defines which values the outcome can take and how observations vary
@@ -718,6 +719,7 @@ stopped at 40 coded articles per journal and the number of records
 screened was not fixed by design.}{\label{tbl-current-practice}}}
 \vspace{-20pt}}
 
+{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.5500}}
   >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.0700}}
@@ -757,6 +759,7 @@ outcomes & 144 & 200 & 72.0\% & {[}65.4, 77.8{]} \\
 Gaussian-identity cases with at least one significant interaction & 124
 & 144 & 86.1\% & {[}79.5, 90.8{]} \\
 \end{longtable}
+}
 
 \end{table}
 
@@ -784,6 +787,7 @@ Categories are non-exclusive, so one article can contribute to more than
 one row.}{\label{tbl-review-outcome-types}}}
 \vspace{-20pt}}
 
+{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}lrrr@{}}
 \toprule\noalign{}
 Outcome type & n & Denom. & \% \\
@@ -800,6 +804,7 @@ Difference / distance scores & 17 & 200 & 8.5\% \\
 Counts / error counts & 9 & 200 & 4.5\% \\
 Correlations / associations & 8 & 200 & 4.0\% \\
 \end{longtable}
+}
 
 \end{table}
 
@@ -889,8 +894,8 @@ Every scenario of every simulation was replicated 3,000 times, with a
 new dataset in each replication. A rate near .05 therefore has a Monte
 Carlo standard error of about 0.4 percentage points, and Supplement A
 reports Wilson 95\% confidence intervals for every rate. All analyses
-were conducted in R (\citeproc{ref-rcoreteam2025}{R Core Team, 2025},
-version 4.5.1). Mixed models were fitted with \texttt{lme4}
+were conducted in R (\citeproc{ref-rcoreteam2025}{R Core Team, 2026},
+version 4.6.0). Mixed models were fitted with \texttt{lme4}
 (\citeproc{ref-bates2015}{Bates et al., 2015}) and \texttt{glmmTMB}
 (\citeproc{ref-brooks2017}{Brooks et al., 2017}), the chance-corrected
 link was taken from \texttt{psyphy}
@@ -1335,6 +1340,7 @@ and Supplement B extends them across sample sizes and effect sizes.
 scenarios.}{\label{tbl-diagnostic-scenarios}}}
 \vspace{-20pt}}
 
+{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.2000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.2100}}
@@ -1371,6 +1377,7 @@ Binary continuous predictor & probit \(\rightarrow\) logit & 0.07 &
 Gamma mean response time & log \(\rightarrow\) inverse & 0.31 &
 0.00--0.02 / 0.00--0.06 & 0.04 / 0.32 & 0.80 \\
 \end{longtable}
+}
 
 \vspace{-20pt}
 \noindent \emph{Note.} In~each replication the same data were fitted
@@ -1482,6 +1489,7 @@ it depends on the link, this should be disclosed
 across common psychological outcomes.}{\label{tbl-link-aware-workflow}}}
 \vspace{-20pt}}
 
+{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.4200}}
@@ -1522,6 +1530,7 @@ Inverse Gaussian, or transformed Gaussian, matched to absolute,
 proportional, reciprocal, or transformed change. & Compare raw-, log-,
 and response-scale summaries; inspect tail fit and predicted values. \\
 \end{longtable}
+}
 
 \end{table}
 
@@ -1638,7 +1647,7 @@ The protocol of the literature review is available at
 
 \section{References}\label{references}
 
-\phantomsection\label{refs}
+\protect\phantomsection\label{refs}
 \begin{CSLReferences}{1}{0}
 \bibitem[\citeproctext]{ref-agresti2002}
 Agresti, A. (2002). \emph{Categorical data analysis} (2nd ed.). John
@@ -1709,8 +1718,8 @@ Methods}, \emph{29}(6), 1164--1179.
 \url{https://doi.org/10.1037/met0000532}
 
 \bibitem[\citeproctext]{ref-dunnanderson2026}
-Dunn, J. C., \& Anderson, L. M. (2026). The Monotonic Linear Model:
-Testing for Removable Interactions. \emph{Psychological Methods},
+Dunn, J. C., \& Anderson, L. M. (2026). The monotonic linear model:
+Testing for removable interactions. \emph{Psychological Methods},
 \emph{31}(4), 585--606. \url{https://doi.org/10.1037/met0000626}
 
 \bibitem[\citeproctext]{ref-dunnsmyth1996}
@@ -1739,8 +1748,8 @@ psychophysical data in {R}}.
 \url{https://CRAN.R-project.org/package=psyphy}
 
 \bibitem[\citeproctext]{ref-knoblauch2012}
-Knoblauch, K., \& Maloney, L. T. (2012). \emph{Modeling Psychophysical
-Data in {R}}. Springer. \url{https://doi.org/10.1007/978-1-4614-4475-6}
+Knoblauch, K., \& Maloney, L. T. (2012). \emph{Modeling psychophysical
+data in {R}}. Springer. \url{https://doi.org/10.1007/978-1-4614-4475-6}
 
 \bibitem[\citeproctext]{ref-liddellkruschke2018}
 Liddell, T. M., \& Kruschke, J. K. (2018). Analyzing ordinal data with
@@ -1789,7 +1798,7 @@ presenting nonlinear interaction effects. \emph{Sociological Science},
 
 \bibitem[\citeproctext]{ref-mustillo2018}
 Mustillo, S. A., Lizardo, O. A., \& McVeigh, R. M. (2018). Editors{'}
-Comment: A Few Guidelines for Quantitative Submissions. \emph{American
+comment: A few guidelines for quantitative submissions. \emph{American
 Sociological Review}, \emph{83}(6), 1281--1283.
 \url{https://doi.org/10.1177/0003122418806282}
 
@@ -1805,26 +1814,26 @@ models. \emph{Journal of the Royal Statistical Society Series C: Applied
 Statistics}, \emph{29}(1), 15--24. \url{https://doi.org/10.2307/2346405}
 
 \bibitem[\citeproctext]{ref-rcoreteam2025}
-R Core Team. (2025). \emph{R: A language and environment for statistical
+R Core Team. (2026). \emph{R: A language and environment for statistical
 computing}. R Foundation for Statistical Computing.
 \url{https://www.R-project.org/}
 
 \bibitem[\citeproctext]{ref-rimpler2026}
 Rimpler, A., Kiers, H. A. L., \& Ravenzwaaij, D. van. (2026). Anything
-Goes: Statistical Interactions Without Substantive Theory.
+goes: Statistical interactions without substantive theory.
 \emph{Computational Brain \& Behavior}.
 \url{https://doi.org/10.1007/s42113-026-00305-8}
 
 \bibitem[\citeproctext]{ref-rohrer2026}
-Rohrer, J. M., \& Arel-Bundock, V. (2026). Models as Prediction
-Machines: How to Convert Confusing Coefficients Into Clear Quantities.
+Rohrer, J. M., \& Arel-Bundock, V. (2026). Models as prediction
+machines: How to convert confusing coefficients into clear quantities.
 \emph{Advances in Methods and Practices in Psychological Science},
 \emph{9}(2), 25152459261424825.
 \url{https://doi.org/10.1177/25152459261424825}
 
 \bibitem[\citeproctext]{ref-rohrer2021}
-Rohrer, J. M., \& Arslan, R. C. (2021). Precise Answers to Vague
-Questions: Issues With Interactions. \emph{Advances in Methods and
+Rohrer, J. M., \& Arslan, R. C. (2021). Precise answers to vague
+questions: Issues with interactions. \emph{Advances in Methods and
 Practices in Psychological Science}, \emph{4}(2), 25152459211007368.
 \url{https://doi.org/10.1177/25152459211007368}
 
